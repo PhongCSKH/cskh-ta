@@ -55,11 +55,12 @@ import {
   Clock,
   CheckCircle2,
   ChevronDown,
+  ArrowRightLeft,
   Image as ImageIcon
 } from 'lucide-react';
 
 // =========================================================================
-// ⚠️ ĐỒNG BỘ CẤU HÌNH FIREBASE THỰC TẾ CSKH-TA
+// ĐỒNG BỘ CẤU HÌNH FIREBASE THỰC TẾ CSKH-TA
 // =========================================================================
 const defaultFirebaseConfig = {
   apiKey: "AIzaSyBMmXRbUFvXRsUH6anb22sKlY8JlqiF7Lk",
@@ -70,7 +71,6 @@ const defaultFirebaseConfig = {
   appId: "1:271160621415:web:778102be1efcd5ba4717c2"
 };
 
-// Cấu hình luôn bật vì thông số đã được điền chính xác
 const isFirebaseConfigured = true;
 
 let firebaseConfig = defaultFirebaseConfig;
@@ -127,6 +127,16 @@ const defaultSystemSettings = {
   discountFormulaType: 'total_minus_insurance_advance'
 };
 
+// Định nghĩa 6 trạng thái trong hành trình khách hàng VIP
+const workflowStatuses = [
+  { id: 'Waiting', label: 'Chờ Tiếp Đón', color: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-400' },
+  { id: 'Examining', label: 'Đang Khám Lâm Sàng', color: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
+  { id: 'Testing', label: 'Đang Làm CLS/CĐHA', color: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
+  { id: 'Reviewing', label: 'Chờ Kết Luận', color: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
+  { id: 'Pharmacy', label: 'Đang Chờ Thuốc', color: 'bg-yellow-50 text-yellow-800 border-yellow-200', dot: 'bg-yellow-500' },
+  { id: 'Completed', label: 'Đã Hoàn Tất', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' }
+];
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState('nhanvien');
@@ -176,7 +186,8 @@ export default function App() {
     discountRate: 0,
     approvedDiscountAmount: 0,
     totalAmount: 0,
-    approvalImage: ''
+    approvalImage: '',
+    status: 'Waiting' // Mặc định trạng thái chờ tiếp đón
   });
 
   const [newSpecialtyInput, setNewSpecialtyInput] = useState('');
@@ -193,15 +204,13 @@ export default function App() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Hàm kích hoạt đẩy thông báo trực tiếp lên màn hình (Mobile/Desktop custom Push)
+  // Hàm kích hoạt đẩy thông báo trực tiếp lên màn hình
   const triggerPushAlert = (title, message, type = 'info') => {
     const id = Date.now() + Math.random().toString(36).substr(2, 9);
     const newAlert = { id, title, message, type };
     
-    // Thêm vào danh sách thông báo đẩy đang hoạt động trên màn hình
     setActivePushAlerts(prev => [newAlert, ...prev]);
     
-    // Thêm vào lịch sử Trung tâm thông báo
     setNotifications(prev => [
       {
         id,
@@ -214,7 +223,6 @@ export default function App() {
       ...prev
     ]);
 
-    // Tự động ẩn thông báo đẩy sau 6 giây
     setTimeout(() => {
       setActivePushAlerts(prev => prev.filter(alert => alert.id !== id));
     }, 6000);
@@ -222,7 +230,6 @@ export default function App() {
 
   // --- THIẾT LẬP FAVICON & PHIÊN ĐĂNG NHẬP ---
   useEffect(() => {
-    // 1. Thay đổi Favicon của trang web sang logo bệnh viện
     const faviconUrl = 'https://iili.io/F66acRs.png';
     const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
     link.type = 'image/png';
@@ -230,7 +237,6 @@ export default function App() {
     link.href = faviconUrl;
     document.getElementsByTagName('head')[0].appendChild(link);
 
-    // 2. Khởi tạo danh sách nhân sự mẫu vào LocalStorage nếu chưa có
     const savedStaff = localStorage.getItem('crm_staff_accounts');
     if (!savedStaff) {
       localStorage.setItem('crm_staff_accounts', JSON.stringify(mockStaffAccounts));
@@ -239,7 +245,6 @@ export default function App() {
       setStaffList(JSON.parse(savedStaff));
     }
 
-    // 3. Khởi tạo cấu hình hệ thống mẫu vào LocalStorage nếu chưa có
     const savedSettings = localStorage.getItem('local_settings');
     if (!savedSettings) {
       localStorage.setItem('local_settings', JSON.stringify(defaultSystemSettings));
@@ -248,7 +253,6 @@ export default function App() {
       setSystemSettings(JSON.parse(savedSettings));
     }
 
-    // 4. Khôi phục phiên đăng nhập trước đó (nếu có)
     const savedUser = localStorage.getItem('crm_current_user');
     if (savedUser) {
       const parsedUser = JSON.parse(savedUser);
@@ -256,7 +260,6 @@ export default function App() {
       setUserRole(parsedUser.role || 'nhanvien');
     }
 
-    // 5. Đồng bộ Firebase nếu cấu hình hợp lệ và kết nối thành công
     if (auth && db && (isFirebaseConfigured || typeof __firebase_config !== 'undefined')) {
       setIsFirebaseConnected(true);
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -300,7 +303,6 @@ export default function App() {
       const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
       const settingsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
 
-      // Đồng bộ cấu hình công thức từ DB
       const unsubscribeSettings = onSnapshot(settingsDocRef, (docSnap) => {
         if (docSnap.exists()) {
           setSystemSettings(docSnap.data());
@@ -309,7 +311,6 @@ export default function App() {
         }
       }, (err) => console.error(err));
 
-      // Lắng nghe thay đổi của bệnh nhân để tự động đẩy thông báo
       const unsubscribePatients = onSnapshot(patientsCol, (snapshot) => {
         const list = [];
         snapshot.forEach((docSnap) => {
@@ -317,31 +318,29 @@ export default function App() {
         });
         list.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        // Không hiển thị thông báo hàng loạt khi vừa load app lần đầu
         if (isInitialMount.current) {
           isInitialMount.current = false;
         } else {
           snapshot.docChanges().forEach((change) => {
             const data = change.doc.data();
-            // Chỉ gửi thông báo nếu thay đổi đến từ các Client khác (hoặc chính chủ vừa submit xong)
             if (change.type === "added") {
               triggerPushAlert(
-                `🆕 Đã tiếp nhận khách ${data.tier}`,
-                `Bệnh nhân: ${data.name} (PID: ${data.pid}) vừa được đăng ký khám chuyên khoa.`,
+                `🆕 Tiếp nhận khách ${data.tier}`,
+                `Bệnh nhân: ${data.name} (PID: ${data.pid}) đã được tiếp đón.`,
                 'info'
               );
             }
             if (change.type === "modified") {
               triggerPushAlert(
-                `🔄 Cập nhật hồ sơ VIP`,
-                `Hồ sơ của khách hàng ${data.name} (PID: ${data.pid}) vừa được cập nhật thay đổi.`,
+                `🔄 Cập nhật hành trình`,
+                `Hồ sơ khách hàng ${data.name} (PID: ${data.pid}) vừa đổi trạng thái: ${data.status || 'Chờ Tiếp Đón'}.`,
                 'success'
               );
             }
             if (change.type === "removed") {
               triggerPushAlert(
-                `⚠️ Đã gỡ bỏ hồ sơ`,
-                `Một hồ sơ khách VIP vừa bị xóa khỏi danh sách giám sát.`,
+                `⚠️ Gỡ bỏ hồ sơ`,
+                `Hồ sơ của một bệnh nhân VIP vừa bị gỡ khỏi hệ thống.`,
                 'error'
               );
             }
@@ -360,7 +359,6 @@ export default function App() {
         unsubscribePatients();
       };
     } else {
-      // Offline Local Mode
       const savedPatients = localStorage.getItem('local_patients');
       if (savedPatients) {
         setPatients(JSON.parse(savedPatients));
@@ -432,7 +430,6 @@ export default function App() {
       setUserRole(account.role);
       localStorage.setItem('crm_current_user', JSON.stringify(account));
       showNotification(`Chào mừng ${account.name} (${account.title}) quay trở lại!`);
-      // Đẩy thông báo chào mừng lên góc màn hình di động
       triggerPushAlert("👋 Đăng nhập thành công", `Chào mừng ${account.name} đã truy cập CRM.`);
     } else {
       setAuthError('Email hoặc mật khẩu không chính xác. Thử chọn nhanh tài khoản mẫu bên dưới.');
@@ -449,8 +446,56 @@ export default function App() {
     showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
   };
 
+  // --- CẬP NHẬT TRẠNG THÁI KANBAN (Phân quyền chuẩn image_ba8ec5.png) ---
+  const handleUpdateStatus = async (patientId, newStatus) => {
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) return;
+
+    // Ràng buộc nghiêm ngặt vai trò nhanvien
+    if (userRole === 'nhanvien') {
+      const currentStatus = patient.status || 'Waiting';
+      const isAllowed = 
+        (currentStatus === 'Waiting' && newStatus === 'Examining') || 
+        (currentStatus === 'Pharmacy' && newStatus === 'Completed');
+
+      if (!isAllowed) {
+        showNotification("Lỗi: Tài khoản NHÂN VIÊN chỉ được phép chuyển [Chờ Tiếp Đón ➔ Đang Khám] và [Chờ Thuốc ➔ Hoàn Tất]!", "error");
+        return;
+      }
+    }
+
+    try {
+      if (isFirebaseConnected && db) {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'patients', patientId);
+        await updateDoc(docRef, {
+          status: newStatus,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentUser.name
+        });
+      } else {
+        const updatedList = patients.map(p => {
+          if (p.id === patientId) {
+            return { 
+              ...p, 
+              status: newStatus, 
+              updatedAt: new Date().toISOString(), 
+              updatedBy: currentUser.name 
+            };
+          }
+          return p;
+        });
+        setPatients(updatedList);
+        localStorage.setItem('local_patients', JSON.stringify(updatedList));
+        triggerPushAlert("🔄 Cập nhật hành trình (Local)", `Bệnh nhân ${patient.name} đã được chuyển sang trạng thái mới.`, "success");
+      }
+      showNotification("Đã cập nhật trạng thái hành trình khám!");
+    } catch (err) {
+      console.error(err);
+      showNotification("Lỗi đồng bộ trạng thái lên database!", "error");
+    }
+  };
+
   const handleInputChange = (field, val) => {
-    // NHÂN VIÊN không được quyền chỉnh sửa Tỷ lệ Duyệt Giảm theo image_ba8ec5.png
     if (field === 'discountRate' && userRole === 'nhanvien') {
       showNotification("Tài khoản NHÂN VIÊN không có quyền duyệt chiết khấu/giảm giá!", "error");
       return;
@@ -516,6 +561,7 @@ export default function App() {
 
     const payload = {
       ...formData,
+      status: formData.status || 'Waiting',
       updatedAt: new Date().toISOString(),
       updatedBy: currentUser.name
     };
@@ -531,7 +577,6 @@ export default function App() {
           showNotification("Đăng ký thành công hồ sơ khách VIP mới!");
         }
       } else {
-        // Local Mode Fallback (Tự kích hoạt thông báo khi offline)
         let updatedList = [...patients];
         if (currentId) {
           updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
@@ -575,7 +620,8 @@ export default function App() {
       discountRate: patient.discountRate || 0,
       approvedDiscountAmount: patient.approvedDiscountAmount || 0,
       totalAmount: patient.totalAmount || 0,
-      approvalImage: patient.approvalImage || ''
+      approvalImage: patient.approvalImage || '',
+      status: patient.status || 'Waiting'
     });
     setActiveTab('register'); // Chuyển sang Giao diện 2 khi bấm sửa
   };
@@ -725,6 +771,17 @@ export default function App() {
     return { totalPatients, vipCount, vvipCount, totalRevenue, totalDiscount, totalCollected };
   }, [filteredPatients]);
 
+  // Bộ lọc chuyên sâu chỉ lấy những bệnh nhân VIP đang ở trong quy trình Kanban của ngày hôm nay
+  const kanbanPatients = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return patients.filter(p => {
+      // Chỉ hiển thị trên Kanban nếu là ngày hôm nay, HOẶC trạng thái chưa hoàn tất (đang khám dở dang)
+      const isToday = p.date === today;
+      const isNotCompleted = p.status !== 'Completed';
+      return isToday || isNotCompleted;
+    });
+  }, [patients]);
+
   const unreadCount = useMemo(() => {
     return notifications.filter(n => !n.read).length;
   }, [notifications]);
@@ -737,44 +794,17 @@ export default function App() {
     setNotifications([]);
   };
 
-  const resetForm = () => {
-    setCurrentId(null);
-    setFormData({
-      name: '',
-      tier: 'VIP',
-      boardApproval: '',
-      notes: '',
-      pid: '',
-      date: new Date().toISOString().split('T')[0],
-      specialties: [],
-      ngoaiTru: 0,
-      capCuu: 0,
-      noiTru: 0,
-      ngoaiVien: 0,
-      phiKham: 0,
-      clsCdha: 0,
-      thuocVacxin: 0,
-      insuranceAdvance: 0,
-      discountRate: 0,
-      approvedDiscountAmount: 0,
-      totalAmount: 0,
-      approvalImage: ''
-    });
-  };
-
   // ==========================================
   // GIAO DIỆN ĐĂNG NHẬP (PREMIUM LIGHT LOGIN SCREEN)
   // ==========================================
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-gradient-to-tr from-slate-100 via-indigo-50/20 to-slate-200 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-800">
-        {/* Vòng tròn trang trí nền sáng */}
         <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/5 rounded-full filter blur-3xl -translate-x-12 -translate-y-12"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full filter blur-3xl translate-x-12 translate-y-12"></div>
 
         <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-100 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6 animate-scaleIn">
           <div className="text-center space-y-3">
-            {/* Logo Bệnh Viện Tích Hợp Đồng Bộ */}
             <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2.5 shadow-sm border border-slate-100 mx-auto">
               <img 
                 src="https://iili.io/F66acRs.png" 
@@ -1175,21 +1205,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* ⚠️ CẢNH BÁO CHƯA CẤU HÌNH THỰC TẾ TRÊN DASHBOARD */}
-            {!isFirebaseConnected && (
-              <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 text-xs text-amber-800 font-bold flex items-center gap-3 shadow-xs">
-                <Lock className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-black">Hệ thống đang hoạt động ở chế độ Offline (Cục bộ)</p>
-                  <p className="font-medium text-slate-500 mt-1 leading-relaxed">
-                    Dữ liệu bạn vừa nhập chỉ được lưu tạm trên trình duyệt của máy bạn. Bạn cần cập nhật thông số <code className="bg-slate-100 px-1.5 py-0.5 rounded text-amber-700 font-mono">defaultFirebaseConfig</code> trong tệp <strong className="text-indigo-600">App.jsx</strong> tại tài liệu **Canvas** bằng API Key thực tế của bạn để kích hoạt khả năng Realtime đồng bộ xuyên suốt các thiết bị khác.
-                  </p>
-                </div>
-              </div>
-            )}
-
             {/* HIỂN THỊ CHỈ SỐ TÀI CHÍNH */}
-            {/* Tương thích tuyệt đối với hình ảnh {98517A7C-1401-4F6A-A33B-5D86B5B98B39}.png */}
             {(userRole === 'admin' || userRole === 'lanhdao') ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1266,6 +1282,115 @@ export default function App() {
                 {"Phiên làm việc: Bạn đăng nhập bằng quyền "}{userRole.toUpperCase()}{". Các chỉ số thống kê từ hình ảnh \"{98517A7C-1401-4F6A-A33B-5D86B5B98B39}.png\" bị ẩn vì lý do bảo mật tài chính y khoa nội bộ."}
               </div>
             )}
+
+            {/* ====================================================== */}
+            {/* 🆕 BẢNG KANBAN WORKFLOW HÀNH TRÌNH KHÁM TRONG NGÀY (CHỈ HIỂN THỊ TẠI GIAO DIỆN 1) */}
+            {/* ====================================================== */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
+                    Bản Đồ Hành Trình Khám & Điều Trị VIP (Realtime Kanban)
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng. Kéo thả ảo hoặc chuyển nhanh trạng thái.</p>
+                </div>
+                <div className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-[10px] font-black rounded-lg">
+                  Tổng lượt khám: {kanbanPatients.length}
+                </div>
+              </div>
+
+              {/* Layout Kanban Board */}
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 overflow-x-auto pb-4">
+                {workflowStatuses.map(col => {
+                  // Lọc bệnh nhân thuộc cột này
+                  const colPatients = kanbanPatients.filter(p => (p.status || 'Waiting') === col.id);
+
+                  return (
+                    <div 
+                      key={col.id} 
+                      className="bg-slate-50/60 rounded-2xl p-3 border border-slate-100 flex flex-col min-w-[180px] min-h-[350px]"
+                    >
+                      {/* Tiêu đề cột */}
+                      <div className="flex justify-between items-center pb-3 border-b border-slate-200/50 mb-3">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className={`w-2 h-2 rounded-full ${col.dot}`}></span>
+                          <span className="text-[10px] font-black text-slate-700 truncate">{col.label}</span>
+                        </div>
+                        <span className="text-[10px] font-black bg-white px-2 py-0.5 rounded-md border border-slate-100 text-slate-500">
+                          {colPatients.length}
+                        </span>
+                      </div>
+
+                      {/* Danh sách thẻ bệnh nhân của cột */}
+                      <div className="flex-1 space-y-3 overflow-y-auto max-h-[350px]">
+                        {colPatients.map(p => (
+                          <div 
+                            key={p.id}
+                            className="bg-white p-3 rounded-xl border border-slate-150/80 shadow-2xs hover:shadow-xs transition duration-150 space-y-2.5 relative group"
+                          >
+                            {/* Header của thẻ */}
+                            <div className="flex justify-between items-start gap-1">
+                              <span className="text-[8px] text-indigo-600 font-mono font-black truncate">PID: {p.pid}</span>
+                              <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
+                                p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                              }`}>
+                                {p.tier}
+                              </span>
+                            </div>
+
+                            {/* Tên khách hàng */}
+                            <div className="font-extrabold text-[11px] text-slate-800 leading-tight truncate" title={p.name}>
+                              {p.name}
+                            </div>
+
+                            {/* Chuyên khoa tiếp nhận */}
+                            <div className="flex flex-wrap gap-0.5">
+                              {p.specialties?.slice(0, 2).map((spec, i) => (
+                                <span key={i} className="text-[8px] bg-slate-50 text-slate-500 px-1 py-0.2 rounded font-semibold truncate max-w-[80px]">
+                                  {spec}
+                                </span>
+                              ))}
+                              {p.specialties?.length > 2 && (
+                                <span className="text-[8px] text-slate-400 font-bold px-1">+{p.specialties.length - 2}</span>
+                              )}
+                            </div>
+
+                            {/* Dropdown điều phối hành trình nhanh */}
+                            <div className="space-y-1">
+                              <label className="text-[8px] text-slate-400 font-bold block uppercase">Chuyển trạng thái:</label>
+                              <select
+                                value={p.status || 'Waiting'}
+                                onChange={(e) => handleUpdateStatus(p.id, e.target.value)}
+                                className="w-full px-1.5 py-1 text-[9px] font-black border border-slate-200 rounded-md bg-white text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                              >
+                                {workflowStatuses.map(st => (
+                                  <option key={st.id} value={st.id}>{st.label}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Footer thông tin thời gian cập nhật */}
+                            <div className="flex justify-between items-center text-[8px] text-slate-400 border-t border-slate-100 pt-1.5 font-semibold">
+                              <span className="truncate">By: {p.updatedBy?.split(' ')[0] || 'Lễ tân'}</span>
+                              <span className="flex-shrink-0 text-slate-300">
+                                {p.updatedAt ? new Date(p.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '---'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+
+                        {colPatients.length === 0 && (
+                          <div className="text-center py-8 text-slate-300 text-[10px] font-bold border-2 border-dashed border-slate-100 rounded-xl">
+                            Trống
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Khối quản lý lối tắt tác vụ */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1979,7 +2104,7 @@ export default function App() {
                 <div>
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
-                    Cấu Hinh Các Trường Cộng Tổng
+                    Cấu Hình Các Trường Cộng Tổng
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">Lựa chọn các loại chi phí phát sinh để tự động tính vào [Tổng cộng]:</p>
                 </div>
