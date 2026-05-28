@@ -1,13 +1,27 @@
-  - name: Thiết lập NodeJS
-    uses: actions/setup-node@v4
-    with:
-      node-version: 20 # Sửa lỗi cú pháp node-size thành node-version chuẩn
+name: Deploy to Firebase Hosting
 
-  - name: Cài đặt thư viện phụ thuộc
-    run: npm install
+on:
+  push:
+    branches:
+      - main # Chạy tự động mỗi khi bạn lưu/commit code vào nhánh main
 
-  - name: Biên dịch ứng dụng (Build)
-    run: npm run build
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v4
 
-  - name: Đẩy lên Firebase Hosting bằng Token
-    run: npx firebase-tools deploy --token "${{ secrets.FIREBASE_TOKEN }}" --only hosting
+      - name: Thiết lập NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cài đặt thư viện phụ thuộc
+        run: npm install
+
+      - name: Biên dịch ứng dụng (Build)
+        run: npm run build
+
+      - name: Đẩy lên Firebase Hosting bằng Token
+        run: npx firebase-tools deploy --token "${{ secrets.FIREBASE_TOKEN }}" --only hosting
