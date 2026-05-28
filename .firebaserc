@@ -1,4 +1,3 @@
-```markdown:Cấu hình liên kết dự án:.firebaserc
 {
   "projects": {
     "default": "cskh-ta"
