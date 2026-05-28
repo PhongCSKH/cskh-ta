@@ -15,8 +15,7 @@ import {
   getAuth, 
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
-  createUserWithEmailAndPassword
+  onAuthStateChanged 
 } from 'firebase/auth';
 import { 
   Users, 
@@ -57,7 +56,9 @@ import {
   CheckCircle2,
   ChevronDown,
   ArrowRightLeft,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Scan,
+  Smartphone
 } from 'lucide-react';
 
 const defaultFirebaseConfig = {
@@ -127,6 +128,7 @@ const workflowStatuses = [
   { id: 'Examining', label: 'Đang Khám Lâm Sàng', color: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
   { id: 'Testing', label: 'Đang Làm CLS/CĐHA', color: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
   { id: 'Reviewing', label: 'Chờ Kết Luận', color: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
+  { id: 'Approving', label: 'Chờ HĐQT Duyệt', color: 'bg-rose-50 text-rose-700 border-rose-200', dot: 'bg-rose-500' },
   { id: 'Pharmacy', label: 'Đang Chờ Thuốc', color: 'bg-yellow-50 text-yellow-800 border-yellow-200', dot: 'bg-yellow-500' },
   { id: 'Completed', label: 'Đã Hoàn Tất', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' }
 ];
@@ -147,6 +149,8 @@ export default function App() {
   const [authError, setAuthError] = useState('');
 
   const [confirmModal, setConfirmModal] = useState({ show: false, action: null, message: '', title: '' });
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'nhanvien', pass: '123456', title: '' });
 
@@ -181,19 +185,13 @@ export default function App() {
 
   const [newSpecialtyInput, setNewSpecialtyInput] = useState('');
   const [notification, setNotification] = useState(null);
+  const [iosNotificationStatus, setIosNotificationStatus] = useState('unknown');
 
   const [notifications, setNotifications] = useState([]);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const [activePushAlerts, setActivePushAlerts] = useState([]);
   const isInitialMount = useRef(true);
-
-  const [showRegisterCloudModal, setShowRegisterCloudModal] = useState(false);
-  const [regCloudEmail, setRegCloudEmail] = useState('');
-  const [regCloudPassword, setRegCloudPassword] = useState('');
-  const [regCloudName, setRegCloudName] = useState('');
-  const [regCloudRole, setRegCloudRole] = useState('lanhdao');
-  const [regCloudTitle, setRegCloudTitle] = useState('Thành viên HĐQT');
-  const [regError, setRegError] = useState('');
+  const notificationCenterRef = useRef(null);
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
@@ -220,13 +218,19 @@ export default function App() {
 
     if (Notification.permission === 'granted') {
       try {
-        new Notification(title, {
-          body: message,
-          icon: 'https://iili.io/F66acRs.png',
-          badge: 'https://iili.io/F66acRs.png'
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification(title, {
+            body: message,
+            icon: 'https://iili.io/F66acRs.png',
+            badge: 'https://iili.io/F66acRs.png'
+          });
         });
       } catch (e) {
-        console.warn(e);
+        try {
+          new Notification(title, { body: message, icon: 'https://iili.io/F66acRs.png' });
+        } catch (err) {
+          console.warn(err);
+        }
       }
     }
 
@@ -235,53 +239,63 @@ export default function App() {
     }, 6000);
   };
 
-  const initializeDefaultCloudData = async () => {
-    if (!db) return;
-    try {
-      const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
-      const configSnap = await getDoc(configRef);
-      if (!configSnap.exists()) {
-        await setDoc(configRef, defaultSystemSettings);
-      }
-      const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
-      const samplePatientRef = doc(patientsCol, 'sample_id_001');
-      const sampleSnap = await getDoc(samplePatientRef);
-      if (!sampleSnap.exists()) {
-        await setDoc(samplePatientRef, {
-          name: "Nguyễn Văn Test",
-          pid: "88888888",
-          tier: "VVIP",
-          boardApproval: "Sếp Dũng",
-          notes: "Hồ sơ bàn giao tiếp đón đặc quyền",
-          date: new Date().toISOString().split('T')[0],
-          specialties: ["Nội tổng quát"],
-          ngoaiTru: 800000,
-          capCuu: 0,
-          noiTru: 0,
-          ngoaiVien: 0,
-          phiKham: 0,
-          clsCdha: 0,
-          thuocVacxin: 0,
-          insuranceAdvance: 0,
-          discountRate: 0,
-          approvedDiscountAmount: 0,
-          totalAmount: 800000,
-          status: "Waiting",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          updatedBy: "Hệ thống"
-        });
-      }
-    } catch (e) {
-      console.error(e);
+  const checkIosPermissionStatus = () => {
+    if ('Notification' in window) {
+      setIosNotificationStatus(Notification.permission);
     }
   };
 
-  useEffect(() => {
-    if (Notification.permission === 'default') {
-      Notification.requestPermission();
+  const requestIosNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      showNotification("Thiết bị hoặc trình duyệt này không hỗ trợ thông báo đẩy.", "error");
+      return;
     }
 
+    try {
+      if ('serviceWorker' in navigator) {
+        await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      }
+      
+      const permission = await Notification.requestPermission();
+      setIosNotificationStatus(permission);
+      
+      if (permission === 'granted') {
+        showNotification("Đã kích hoạt thành công thông báo trên thiết bị!");
+        triggerPushAlert("🟢 Đã bật thông báo", "Hệ thống cảnh báo ngầm sẵn sàng hoạt động thời gian thực.");
+      } else {
+        showNotification("Quyền thông báo bị từ chối. Hãy kiểm tra cài đặt iPhone.", "error");
+      }
+    } catch (error) {
+      console.error(error);
+      showNotification("Không thể xin quyền. Hãy mở ứng dụng từ Màn hình chính.", "error");
+    }
+  };
+
+  const handleSimulateScan = () => {
+    setIsScanning(true);
+    setTimeout(() => {
+      const generatedPid = Math.floor(10000000 + Math.random() * 90000000).toString();
+      handleInputChange('pid', generatedPid);
+      setIsScanning(false);
+      showNotification("Đã nhận diện mã bệnh nhân thành công!");
+    }, 2500);
+  };
+
+  useEffect(() => {
+    checkIosPermissionStatus();
+
+    function handleClickOutside(event) {
+      if (notificationCenterRef.current && !notificationCenterRef.current.contains(event.target)) {
+        setShowNotificationCenter(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
     const faviconUrl = 'https://iili.io/F66acRs.png';
     const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
     link.type = 'image/png';
@@ -326,14 +340,13 @@ export default function App() {
               const fallbackUser = { 
                 uid: firebaseUser.uid, 
                 email: firebaseUser.email, 
-                role: 'lanhdao', 
+                role: 'nhanvien', 
                 name: firebaseUser.email.split('@')[0],
-                title: 'Thành viên HĐQT'
+                title: 'Nhân viên chuyên ban'
               };
               setCurrentUser(fallbackUser);
-              setUserRole('lanhdao');
+              setUserRole('nhanvien');
             }
-            await initializeDefaultCloudData();
           } catch (e) {
             console.error(e);
           }
@@ -378,8 +391,8 @@ export default function App() {
             const statusLabel = workflowStatuses.find(s => s.id === data.status)?.label || data.status;
             if (change.type === "added") {
               triggerPushAlert(
-                `🆕 Tiếp nhận khách ${data.tier}`,
-                `Bệnh nhân: ${data.name} (PID: ${data.pid}) đã được tiếp đón trạng thái: ${statusLabel}.`,
+                `🆕 Tiếp nhận hành trình VIP`,
+                `Bệnh nhân: ${data.name} (PID: ${data.pid}) đã được tiếp đón vào luồng: ${statusLabel}.`,
                 'info'
               );
             }
@@ -448,8 +461,8 @@ export default function App() {
   useEffect(() => {
     setFormData(prev => ({
       ...prev,
-      totalAmount: calculatedSums.totalAmount,
-      approvedDiscountAmount: calculatedSums.approvedDiscountAmount
+      totalAmount: prev.totalAmount === undefined || prev.totalAmount === calculatedSums.totalAmount ? calculatedSums.totalAmount : prev.totalAmount,
+      approvedDiscountAmount: prev.approvedDiscountAmount === undefined || prev.approvedDiscountAmount === calculatedSums.approvedDiscountAmount ? calculatedSums.approvedDiscountAmount : prev.approvedDiscountAmount
     }));
   }, [calculatedSums.totalAmount, calculatedSums.approvedDiscountAmount]);
 
@@ -481,38 +494,10 @@ export default function App() {
       setCurrentUser(account);
       setUserRole(account.role);
       localStorage.setItem('crm_current_user', JSON.stringify(account));
-      showNotification(`Chào mừng ${account.name} (${account.title}) quay trở lại!`);
+      showNotification(`Chào mừng ${account.name} quay trở lại!`);
       triggerPushAlert("👋 Đăng nhập thành công", `Chào mừng ${account.name} đã truy cập CRM.`);
     } else {
-      setAuthError('Email hoặc mật khẩu không chính xác. Thử chọn nhanh tài khoản mẫu bên dưới.');
-    }
-  };
-
-  const handleRegisterCloudAccount = async (e) => {
-    e.preventDefault();
-    setRegError('');
-    if (!regCloudEmail || !regCloudPassword || !regCloudName) {
-      setRegError('Vui lòng điền đầy đủ các thông tin đăng ký bắt buộc.');
-      return;
-    }
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, regCloudEmail, regCloudPassword);
-      const firebaseUser = userCredential.user;
-      const docPayload = {
-        uid: firebaseUser.uid,
-        name: regCloudName,
-        email: regCloudEmail,
-        role: regCloudRole,
-        title: regCloudTitle
-      };
-      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', firebaseUser.uid), docPayload);
-      await initializeDefaultCloudData();
-      setCurrentUser(docPayload);
-      setUserRole(regCloudRole);
-      setShowRegisterCloudModal(false);
-      showNotification("Đăng ký & Thiết lập quyền Cloud thành công!");
-    } catch (err) {
-      setRegError(err.message || 'Lỗi đăng ký tài khoản Cloud.');
+      setAuthError('Email hoặc mật khẩu không chính xác. Hãy liên hệ quản trị viên.');
     }
   };
 
@@ -537,7 +522,7 @@ export default function App() {
         (currentStatus === 'Pharmacy' && newStatus === 'Completed');
 
       if (!isAllowed) {
-        showNotification("Lỗi: Tài khoản NHÂN VIÊN chỉ được phép chuyển [Chờ Tiếp Đón ➔ Đang Khám] và [Chờ Thuốc ➔ Hoàn Tất]!", "error");
+        showNotification("Lỗi: Tài khoản nhân viên chỉ được phép chuyển trạng thái theo đúng luồng bàn giao quy định!", "error");
         return;
       }
     }
@@ -564,7 +549,7 @@ export default function App() {
         });
         setPatients(updatedList);
         localStorage.setItem('local_patients', JSON.stringify(updatedList));
-        triggerPushAlert("🔄 Cập nhật hành trình (Local)", `Bệnh nhân ${patient.name} đã được chuyển sang trạng thái mới.`, "success");
+        triggerPushAlert("🔄 Cập nhật hành trình (Cục bộ)", `Khách hàng ${patient.name} đã được cập nhật trạng thái mới.`, "success");
       }
       showNotification("Đã cập nhật trạng thái hành trình khám!");
     } catch (err) {
@@ -575,7 +560,7 @@ export default function App() {
 
   const handleInputChange = (field, val) => {
     if (field === 'discountRate' && userRole === 'nhanvien') {
-      showNotification("Tài khoản NHÂN VIÊN không có quyền duyệt chiết khấu/giảm giá!", "error");
+      showNotification("Tài khoản cấp nhân viên không có quyền duyệt tỷ lệ chiết khấu giảm giá!", "error");
       return;
     }
     setFormData(prev => ({ ...prev, [field]: val }));
@@ -602,7 +587,7 @@ export default function App() {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      showNotification("Ảnh công văn vượt quá 2MB!", "error");
+      showNotification("Ảnh công văn vượt quá giới hạn 2MB!", "error");
       return;
     }
 
@@ -620,7 +605,7 @@ export default function App() {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
         handleInputChange('approvalImage', compressedBase64);
-        showNotification("Đã đính kèm ảnh công văn thành công!");
+        showNotification("Đã đính kèm chứng từ phê duyệt thành công!");
       };
     };
     reader.readAsDataURL(file);
@@ -629,11 +614,11 @@ export default function App() {
   const savePatient = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      showNotification("Họ tên khách VIP không được bỏ trống!", "error");
+      showNotification("Họ và tên khách hàng không được để trống!", "error");
       return;
     }
     if (!formData.pid.trim()) {
-      showNotification("Mã bệnh nhân PID là bắt buộc!", "error");
+      showNotification("Mã định danh bệnh nhân PID là bắt buộc!", "error");
       return;
     }
 
@@ -649,22 +634,20 @@ export default function App() {
         const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
         if (currentId) {
           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payload);
-          showNotification("Đã cập nhật hồ sơ khách VIP thành công!");
+          showNotification("Cập nhật hồ sơ thành công!");
         } else {
           await addDoc(patientsCol, { ...payload, createdAt: new Date().toISOString() });
-          showNotification("Đăng ký thành công hồ sơ khách VIP mới!");
+          showNotification("Đã xử lý hồ sơ tiếp đón mới thành công!");
         }
       } else {
         let updatedList = [...patients];
         if (currentId) {
           updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
-          showNotification("Cập nhật thành công (Lưu cục bộ)!");
-          triggerPushAlert("🔄 Cập nhật hồ sơ (Offline)", `Hồ sơ khách VIP ${payload.name} vừa được thay đổi thành công.`, "success");
+          showNotification("Cập nhật thành công vào bộ nhớ thiết bị!");
         } else {
           const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
           updatedList.unshift(newDoc);
           showNotification("Đã lưu hồ sơ mới vào thiết bị!");
-          triggerPushAlert("🆕 Tiếp nhận khách VIP (Offline)", `Hồ sơ khách ${payload.name} (PID: ${payload.pid}) đã được lưu trữ cục bộ.`, "info");
         }
         setPatients(updatedList);
         localStorage.setItem('local_patients', JSON.stringify(updatedList));
@@ -673,7 +656,7 @@ export default function App() {
       setActiveTab('monitoring');
     } catch (err) {
       console.error(err);
-      showNotification("Có lỗi xảy ra hoặc bạn không đủ quyền ghi dữ liệu lên Cloud.", "error");
+      showNotification("Lỗi hệ thống hoặc bạn không đủ quyền cập nhật dữ liệu.", "error");
     }
   };
 
@@ -706,29 +689,28 @@ export default function App() {
 
   const deletePatient = (id) => {
     if (userRole === 'nhanvien') {
-      showNotification("Lỗi: Quyền NHÂN VIÊN không được phép xóa hồ sơ khách VIP!", "error");
+      showNotification("Lỗi: Cấp bậc nhân viên không được phép xóa dữ liệu!", "error");
       return;
     }
 
     setConfirmModal({
       show: true,
-      title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
-      message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+      title: "Xác nhận gỡ bỏ dữ liệu",
+      message: "Bạn có chắc chắn muốn gỡ bỏ vĩnh viễn hồ sơ này khỏi hệ thống không? Tác vụ này không thể hoàn tác.",
       action: async () => {
         try {
           if (isFirebaseConnected && db) {
             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', id));
-            showNotification("Đã xóa hồ sơ khỏi Cloud Database!");
+            showNotification("Đã xóa hồ sơ khỏi máy chủ Cloud!");
           } else {
             const updated = patients.filter(p => p.id !== id);
             setPatients(updated);
             localStorage.setItem('local_patients', JSON.stringify(updated));
-            showNotification("Đã xóa hồ sơ khỏi bộ nhớ thiết bị!");
-            triggerPushAlert("⚠️ Đã xóa hồ sơ (Offline)", "Hồ sơ của một khách hàng vừa bị gỡ bỏ.", "error");
+            showNotification("Đã gỡ bỏ hồ sơ khỏi thiết bị!");
           }
         } catch (err) {
           console.error(err);
-          showNotification("Không thể xóa. Vui lòng kiểm tra quyền truy cập database.", "error");
+          showNotification("Không thể thực hiện. Vui lòng kiểm tra kết nối mạng.", "error");
         }
         setConfirmModal({ show: false, action: null, message: '', title: '' });
       }
@@ -738,11 +720,11 @@ export default function App() {
   const handleCreateStaff = (e) => {
     e.preventDefault();
     if (userRole !== 'admin') {
-      showNotification("Chỉ Quản trị viên cao cấp (T Admin) mới được phép quản trị nhân sự!", "error");
+      showNotification("Chỉ quyền quản trị tối cao mới được thực hiện tác vụ này!", "error");
       return;
     }
     if (!newStaff.name.trim() || !newStaff.email.trim() || !newStaff.pass.trim()) {
-      showNotification("Vui lòng điền đầy đủ các thông tin nhân viên bắt buộc!", "error");
+      showNotification("Vui lòng nhập đầy đủ các trường thông tin bắt buộc!", "error");
       return;
     }
 
@@ -758,19 +740,19 @@ export default function App() {
     const updatedList = [...staffList, created];
     setStaffList(updatedList);
     localStorage.setItem('crm_staff_accounts', JSON.stringify(updatedList));
-    showNotification(`Đã tạo và phân quyền thành công cho ${newStaff.name}!`);
+    showNotification(`Đã tạo tài khoản cho ${newStaff.name} thành công!`);
     setNewStaff({ name: '', email: '', role: 'nhanvien', pass: '123456', title: '' });
   };
 
   const handleDeleteStaff = (uid) => {
     if (uid === currentUser.uid || uid === "acc_admin") {
-      showNotification("Không thể xóa tài khoản Quản trị mặc định hoặc tài khoản đang sử dụng!", "error");
+      showNotification("Không thể tự gỡ bỏ tài khoản chính đang sử dụng!", "error");
       return;
     }
     const updated = staffList.filter(s => s.uid !== uid);
     setStaffList(updated);
     localStorage.setItem('crm_staff_accounts', JSON.stringify(updated));
-    showNotification("Đã gỡ quyền truy cập của tài khoản nhân sự.");
+    showNotification("Đã thu hồi quyền truy cập hệ thống.");
   };
 
   const saveSettingsOnDb = async (newSettings) => {
@@ -788,20 +770,32 @@ export default function App() {
 
   const handleAddSpecialty = () => {
     if (!newSpecialtyInput.trim()) return;
-    if (systemSettings.specialties.includes(newSpecialtyInput.trim())) {
-      showNotification("Chuyên khoa này đã có trong hệ thống!", "error");
+    
+    const inputParts = newSpecialtyInput.split(',').map(p => p.trim()).filter(p => p !== '');
+    let addedCount = 0;
+    let updatedSpecialties = [...systemSettings.specialties];
+
+    inputParts.forEach(spec => {
+      if (!updatedSpecialties.includes(spec)) {
+        updatedSpecialties.push(spec);
+        addedCount++;
+      }
+    });
+
+    if (addedCount === 0) {
+      showNotification("Các chuyên khoa nhập vào đã có sẵn trong danh mục!", "error");
       return;
     }
-    const updated = [...systemSettings.specialties, newSpecialtyInput.trim()];
-    saveSettingsOnDb({ ...systemSettings, specialties: updated });
+
+    saveSettingsOnDb({ ...systemSettings, specialties: updatedSpecialties });
     setNewSpecialtyInput('');
-    showNotification("Đã thêm chuyên khoa mới!");
+    showNotification(`Đã thêm mới thành công ${addedCount} chuyên khoa!`);
   };
 
   const handleRemoveSpecialty = (spec) => {
     const updated = systemSettings.specialties.filter(s => s !== spec);
     saveSettingsOnDb({ ...systemSettings, specialties: updated });
-    showNotification("Đã loại bỏ chuyên khoa!");
+    showNotification("Đã gỡ bỏ chuyên khoa khỏi danh mục.");
   };
 
   const handleFormulaCheckboxChange = (field) => {
@@ -810,12 +804,12 @@ export default function App() {
       [field]: !systemSettings.totalFormulaFields[field] 
     };
     saveSettingsOnDb({ ...systemSettings, totalFormulaFields: updatedFormula });
-    showNotification("Cấu hình công thức tổng cộng mới được áp dụng!");
+    showNotification("Công thức tính tổng phí tự động đã được cập nhật!");
   };
 
   const handleDiscountFormulaChange = (type) => {
     saveSettingsOnDb({ ...systemSettings, discountFormulaType: type });
-    showNotification("Công thức tính số tiền miễn giảm đã được cập nhật!");
+    showNotification("Phương thức tính miễn giảm đã thay đổi!");
   };
 
   const formatCurrency = (number) => {
@@ -915,26 +909,8 @@ export default function App() {
               <h1 className="text-2xl font-black tracking-tight text-slate-900">
                 VIP CARE CRM
               </h1>
-              <p className="text-xs text-slate-400 font-semibold tracking-wide">Hệ thống phân quyền chuẩn hóa - Tiếp đón VIP</p>
+              <p className="text-xs text-slate-400 font-semibold tracking-wide">Hệ thống Tiếp Đón Đặc Quyền</p>
             </div>
-          </div>
-
-          <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-center space-y-2">
-            <h4 className="text-xs font-black text-indigo-900 uppercase">Khởi tạo dữ liệu lên Cloud</h4>
-            <p className="text-[10px] text-indigo-700 leading-normal font-semibold">Bấm đăng ký tài khoản Cloud Lãnh đạo thực tế ngay bên dưới để khởi tạo cấu trúc dữ liệu trống trên Firestore của bạn.</p>
-            <button
-              onClick={() => {
-                setRegCloudEmail('lanhdao@vip.com');
-                setRegCloudPassword('123456');
-                setRegCloudName('Trần Thế Phương');
-                setRegCloudRole('lanhdao');
-                setRegCloudTitle('Thành viên HĐQT');
-                setShowRegisterCloudModal(true);
-              }}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 mx-auto"
-            >
-              <UserPlus className="w-3.5 h-3.5" /> Đăng ký tài khoản Đám mây mới (HĐQT)
-            </button>
           </div>
 
           {authError && (
@@ -957,7 +933,7 @@ export default function App() {
             </div>
             
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu bảo mật</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu hệ thống</label>
               <div className="relative">
                 <input 
                   type={showPassword ? "text" : "password"} 
@@ -984,121 +960,67 @@ export default function App() {
             </button>
           </form>
 
-          <div className="border-t border-slate-100 pt-4">
-            <details className="group">
-              <summary className="list-none flex items-center justify-center gap-1.5 cursor-pointer text-xs text-slate-400 font-bold hover:text-slate-600 transition select-none">
-                <UserCheck className="w-4 h-4 text-slate-400" />
-                <span>Tài khoản kiểm thử phân quyền</span>
-                <ChevronDown className="w-3.5 h-3.5 transition transform group-open:rotate-180" />
-              </summary>
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                {staffList.map((acc) => (
-                  <button
-                    key={acc.uid}
-                    onClick={() => {
-                      setLoginEmail(acc.email);
-                      setLoginPassword(acc.pass);
-                    }}
-                    className="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-150 rounded-xl text-left transition hover:border-indigo-300 focus:ring-1 focus:ring-indigo-400"
-                  >
-                    <span className="font-extrabold text-slate-800 block text-xs truncate">{acc.name}</span>
-                    <span className="text-[10px] text-slate-400 block font-medium truncate">{acc.title}</span>
-                    <span className="inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded-sm uppercase">
-                      {acc.role}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </details>
-          </div>
         </div>
-
-        {showRegisterCloudModal && (
-          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-sm font-black text-slate-900 uppercase">Kích hoạt tài khoản Cloud Thực Tế</h3>
-                <button onClick={() => setShowRegisterCloudModal(false)}>
-                  <X className="w-4 h-4 text-slate-400 hover:text-slate-600" />
-                </button>
-              </div>
-              {regError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 font-bold">
-                  {regError}
-                </div>
-              )}
-              <form onSubmit={handleRegisterCloudAccount} className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Họ và tên</label>
-                  <input
-                    type="text"
-                    value={regCloudName}
-                    onChange={(e) => setRegCloudName(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs"
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Email Đăng Nhập Cloud</label>
-                  <input
-                    type="email"
-                    value={regCloudEmail}
-                    onChange={(e) => setRegCloudEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold"
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Mật khẩu (Tối thiểu 6 ký tự)</label>
-                  <input
-                    type="password"
-                    value={regCloudPassword}
-                    onChange={(e) => setRegCloudPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Vai trò (Role)</label>
-                    <select
-                      value={regCloudRole}
-                      onChange={(e) => setRegCloudRole(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white font-bold"
-                    >
-                      <option value="admin">admin (T Admin)</option>
-                      <option value="lanhdao">lanhdao (HĐQT)</option>
-                      <option value="quanly">quanly (Quản lý)</option>
-                      <option value="nhanvien">nhanvien (Lễ tân)</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Chức danh hiển thị</label>
-                    <input
-                      type="text"
-                      value={regCloudTitle}
-                      onChange={(e) => setRegCloudTitle(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs"
-                      required
-                    />
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-md"
-                >
-                  Đăng ký & Khởi tạo Database Cloud
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
+      
+      {lightboxImage && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 animate-fadeIn">
+          <div className="absolute top-4 right-4 z-50 flex gap-2">
+            <a 
+              href={lightboxImage} 
+              target="_blank" 
+              rel="noreferrer" 
+              className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition"
+            >
+              <Eye className="w-5 h-5" />
+            </a>
+            <button 
+              onClick={() => setLightboxImage(null)}
+              className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center">
+            <img 
+              src={lightboxImage} 
+              alt="Chứng từ văn bản phê duyệt" 
+              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-scaleIn"
+            />
+          </div>
+          <p className="text-white/60 text-xs font-semibold mt-4">Chứng từ đính kèm hồ sơ hành trình VIP</p>
+        </div>
+      )}
+
+      {isScanning && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 border border-slate-100 shadow-2xl animate-scaleIn">
+            <div className="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto relative overflow-hidden">
+              <Scan className="w-8 h-8 animate-pulse" />
+              <div className="absolute left-0 right-0 h-0.5 bg-red-500 top-1/2 animate-bounce"></div>
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-slate-900 uppercase tracking-wide">Trình quét mã laser</h4>
+              <p className="text-xs text-slate-400 font-semibold mt-1">Đang giả lập kết nối và nhận diện luồng quét từ mắt đọc phần cứng...</p>
+            </div>
+            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+              <div className="bg-indigo-600 h-full animate-progress rounded-full"></div>
+            </div>
+            <button
+              onClick={() => setIsScanning(false)}
+              className="px-4 py-1.5 border border-slate-200 text-slate-500 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition"
+            >
+              Hủy bỏ quét
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
         {activePushAlerts.map(alert => (
           <div 
@@ -1147,7 +1069,7 @@ export default function App() {
                 onClick={confirmModal.action}
                 className="px-5 py-2 bg-rose-500 hover:bg-rose-600 text-xs font-bold text-white rounded-xl transition shadow-xs"
               >
-                Xác nhận xóa
+                Xác nhận
               </button>
             </div>
           </div>
@@ -1226,7 +1148,7 @@ export default function App() {
               )}
             </nav>
 
-            <div className="flex items-center gap-3 relative">
+            <div className="flex items-center gap-3 relative" ref={notificationCenterRef}>
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold">
                 <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
                 {isFirebaseConnected ? 'Cloud Online' : 'Local Offline'}
@@ -1241,7 +1163,7 @@ export default function App() {
               >
                 {unreadCount > 0 ? (
                   <>
-                    <BellRing className="w-5 h-5 text-indigo-600" />
+                    <BellRing className="w-5 h-5 text-indigo-600 animate-pulse" />
                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-600 text-white font-black text-[9px] rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                       {unreadCount}
                     </span>
@@ -1252,7 +1174,7 @@ export default function App() {
               </button>
 
               {showNotificationCenter && (
-                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-100 rounded-3xl shadow-2xl z-50 p-4 space-y-3">
+                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-100 rounded-3xl shadow-2xl z-50 p-4 space-y-3 animate-scaleIn">
                   <div className="flex justify-between items-center border-b border-slate-50 pb-2">
                     <div className="flex items-center gap-1.5">
                       <BellRing className="w-4 h-4 text-indigo-600" />
@@ -1359,8 +1281,37 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {activeTab === 'dashboard' && (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-fadeIn">
             
+            {(userRole === 'admin' || userRole === 'lanhdao') && iosNotificationStatus !== 'granted' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-2xs">
+                <div className="flex gap-3 items-start">
+                  <div className="p-2 bg-amber-100 text-amber-800 rounded-xl mt-0.5">
+                    <Smartphone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase">Chưa kích hoạt cảnh báo ngầm thiết bị</h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5 font-semibold leading-relaxed">
+                      Để nhận thông báo báo cáo ca VVIP và duyệt chi phí ngay cả khi đóng ứng dụng hoặc khóa màn hình iPhone, bạn cần bấm kích hoạt dưới đây.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={requestIosNotificationPermission}
+                  className="w-full sm:w-auto px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black rounded-xl transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1"
+                >
+                  <BellRing className="w-3.5 h-3.5" /> Kích hoạt thông báo
+                </button>
+              </div>
+            )}
+
+            {(userRole === 'admin' || userRole === 'lanhdao') && iosNotificationStatus === 'granted' && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-center gap-3 text-xs text-emerald-800 font-bold shadow-2xs">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span>Hệ thống thông báo đẩy thông minh trên iPhone đã sẵn sàng hoạt động ngầm.</span>
+              </div>
+            )}
+
             <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl shadow-slate-100">
               <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20"></div>
               <div className="relative z-10 space-y-4 max-w-2xl">
@@ -1384,7 +1335,7 @@ export default function App() {
               </div>
             </div>
 
-            {(userRole === 'admin' || userRole === 'lanhdao') ? (
+            {(userRole === 'admin' || userRole === 'lanhdao') && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -1450,11 +1401,6 @@ export default function App() {
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="bg-yellow-50/50 border border-yellow-200/60 rounded-3xl p-5 text-xs text-yellow-800 font-bold flex items-center gap-3">
-                <Lock className="w-5 h-5 text-yellow-600 flex-shrink-0" />
-                {"Phiên làm việc: Bạn đăng nhập bằng quyền "}{userRole.toUpperCase()}{". Các chỉ số thống kê từ hình ảnh \"{98517A7C-1401-4F6A-A33B-5D86B5B98B39}.png\" bị ẩn vì lý do bảo mật tài chính y khoa nội bộ."}
-              </div>
             )}
 
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
@@ -1462,23 +1408,23 @@ export default function App() {
                 <div>
                   <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
                     <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
-                    Bản Đồ Hành Trình Khám & Điều Trị VIP (Realtime Kanban)
+                    Hành Trình Khách Hàng
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng. Kéo thả ảo hoặc chuyển nhanh trạng thái.</p>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng. Điều phối và chuyển tiếp nhanh trạng thái.</p>
                 </div>
                 <div className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-[10px] font-black rounded-lg">
                   Tổng lượt khám: {kanbanPatients.length}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 overflow-x-auto pb-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4 overflow-x-auto pb-4">
                 {workflowStatuses.map(col => {
                   const colPatients = kanbanPatients.filter(p => (p.status || 'Waiting') === col.id);
 
                   return (
                     <div 
                       key={col.id} 
-                      className="bg-slate-50/60 rounded-2xl p-3 border border-slate-100 flex flex-col min-w-[180px] min-h-[350px]"
+                      className="bg-slate-50/60 rounded-2xl p-3 border border-slate-100 flex flex-col min-w-[150px] min-h-[350px]"
                     >
                       <div className="flex justify-between items-center pb-3 border-b border-slate-200/50 mb-3">
                         <div className="flex items-center gap-1.5 min-w-0">
@@ -1557,7 +1503,7 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-3">
                 <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Giao diện 3: Theo dõi hồ sơ khách VIP
+                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo theo dõi hồ sơ khách VIP
                 </h4>
                 <p className="text-xs text-slate-500 leading-relaxed font-semibold">
                   Truy cập nhanh danh sách bệnh nhân VIP/VVIP đang điều trị tại phòng khám và bệnh viện chuyên khoa. Thực hiện tra cứu tiến trình và biên lai đính kèm.
@@ -1573,7 +1519,7 @@ export default function App() {
               {(userRole === 'admin' || userRole === 'lanhdao') && (
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-3">
                   <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-indigo-600" /> Giao diện 4: Cấu hình hệ thống & nhân sự
+                    <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống & nhân sự
                   </h4>
                   <p className="text-xs text-slate-500 leading-relaxed font-semibold">
                     Thiết lập công thức tính tổng phí điều trị, cấu hình các chuyên khoa tiếp nhận và phân quyền tài khoản cho đội ngũ tiếp đón.
@@ -1592,16 +1538,16 @@ export default function App() {
         )}
 
         {activeTab === 'register' && (
-          <form onSubmit={savePatient} className="space-y-6 animate-fadeIn">
+          <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-xs">
+            <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-150 shadow-md">
               <div>
-                <h2 className="text-lg font-black text-slate-950 flex items-center gap-1.5">
+                <h2 className="text-base font-black text-slate-950 flex items-center gap-1.5">
                   {currentId ? "Cập Nhật Hồ Sơ Khách Hàng VIP" : "Đăng Ký Hồ Sơ Khách VIP/VVIP Mới"}
                 </h2>
-                <p className="text-xs text-slate-400 font-semibold">Khai báo thông tin hành chính, danh mục chỉ định khám, biểu phí phát sinh thực tế.</p>
+                <p className="text-[11px] text-slate-400 font-semibold">Khai báo thông tin hành chính, danh mục chỉ định khám, biểu phí phát sinh thực tế.</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 <button 
                   type="button" 
                   onClick={() => { resetForm(); setActiveTab('monitoring'); }}
@@ -1618,7 +1564,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
               
               <div className="lg:col-span-2 space-y-6">
                 
@@ -1643,14 +1589,24 @@ export default function App() {
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">Mã PID <span className="text-red-500">*</span></label>
-                      <input 
-                        type="text" 
-                        placeholder="Nhập tay mã bệnh nhân PID..."
-                        value={formData.pid}
-                        onChange={(e) => handleInputChange('pid', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-mono font-black bg-white text-slate-800"
-                        required
-                      />
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          placeholder="Nhập mã bệnh nhân PID..."
+                          value={formData.pid}
+                          onChange={(e) => handleInputChange('pid', e.target.value)}
+                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-mono font-black bg-white text-slate-800"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSimulateScan}
+                          className="px-3 bg-slate-100 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs"
+                          title="Quét mã vạch"
+                        >
+                          <Scan className="w-4 h-4 text-slate-500" /> Quét mã
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">
@@ -1688,7 +1644,7 @@ export default function App() {
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">Trạng Thái Hành Trình (Vị Trí Kanban Ban Đầu)</label>
+                      <label className="text-xs font-bold text-slate-600 block">Trạng Thái Hành Trình (Vị Trí Kanban Khởi Tạo)</label>
                       <select
                         value={formData.status}
                         onChange={(e) => handleInputChange('status', e.target.value)}
@@ -1701,14 +1657,32 @@ export default function App() {
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">HĐQT Phê Duyệt <span className="text-slate-400 font-semibold">(Nhập tay)</span></label>
-                      <input 
-                        type="text" 
-                        placeholder="Thành viên hội đồng quản trị duyệt..."
-                        value={formData.boardApproval}
-                        onChange={(e) => handleInputChange('boardApproval', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-semibold bg-white text-slate-800"
-                      />
+                      <label className="text-xs font-bold text-slate-600 block">HĐQT Phê Duyệt</label>
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-1.5">
+                          {["Sếp Dũng", "Sếp Hoa", "Sếp Nga", "Sếp Thông"].map((boss) => (
+                            <button
+                              key={boss}
+                              type="button"
+                              onClick={() => handleInputChange('boardApproval', boss)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                                formData.boardApproval === boss 
+                                  ? 'bg-slate-900 border-slate-900 text-white shadow-xs' 
+                                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                              }`}
+                            >
+                              {boss}
+                            </button>
+                          ))}
+                        </div>
+                        <input 
+                          type="text" 
+                          placeholder="Hoặc gõ nhập tay thành viên hội đồng quản trị duyệt..."
+                          value={formData.boardApproval}
+                          onChange={(e) => handleInputChange('boardApproval', e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-semibold bg-white text-slate-800"
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
@@ -1921,12 +1895,22 @@ export default function App() {
                     
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-400">Tổng phí tự động:</span>
-                      <span className="font-extrabold text-slate-100">{formatCurrency(formData.totalAmount)}</span>
+                      <input 
+                        type="text"
+                        value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
+                        onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
+                        className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden"
+                      />
                     </div>
 
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
-                      <span className="font-extrabold text-rose-400">-{formatCurrency(formData.approvedDiscountAmount)}</span>
+                      <input 
+                        type="text"
+                        value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
+                        onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
+                        className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden"
+                      />
                     </div>
 
                     <div className="flex justify-between items-center text-xs">
@@ -2063,7 +2047,7 @@ export default function App() {
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy hồ sơ phù hợp</h3>
-                  <p className="text-slate-400 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
+                  <p className="text-slate-400 text-xs mt-1 font-medium">Không tìm thấy gì hết nè.</p>
                 </div>
               </div>
             ) : (
@@ -2130,9 +2114,13 @@ export default function App() {
                               <td className="py-4 px-5 text-right whitespace-nowrap">
                                 <div className="flex justify-end gap-1.5">
                                   {p.approvalImage && (
-                                    <a href={p.approvalImage} target="_blank" rel="noreferrer" className="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-100 rounded-xl transition" title="Xem ảnh phê duyệt">
+                                    <button 
+                                      onClick={() => setLightboxImage(p.approvalImage)}
+                                      className="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-100 rounded-xl transition" 
+                                      title="Xem nhanh chứng từ"
+                                    >
                                       <ImageIcon className="w-4 h-4" />
-                                    </a>
+                                    </button>
                                   )}
                                   <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-950 hover:text-white rounded-xl transition" title="Chỉnh sửa hồ sơ">
                                     <Edit3 className="w-4 h-4" />
@@ -2208,9 +2196,12 @@ export default function App() {
 
                         <div className="flex justify-end gap-2 pt-1">
                           {p.approvalImage && (
-                            <a href={p.approvalImage} target="_blank" rel="noreferrer" className="px-3 py-1.5 bg-slate-50 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1">
-                              <ImageIcon className="w-3.5 h-3.5" /> Bản duyệt
-                            </a>
+                            <button 
+                              onClick={() => setLightboxImage(p.approvalImage)}
+                              className="px-3 py-1.5 bg-slate-50 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1"
+                            >
+                              <ImageIcon className="w-3.5 h-3.5" /> Xem nhanh
+                            </button>
                           )}
                           <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1">
                             <Edit3 className="w-3.5 h-3.5" /> Sửa
@@ -2235,7 +2226,7 @@ export default function App() {
           <div className="space-y-6 animate-fadeIn">
             
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs">
-              <h2 className="text-lg font-black text-slate-900">Giao diện 4: Cấu Hình Tham Số & Phân Quyền CRM VIP</h2>
+              <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Hệ Thống</h2>
               <p className="text-xs text-slate-400 mt-1">Cài đặt công thức tính tổng phí điều trị, cấu hình danh mục chuyên khoa và gán quyền nhân viên.</p>
             </div>
 
@@ -2332,7 +2323,7 @@ export default function App() {
                   <div className="flex gap-2">
                     <input 
                       type="text" 
-                      placeholder="Thêm chuyên khoa mới..."
+                      placeholder="Nhập chuyên khoa (cách nhau bằng dấu phẩy để thêm nhiều)..."
                       value={newSpecialtyInput}
                       onChange={(e) => setNewSpecialtyInput(e.target.value)}
                       className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
@@ -2366,13 +2357,8 @@ export default function App() {
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                       <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                      Quản Trị Phân Quyền Nhân Sự {userRole !== 'admin' && '🔒'}
+                      Quản Trị Phân Quyền Nhân Sự
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1">
-                      {userRole === 'admin' 
-                        ? 'Tạo mới, sửa đổi vai trò và phân bổ quyền truy cập hệ thống.' 
-                        : 'Yêu cầu quyền T Admin mới được thao tác thêm/bớt nhân sự.'}
-                    </p>
                   </div>
 
                   {userRole === 'admin' ? (
@@ -2413,16 +2399,16 @@ export default function App() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-500 block uppercase tracking-wider">Chọn Vai Trò (Role) Theo image_ba8ec5.png</label>
+                        <label className="text-[10px] font-bold text-slate-500 block uppercase tracking-wider">Vai trò phân quyền</label>
                         <select 
                           value={newStaff.role}
                           onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
                           className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold"
                         >
-                          <option value="nhanvien">nhanvien (Lễ tân VIP, Chăm sóc khách hàng)</option>
-                          <option value="quanly">quanly (Lễ tân VIP, Chăm sóc khách hàng - Quản lý)</option>
-                          <option value="lanhdao">lanhdao (HĐQT, Ban Giám Đốc)</option>
-                          <option value="admin">admin (T Admin)</option>
+                          <option value="nhanvien">Nhân Viên</option>
+                          <option value="quanly">Quản Lý</option>
+                          <option value="lanhdao">Quản Trị</option>
+                          <option value="admin">IT Toàn Quyền</option>
                         </select>
                       </div>
                       <button 
@@ -2432,11 +2418,7 @@ export default function App() {
                         <UserPlus className="w-4 h-4" /> Đăng ký tài khoản nhân viên
                       </button>
                     </form>
-                  ) : (
-                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-2xl text-xs text-yellow-800 font-semibold leading-relaxed">
-                      🔒 Tài khoản của bạn giữ vai trò <strong className="text-amber-700 uppercase">lanhdao</strong>. Được cấu hình toàn bộ nghiệp vụ lâm sàng & tài chính nhưng **bị giới hạn quyền quản lý thông tin nhân sự** theo tài liệu image_ba8ec5.png.
-                    </div>
-                  )}
+                  ) : null}
 
                   <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
                     {staffList.map((staff) => (
