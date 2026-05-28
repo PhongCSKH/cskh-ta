@@ -1,3 +1,24 @@
 {
-  "gcm_sender_id": "103953800507"
+"short_name": "QL VIP TA",
+"name": "Quản Lý Khách VIP Tâm Anh",
+"icons": [
+{
+"src": "https://iili.io/F66acRs.png",
+"sizes": "192x192",
+"type": "image/png",
+"purpose": "any maskable"
+},
+{
+"src": "https://iili.io/F66acRs.png",
+"sizes": "512x512",
+"type": "image/png",
+"purpose": "any maskable"
+}
+],
+"start_url": ".",
+"display": "standalone",
+"orientation": "portrait",
+"background_color": "#ffffff",
+"theme_color": "#4f46e5",
+"gcm_sender_id": "271160621415"
 }
