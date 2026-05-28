@@ -501,11 +501,13 @@ export default function App() {
   }, [formData, systemSettings]);
 
   useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      totalAmount: prev.totalAmount === undefined || prev.totalAmount === calculatedSums.totalAmount ? calculatedSums.totalAmount : prev.totalAmount,
-      approvedDiscountAmount: prev.approvedDiscountAmount === undefined || prev.approvedDiscountAmount === calculatedSums.approvedDiscountAmount ? calculatedSums.approvedDiscountAmount : prev.approvedDiscountAmount
-    }));
+    if (formData.totalAmount !== calculatedSums.totalAmount || formData.approvedDiscountAmount !== calculatedSums.approvedDiscountAmount) {
+      setFormData(prev => ({
+        ...prev,
+        totalAmount: calculatedSums.totalAmount,
+        approvedDiscountAmount: calculatedSums.approvedDiscountAmount
+      }));
+    }
   }, [calculatedSums.totalAmount, calculatedSums.approvedDiscountAmount]);
 
   const handleLogin = async (e) => {
@@ -541,6 +543,16 @@ export default function App() {
     } else {
       setAuthError('Email hoặc mật khẩu không chính xác.');
     }
+  };
+
+  const handleLogout = () => {
+    if (isFirebaseConnected && auth) {
+      signOut(auth);
+    }
+    setCurrentUser(null);
+    setUserRole('nhanvien');
+    localStorage.removeItem('crm_current_user');
+    showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
   };
 
   const handleInputChange = (field, val) => {
@@ -949,35 +961,6 @@ export default function App() {
         </div>
       )}
 
-      <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
-        {activePushAlerts.map(alert => (
-          <div 
-            key={alert.id}
-            className={`pointer-events-auto p-4 rounded-2xl shadow-xl border flex gap-3 items-start transition-all transform duration-300 bg-white ${
-              alert.type === 'success' ? 'border-emerald-100 bg-emerald-50/95' :
-              alert.type === 'error' ? 'border-rose-100 bg-rose-50/95' : 'border-indigo-100 bg-indigo-50/95'
-            }`}
-          >
-            <div className={`p-1.5 rounded-lg text-white ${
-              alert.type === 'success' ? 'bg-emerald-500' :
-              alert.type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'
-            }`}>
-              <BellRing className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-extrabold text-slate-900">{alert.title}</h4>
-              <p className="text-[11px] text-slate-600 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
-            </div>
-            <button 
-              onClick={() => setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id))}
-              className="text-slate-400 hover:text-slate-600 p-0.5 transition"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ))}
-      </div>
-
       {confirmModal.show && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
@@ -1001,15 +984,6 @@ export default function App() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {notification && (
-        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-xl transition-all transform duration-300 translate-y-0 ${
-          notification.type === 'error' ? 'bg-rose-500 text-white' : 'bg-slate-900 text-white'
-        }`}>
-          <Check className="w-4 h-4 flex-shrink-0 text-emerald-400" />
-          <span className="font-bold text-xs">{notification.message}</span>
         </div>
       )}
 
@@ -1209,6 +1183,7 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {/* ========================== GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN ========================== */}
+        {}
         {activeTab === 'dashboard' && (
           <div className="space-y-8 animate-fadeIn">
             
@@ -1454,6 +1429,7 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI ========================== */}
+        {}
         {activeTab === 'register' && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
@@ -1559,7 +1535,7 @@ export default function App() {
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">Trạng Thái (Vị Trí Kanban Ban Đầu)</label>
+                      <label className="text-xs font-bold text-slate-600 block">Trạng Thế (Vị Trí Kanban Ban Đầu)</label>
                       <select
                         value={formData.status}
                         onChange={(e) => handleInputChange('status', e.target.value)}
@@ -1878,6 +1854,7 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ ========================== */}
+        {}
         {activeTab === 'monitoring' && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -2137,6 +2114,7 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 4: CẤU HÌNH HỆ THỐNG ========================== */}
+        {}
         {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao') && (
           <div className="space-y-6 animate-fadeIn">
             
