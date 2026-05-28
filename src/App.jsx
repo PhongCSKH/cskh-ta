@@ -1147,7 +1147,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* HIỂN THỊ CHỈ SỐ TÀI CHÍNH (Chỉ hiển thị duy nhất ở Giao diện 1 cho admin/lanhdao) */}
+            {/* HIỂN THỊ CHỈ SỐ TÀI CHÍNH */}
             {/* Tương thích tuyệt đối với hình ảnh {98517A7C-1401-4F6A-A33B-5D86B5B98B39}.png */}
             {(userRole === 'admin' || userRole === 'lanhdao') ? (
               <div className="space-y-4">
@@ -1222,7 +1222,7 @@ export default function App() {
             ) : (
               <div className="bg-yellow-50/50 border border-yellow-200/60 rounded-3xl p-5 text-xs text-yellow-800 font-bold flex items-center gap-3">
                 <Lock className="w-5 h-5 text-yellow-600 flex-shrink-0" />
-                Phiên làm việc: Bạn đăng nhập bằng quyền {userRole.toUpperCase()}. Các chỉ số thống kê từ hình ảnh `{98517A7C-1401-4F6A-A33B-5D86B5B98B39}.png` bị ẩn vì lý do bảo mật tài chính y khoa nội bộ.
+                {"Phiên làm việc: Bạn đăng nhập bằng quyền "}{userRole.toUpperCase()}{". Các chỉ số thống kê từ hình ảnh \"{98517A7C-1401-4F6A-A33B-5D86B5B98B39}.png\" bị ẩn vì lý do bảo mật tài chính y khoa nội bộ."}
               </div>
             )}
 
@@ -1486,7 +1486,7 @@ export default function App() {
 
                     {/* Ngoại viện */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Ngoại viện</label>
+                      <label className="text-xs font-bold text-slate-600 block">Nội trú ngoài viện</label>
                       <div className="relative">
                         <input 
                           type="text" 
@@ -2173,8 +2173,8 @@ export default function App() {
       {/* FOOTER */}
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">TRANG QUẢN TRỊ KHÁCH HÀNG VIP/VVIP - VIP CARE CRM v2.3</p>
-          <p>© 2026. Giải pháp bảo mật y tế chất lượng cao, tích hợp hoàn hảo Firebase Console & GitHub.</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.3</p>
+          <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
     </div>
