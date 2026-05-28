@@ -410,7 +410,7 @@ export default function App() {
         if (docSnap.exists()) {
           setSystemSettings(docSnap.data());
         } else {
-          setDoc(settingsDocRef, systemSettings);
+          setDoc(settingsDocRef, systemSettings).catch(e => console.warn(e));
         }
       }, (err) => console.error(err));
 
@@ -547,7 +547,7 @@ export default function App() {
 
   const handleLogout = () => {
     if (isFirebaseConnected && auth) {
-      signOut(auth);
+      signOut(auth).catch(e => console.warn(e));
     }
     setCurrentUser(null);
     setUserRole('nhanvien');
@@ -1183,7 +1183,6 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {/* ========================== GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN ========================== */}
-        {}
         {activeTab === 'dashboard' && (
           <div className="space-y-8 animate-fadeIn">
             
@@ -1239,6 +1238,7 @@ export default function App() {
               </div>
             </div>
 
+            {}
             {(userRole === 'admin' || userRole === 'lanhdao') && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1294,6 +1294,7 @@ export default function App() {
               </div>
             )}
 
+            {}
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
@@ -1429,7 +1430,6 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI ========================== */}
-        {}
         {activeTab === 'register' && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
@@ -1456,6 +1456,7 @@ export default function App() {
               </div>
             </div>
 
+            {}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
               
               <div className="lg:col-span-2 space-y-6">
@@ -1519,7 +1520,7 @@ export default function App() {
                             formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
-                          Hạng VVIP (Đặc biệt)
+                          Hạng VVIP
                         </button>
                       </div>
                     </div>
@@ -1535,7 +1536,7 @@ export default function App() {
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">Trạng Thế (Vị Trí Kanban Ban Đầu)</label>
+                      <label className="text-xs font-bold text-slate-600 block">Trạng Thái (Vị Trí Kanban Ban Đầu)</label>
                       <select
                         value={formData.status}
                         onChange={(e) => handleInputChange('status', e.target.value)}
@@ -1589,6 +1590,7 @@ export default function App() {
                   </div>
                 </div>
 
+                {}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -1615,6 +1617,7 @@ export default function App() {
                   </div>
                 </div>
 
+                {}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-5">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-50 pb-3 flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -1726,6 +1729,7 @@ export default function App() {
 
               </div>
 
+              {}
               <div className="space-y-6">
                 
                 <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl space-y-5 relative overflow-hidden">
@@ -1775,6 +1779,7 @@ export default function App() {
                     </div>
                   </div>
 
+                  {}
                   <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
                     
                     <div className="flex justify-between items-center text-xs">
@@ -1854,7 +1859,6 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ ========================== */}
-        {}
         {activeTab === 'monitoring' && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -1872,6 +1876,7 @@ export default function App() {
               </button>
             </div>
 
+            {}
             <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
               <div className="flex flex-col md:flex-row gap-3">
                 <div className="flex-1 relative">
@@ -1926,6 +1931,7 @@ export default function App() {
               </div>
             </div>
 
+            {}
             {isLoading ? (
               <div className="bg-white p-16 rounded-3xl border border-slate-100 flex flex-col items-center justify-center gap-3">
                 <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
@@ -2114,7 +2120,6 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 4: CẤU HÌNH HỆ THỐNG ========================== */}
-        {}
         {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao') && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -2122,6 +2127,7 @@ export default function App() {
               <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
             </div>
 
+            {}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
