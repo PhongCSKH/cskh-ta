@@ -56,7 +56,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ArrowRightLeft,
-  Image as ImageIcon
+  ImageIcon
 } from 'lucide-react';
 
 // =========================================================================
@@ -139,6 +139,7 @@ const workflowStatuses = [
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [firebaseUser, setFirebaseUser] = useState(null);
   const [userRole, setUserRole] = useState('nhanvien');
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'register', 'monitoring', 'settings'
@@ -228,6 +229,11 @@ export default function App() {
     }, 6000);
   };
 
+  // Xác định xem có phiên kết nối dữ liệu Cloud thực tế hay không
+  const isCloudActive = useMemo(() => {
+    return !!(isFirebaseConnected && db && firebaseUser);
+  }, [isFirebaseConnected, firebaseUser]);
+
   // --- THIẾT LẬP FAVICON & PHIÊN ĐĂNG NHẬP ---
   useEffect(() => {
     const faviconUrl = 'https://iili.io/F66acRs.png';
@@ -262,20 +268,21 @@ export default function App() {
 
     if (auth && db && (isFirebaseConfigured || typeof __firebase_config !== 'undefined')) {
       setIsFirebaseConnected(true);
-      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        if (firebaseUser) {
+      const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+        setFirebaseUser(fbUser);
+        if (fbUser) {
           try {
-            const userDoc = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', firebaseUser.uid));
+            const userDoc = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', fbUser.uid));
             if (userDoc.exists()) {
               const userData = userDoc.data();
               setCurrentUser(userData);
               setUserRole(userData.role);
             } else {
               const fallbackUser = { 
-                uid: firebaseUser.uid, 
-                email: firebaseUser.email, 
+                uid: fbUser.uid, 
+                email: fbUser.email, 
                 role: 'nhanvien', 
-                name: firebaseUser.email.split('@')[0],
+                name: fbUser.email.split('@')[0],
                 title: 'Nhân viên chuyên ban'
               };
               setCurrentUser(fallbackUser);
@@ -299,7 +306,7 @@ export default function App() {
     if (!currentUser) return;
     setIsLoading(true);
 
-    if (isFirebaseConnected && db) {
+    if (isCloudActive) {
       const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
       const settingsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
 
@@ -362,10 +369,12 @@ export default function App() {
       const savedPatients = localStorage.getItem('local_patients');
       if (savedPatients) {
         setPatients(JSON.parse(savedPatients));
+      } else {
+        setPatients([]);
       }
       setIsLoading(false);
     }
-  }, [currentUser, isFirebaseConnected]);
+  }, [currentUser, isCloudActive]);
 
   const calculatedSums = useMemo(() => {
     const formulas = systemSettings.totalFormulaFields;
@@ -440,6 +449,7 @@ export default function App() {
     if (isFirebaseConnected && auth) {
       signOut(auth);
     }
+    setFirebaseUser(null);
     setCurrentUser(null);
     setUserRole('nhanvien');
     localStorage.removeItem('crm_current_user');
@@ -464,35 +474,40 @@ export default function App() {
       }
     }
 
-    try {
-      if (isFirebaseConnected && db) {
+    if (isCloudActive) {
+      try {
         const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'patients', patientId);
         await updateDoc(docRef, {
           status: newStatus,
           updatedAt: new Date().toISOString(),
           updatedBy: currentUser.name
         });
-      } else {
-        const updatedList = patients.map(p => {
-          if (p.id === patientId) {
-            return { 
-              ...p, 
-              status: newStatus, 
-              updatedAt: new Date().toISOString(), 
-              updatedBy: currentUser.name 
-            };
-          }
-          return p;
-        });
-        setPatients(updatedList);
-        localStorage.setItem('local_patients', JSON.stringify(updatedList));
-        triggerPushAlert("🔄 Cập nhật hành trình (Local)", `Bệnh nhân ${patient.name} đã được chuyển sang trạng thái mới.`, "success");
+        showNotification("Đã cập nhật trạng thái hành trình khám!");
+      } catch (err) {
+        console.error("Lỗi đồng bộ trạng thái, chuyển chế độ lưu cục bộ", err);
+        showNotification("Lỗi cập nhật Cloud. Đã chuyển trạng thái tạm trên thiết bị!", "error");
+        updateStatusLocally(patientId, newStatus);
       }
-      showNotification("Đã cập nhật trạng thái hành trình khám!");
-    } catch (err) {
-      console.error(err);
-      showNotification("Lỗi đồng bộ trạng thái lên database!", "error");
+    } else {
+      updateStatusLocally(patientId, newStatus);
     }
+  };
+
+  const updateStatusLocally = (patientId, newStatus) => {
+    const updatedList = patients.map(p => {
+      if (p.id === patientId) {
+        return { 
+          ...p, 
+          status: newStatus, 
+          updatedAt: new Date().toISOString(), 
+          updatedBy: currentUser.name 
+        };
+      }
+      return p;
+    });
+    setPatients(updatedList);
+    localStorage.setItem('local_patients', JSON.stringify(updatedList));
+    triggerPushAlert("🔄 Cập nhật hành trình (Local)", `Bệnh nhân đã được chuyển sang trạng thái mới cục bộ.`, "success");
   };
 
   const handleInputChange = (field, val) => {
@@ -566,8 +581,8 @@ export default function App() {
       updatedBy: currentUser.name
     };
 
-    try {
-      if (isFirebaseConnected && db) {
+    if (isCloudActive) {
+      try {
         const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
         if (currentId) {
           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payload);
@@ -576,27 +591,34 @@ export default function App() {
           await addDoc(patientsCol, { ...payload, createdAt: new Date().toISOString() });
           showNotification("Đăng ký thành công hồ sơ khách VIP mới!");
         }
-      } else {
-        let updatedList = [...patients];
-        if (currentId) {
-          updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
-          showNotification("Cập nhật thành công (Lưu cục bộ)!");
-          triggerPushAlert("🔄 Cập nhật hồ sơ (Offline)", `Hồ sơ khách VIP ${payload.name} vừa được thay đổi thành công.`, "success");
-        } else {
-          const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
-          updatedList.unshift(newDoc);
-          showNotification("Đã lưu hồ sơ mới vào thiết bị!");
-          triggerPushAlert("🆕 Tiếp nhận khách VIP (Offline)", `Hồ sơ khách ${payload.name} (PID: ${payload.pid}) đã được lưu trữ cục bộ.`, "info");
-        }
-        setPatients(updatedList);
-        localStorage.setItem('local_patients', JSON.stringify(updatedList));
+        resetForm();
+        setActiveTab('monitoring');
+      } catch (err) {
+        console.error("Lỗi ghi dữ liệu Cloud:", err);
+        showNotification("Mất quyền ghi Cloud hoặc lỗi phân quyền. Đã tự động lưu dự phòng cục bộ!", "error");
+        savePatientLocally(payload);
       }
-      resetForm();
-      setActiveTab('monitoring'); // Chuyển sang Giao diện 3: Theo dõi hồ sơ ngay khi lưu
-    } catch (err) {
-      console.error("Lỗi ghi dữ liệu:", err);
-      showNotification("Có lỗi xảy ra hoặc bạn không đủ quyền ghi dữ liệu lên Cloud.", "error");
+    } else {
+      savePatientLocally(payload);
     }
+  };
+
+  const savePatientLocally = (payload) => {
+    let updatedList = [...patients];
+    if (currentId) {
+      updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
+      showNotification("Cập nhật thành công (Lưu cục bộ)!");
+      triggerPushAlert("🔄 Cập nhật hồ sơ (Offline)", `Hồ sơ khách VIP ${payload.name} vừa được thay đổi thành công.`, "success");
+    } else {
+      const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
+      updatedList.unshift(newDoc);
+      showNotification("Đã lưu hồ sơ mới vào thiết bị!");
+      triggerPushAlert("🆕 Tiếp nhận khách VIP (Offline)", `Hồ sơ khách ${payload.name} (PID: ${payload.pid}) đã được lưu trữ cục bộ.`, "info");
+    }
+    setPatients(updatedList);
+    localStorage.setItem('local_patients', JSON.stringify(updatedList));
+    resetForm();
+    setActiveTab('monitoring');
   };
 
   const initiateEdit = (patient) => {
@@ -637,24 +659,29 @@ export default function App() {
       title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
       message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
       action: async () => {
-        try {
-          if (isFirebaseConnected && db) {
+        if (isCloudActive) {
+          try {
             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', id));
             showNotification("Đã xóa hồ sơ khỏi Cloud Database!");
-          } else {
-            const updated = patients.filter(p => p.id !== id);
-            setPatients(updated);
-            localStorage.setItem('local_patients', JSON.stringify(updated));
-            showNotification("Đã xóa hồ sơ khỏi bộ nhớ thiết bị!");
-            triggerPushAlert("⚠️ Đã xóa hồ sơ (Offline)", "Hồ sơ của một khách hàng vừa bị gỡ bỏ.", "error");
+          } catch (err) {
+            console.error(err);
+            showNotification("Không thể xóa trên Cloud. Đã gỡ bỏ cục bộ khỏi thiết bị!", "error");
+            deleteLocally(id);
           }
-        } catch (err) {
-          console.error(err);
-          showNotification("Không thể xóa. Vui lòng kiểm tra quyền truy cập database.", "error");
+        } else {
+          deleteLocally(id);
         }
         setConfirmModal({ show: false, action: null, message: '', title: '' });
       }
     });
+  };
+
+  const deleteLocally = (id) => {
+    const updated = patients.filter(p => p.id !== id);
+    setPatients(updated);
+    localStorage.setItem('local_patients', JSON.stringify(updated));
+    showNotification("Đã xóa hồ sơ khỏi bộ nhớ thiết bị!");
+    triggerPushAlert("⚠️ Đã xóa hồ sơ (Offline)", "Hồ sơ của một khách hàng vừa bị gỡ bỏ khỏi thiết bị.", "error");
   };
 
   const handleCreateStaff = (e) => {
@@ -697,7 +724,7 @@ export default function App() {
 
   const saveSettingsOnDb = async (newSettings) => {
     setSystemSettings(newSettings);
-    if (isFirebaseConnected && db) {
+    if (isCloudActive) {
       try {
         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config'), newSettings);
       } catch (e) {
@@ -1066,10 +1093,10 @@ export default function App() {
             </nav>
 
             <div className="flex items-center gap-3 relative">
-              {/* Trạng thái kết nối Cloud */}
+              {/* Trạng thái kết nối Cloud thực tế */}
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold">
-                <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
-                {isFirebaseConnected ? 'Cloud Online' : 'Local Offline'}
+                <span className={`w-2 h-2 rounded-full ${isCloudActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
+                {isCloudActive ? 'Cloud Online' : 'Local Offline / Demo'}
               </div>
 
               {/* 🔔 BIỂU TƯỢNG TRUNG TÂM THÔNG BÁO (BELL) */}
@@ -1241,7 +1268,7 @@ export default function App() {
                     Thống kê hoạt động VIP thời gian thực
                   </h3>
                   <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full font-extrabold">
-                    {isFirebaseConnected ? 'Live Syncing Active' : 'Offline Mode (Local Only)'}
+                    {isCloudActive ? 'Live Syncing Active' : 'Offline Mode (Local Only)'}
                   </span>
                 </div>
 
@@ -1311,7 +1338,7 @@ export default function App() {
             )}
 
             {/* ====================================================== */}
-            {/* 🆕 BẢNG KANBAN WORKFLOW HÀNH TRÌNH KHÁM TRONG NGÀY (CHỈ HIỂN THỊ TẠI GIAO DIỆN 1) */}
+            {/* BẢNG KANBAN WORKFLOW HÀNH TRÌNH KHÁM TRONG NGÀY */}
             {/* ====================================================== */}
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -1320,7 +1347,7 @@ export default function App() {
                     <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
                     Bản Đồ Hành Trình Khám & Điều Trị VIP (Realtime Kanban)
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng. Kéo thả ảo hoặc chuyển nhanh trạng thái.</p>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng. Chuyển nhanh trạng thái thuận tiện.</p>
                 </div>
                 <div className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-[10px] font-black rounded-lg">
                   Tổng lượt khám: {kanbanPatients.length}
@@ -1330,7 +1357,6 @@ export default function App() {
               {/* Layout Kanban Board */}
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 overflow-x-auto pb-4">
                 {workflowStatuses.map(col => {
-                  // Lọc bệnh nhân thuộc cột này
                   const colPatients = kanbanPatients.filter(p => (p.status || 'Waiting') === col.id);
 
                   return (
@@ -1349,14 +1375,13 @@ export default function App() {
                         </span>
                       </div>
 
-                      {/* Danh sách thẻ bệnh nhân của cột */}
+                      {/* Danh sách thẻ bệnh nhân */}
                       <div className="flex-1 space-y-3 overflow-y-auto max-h-[350px]">
                         {colPatients.map(p => (
                           <div 
                             key={p.id}
                             className="bg-white p-3 rounded-xl border border-slate-150/80 shadow-2xs hover:shadow-xs transition duration-150 space-y-2.5 relative group"
                           >
-                            {/* Header của thẻ */}
                             <div className="flex justify-between items-start gap-1">
                               <span className="text-[8px] text-indigo-600 font-mono font-black truncate">PID: {p.pid}</span>
                               <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
@@ -1366,12 +1391,10 @@ export default function App() {
                               </span>
                             </div>
 
-                            {/* Tên khách hàng */}
                             <div className="font-extrabold text-[11px] text-slate-800 leading-tight truncate" title={p.name}>
                               {p.name}
                             </div>
 
-                            {/* Chuyên khoa tiếp nhận */}
                             <div className="flex flex-wrap gap-0.5">
                               {p.specialties?.slice(0, 2).map((spec, i) => (
                                 <span key={i} className="text-[8px] bg-slate-50 text-slate-500 px-1 py-0.2 rounded font-semibold truncate max-w-[80px]">
@@ -1383,7 +1406,6 @@ export default function App() {
                               )}
                             </div>
 
-                            {/* Dropdown điều phối hành trình nhanh */}
                             <div className="space-y-1">
                               <label className="text-[8px] text-slate-400 font-bold block uppercase">Chuyển trạng thái:</label>
                               <select
@@ -1397,7 +1419,6 @@ export default function App() {
                               </select>
                             </div>
 
-                            {/* Footer thông tin thời gian cập nhật */}
                             <div className="flex justify-between items-center text-[8px] text-slate-400 border-t border-slate-100 pt-1.5 font-semibold">
                               <span className="truncate">By: {p.updatedBy?.split(' ')[0] || 'Lễ tân'}</span>
                               <span className="flex-shrink-0 text-slate-300">
@@ -1419,7 +1440,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Khối quản lý lối tắt tác vụ */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-3">
                 <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
@@ -1581,7 +1601,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Chọn 1 hoặc nhiều Chuyên khoa */}
+                {/* Chọn Chuyên khoa */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -1617,7 +1637,6 @@ export default function App() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     
-                    {/* Phí Khám/Điều trị */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">Phí khám/Điều trị</label>
                       <div className="relative">
@@ -1632,7 +1651,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Ngoại Trú */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">Ngoại trú</label>
                       <div className="relative">
@@ -1647,7 +1665,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Cấp cứu / daycare */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">Cấp cứu/Daycare</label>
                       <div className="relative">
@@ -1662,7 +1679,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Nội trú / ICU */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">Nội trú/ICU</label>
                       <div className="relative">
@@ -1677,7 +1693,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Ngoại viện */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">Nội trú ngoài viện</label>
                       <div className="relative">
@@ -1692,7 +1707,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* CLS/CDHA */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">CLS/CDHA</label>
                       <div className="relative">
@@ -1707,7 +1721,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Thuốc/vắc-xin */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">Thuốc/vacxin</label>
                       <div className="relative">
@@ -1739,7 +1752,6 @@ export default function App() {
                     Biên lai đồng bộ chi phí VIP
                   </h3>
 
-                  {/* BHYT/BHTN/Tạm ứng */}
                   <div className="space-y-1.5 pt-2 relative z-10">
                     <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
                     <div className="relative">
@@ -1754,7 +1766,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Duyệt giảm */}
                   <div className="grid grid-cols-2 gap-3 relative z-10">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
@@ -1787,7 +1798,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Các chỉ số hiển thị tự động */}
                   <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
                     
                     <div className="flex justify-between items-center text-xs">
@@ -1857,7 +1867,6 @@ export default function App() {
         {activeTab === 'monitoring' && (
           <div className="space-y-6 animate-fadeIn">
             
-            {/* Header của bảng theo dõi */}
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h2 className="text-lg font-black text-slate-950 flex items-center gap-2">
@@ -2017,7 +2026,6 @@ export default function App() {
                                     <Edit3 className="w-4 h-4" />
                                   </button>
                                   
-                                  {/* Quyền nhanvien bị ẩn nút xóa */}
                                   {userRole !== 'nhanvien' ? (
                                     <button onClick={() => deletePatient(p.id)} className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" title="Xóa hồ sơ">
                                       <Trash2 className="w-4 h-4" />
@@ -2097,7 +2105,6 @@ export default function App() {
                             <Edit3 className="w-3.5 h-3.5" /> Sửa
                           </button>
                           
-                          {/* Quyền nhanvien bị ẩn nút xóa */}
                           {userRole !== 'nhanvien' && (
                             <button onClick={() => deletePatient(p.id)} className="px-3 py-1.5 bg-rose-50 text-rose-600 text-[10px] rounded-xl font-bold flex items-center gap-1">
                               <Trash2 className="w-3.5 h-3.5" /> Xóa
@@ -2126,7 +2133,6 @@ export default function App() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-              {/* Bên trái: Công thức tính tiền tổng cộng */}
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
                 <div>
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -2158,7 +2164,6 @@ export default function App() {
                   ))}
                 </div>
 
-                {/* Công thức tính duyệt giảm */}
                 <div className="border-t border-slate-100 pt-6 space-y-4">
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -2208,10 +2213,9 @@ export default function App() {
 
               </div>
 
-              {/* Bên phải: Chuyên khoa & Phân quyền nhân sự */}
+              {/* Chuyên khoa & Phân quyền nhân sự */}
               <div className="space-y-6">
                 
-                {/* Quản lý danh mục chuyên khoa */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -2251,7 +2255,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Quản lý danh sách nhân sự */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -2363,10 +2366,9 @@ export default function App() {
 
       </main>
 
-      {/* FOOTER */}
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.3</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.4</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
