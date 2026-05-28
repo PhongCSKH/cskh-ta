@@ -794,6 +794,33 @@ export default function App() {
     setNotifications([]);
   };
 
+  // Hàm xóa dữ liệu Form
+  const resetForm = () => {
+    setCurrentId(null);
+    setFormData({
+      name: '',
+      tier: 'VIP',
+      boardApproval: '',
+      notes: '',
+      pid: '',
+      date: new Date().toISOString().split('T')[0],
+      specialties: [],
+      ngoaiTru: 0,
+      capCuu: 0,
+      noiTru: 0,
+      ngoaiVien: 0,
+      phiKham: 0,
+      clsCdha: 0,
+      thuocVacxin: 0,
+      insuranceAdvance: 0,
+      discountRate: 0,
+      approvedDiscountAmount: 0,
+      totalAmount: 0,
+      approvalImage: '',
+      status: 'Waiting'
+    });
+  };
+
   // ==========================================
   // GIAO DIỆN ĐĂNG NHẬP (PREMIUM LIGHT LOGIN SCREEN)
   // ==========================================
@@ -2104,7 +2131,7 @@ export default function App() {
                 <div>
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
-                    Cấu Hình Các Trường Cộng Tổng
+                    Cấu Hinh Các Trường Cộng Tổng
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">Lựa chọn các loại chi phí phát sinh để tự động tính vào [Tổng cộng]:</p>
                 </div>
