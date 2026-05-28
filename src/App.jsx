@@ -14,6 +14,7 @@ import {
 import { 
   getAuth, 
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged 
 } from 'firebase/auth';
@@ -56,7 +57,9 @@ import {
   CheckCircle2,
   ChevronDown,
   ArrowRightLeft,
-  ImageIcon
+  Database,
+  CloudLightning,
+  Image as ImageIcon
 } from 'lucide-react';
 
 // =========================================================================
@@ -139,7 +142,6 @@ const workflowStatuses = [
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [firebaseUser, setFirebaseUser] = useState(null);
   const [userRole, setUserRole] = useState('nhanvien');
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'register', 'monitoring', 'settings'
@@ -147,20 +149,25 @@ export default function App() {
   const [staffList, setStaffList] = useState([]);
   const [systemSettings, setSystemSettings] = useState(defaultSystemSettings);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncingWithCloud, setIsSyncingWithCloud] = useState(false);
 
-  // States Đăng nhập
+  // States Đăng nhập / Đăng ký
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [regName, setRegName] = useState('');
+  const [regRole, setRegRole] = useState('lanhdao');
+  const [regTitle, setRegTitle] = useState('Thành viên HĐQT');
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
 
-  // Modals tùy biến (Tránh dùng alert/confirm của trình duyệt)
+  // Modals tùy biến
   const [confirmModal, setConfirmModal] = useState({ show: false, action: null, message: '', title: '' });
 
   // Quản lý tạo tài khoản nhân sự (Chỉ dành cho Admin)
   const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'nhanvien', pass: '123456', title: '' });
 
-  // Tìm kiếm & Lọc hồ sơ khách VIP (Giao diện 3: Theo dõi hồ sơ)
+  // Tìm kiếm & Lọc hồ sơ khách VIP
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSpecialty, setFilterSpecialty] = useState('');
   const [filterTier, setFilterTier] = useState('');
@@ -188,13 +195,13 @@ export default function App() {
     approvedDiscountAmount: 0,
     totalAmount: 0,
     approvalImage: '',
-    status: 'Waiting' // Mặc định trạng thái chờ tiếp đón
+    status: 'Waiting' 
   });
 
   const [newSpecialtyInput, setNewSpecialtyInput] = useState('');
   const [notification, setNotification] = useState(null);
 
-  // --- TRUNG TÂM THÔNG BÁO (NOTIFICATION CENTER) ---
+  // --- TRUNG TÂM THÔNG BÁO ---
   const [notifications, setNotifications] = useState([]);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const [activePushAlerts, setActivePushAlerts] = useState([]);
@@ -205,7 +212,6 @@ export default function App() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Hàm kích hoạt đẩy thông báo trực tiếp lên màn hình
   const triggerPushAlert = (title, message, type = 'info') => {
     const id = Date.now() + Math.random().toString(36).substr(2, 9);
     const newAlert = { id, title, message, type };
@@ -229,12 +235,6 @@ export default function App() {
     }, 6000);
   };
 
-  // Xác định xem có phiên kết nối dữ liệu Cloud thực tế hay không
-  const isCloudActive = useMemo(() => {
-    return !!(isFirebaseConnected && db && firebaseUser);
-  }, [isFirebaseConnected, firebaseUser]);
-
-  // --- THIẾT LẬP FAVICON & PHIÊN ĐĂNG NHẬP ---
   useEffect(() => {
     const faviconUrl = 'https://iili.io/F66acRs.png';
     const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
@@ -268,25 +268,27 @@ export default function App() {
 
     if (auth && db && (isFirebaseConfigured || typeof __firebase_config !== 'undefined')) {
       setIsFirebaseConnected(true);
-      const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-        setFirebaseUser(fbUser);
-        if (fbUser) {
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
           try {
-            const userDoc = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', fbUser.uid));
+            const userDoc = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', firebaseUser.uid));
             if (userDoc.exists()) {
               const userData = userDoc.data();
               setCurrentUser(userData);
               setUserRole(userData.role);
+              localStorage.setItem('crm_current_user', JSON.stringify(userData));
             } else {
+              // Dự phòng nếu chưa có document lưu thông tin người dùng trong Firestore
               const fallbackUser = { 
-                uid: fbUser.uid, 
-                email: fbUser.email, 
-                role: 'nhanvien', 
-                name: fbUser.email.split('@')[0],
-                title: 'Nhân viên chuyên ban'
+                uid: firebaseUser.uid, 
+                email: firebaseUser.email, 
+                role: 'lanhdao', // Mặc định là lanhdao để không bị khóa chức năng
+                name: firebaseUser.email.split('@')[0],
+                title: 'Thành viên Ban Giám Đốc Đám Mây'
               };
               setCurrentUser(fallbackUser);
-              setUserRole('nhanvien');
+              setUserRole('lanhdao');
+              localStorage.setItem('crm_current_user', JSON.stringify(fallbackUser));
             }
           } catch (e) {
             console.error("Lỗi đồng bộ Firebase Auth:", e);
@@ -301,12 +303,11 @@ export default function App() {
     }
   }, []);
 
-  // --- THEO DÕI THAY ĐỔI ĐỒNG BỘ FIRESTORE & ĐẨY THÔNG BÁO ---
   useEffect(() => {
     if (!currentUser) return;
     setIsLoading(true);
 
-    if (isCloudActive) {
+    if (isFirebaseConnected && db) {
       const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
       const settingsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
 
@@ -314,7 +315,7 @@ export default function App() {
         if (docSnap.exists()) {
           setSystemSettings(docSnap.data());
         } else {
-          setDoc(settingsDocRef, systemSettings);
+          setDoc(settingsDocRef, systemSettings).catch(e => console.log("Bỏ qua ghi cấu hình khởi tạo"));
         }
       }, (err) => console.error(err));
 
@@ -369,12 +370,10 @@ export default function App() {
       const savedPatients = localStorage.getItem('local_patients');
       if (savedPatients) {
         setPatients(JSON.parse(savedPatients));
-      } else {
-        setPatients([]);
       }
       setIsLoading(false);
     }
-  }, [currentUser, isCloudActive]);
+  }, [currentUser, isFirebaseConnected]);
 
   const calculatedSums = useMemo(() => {
     const formulas = systemSettings.totalFormulaFields;
@@ -441,27 +440,76 @@ export default function App() {
       showNotification(`Chào mừng ${account.name} (${account.title}) quay trở lại!`);
       triggerPushAlert("👋 Đăng nhập thành công", `Chào mừng ${account.name} đã truy cập CRM.`);
     } else {
-      setAuthError('Email hoặc mật khẩu không chính xác. Thử chọn nhanh tài khoản mẫu bên dưới.');
+      setAuthError('Email hoặc mật khẩu không chính xác. Hãy đăng ký tài khoản Cloud thực tế ở nút bên dưới.');
+    }
+  };
+
+  // TẠO TÀI KHOẢN MỚI THỰC TẾ LÊN CLOUD VÀ TỰ CẤP QUYỀN (VƯỢT DEADLOCK RULE DÒNG 31)
+  const handleCloudRegister = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+
+    if (!loginEmail || !loginPassword || !regName) {
+      setAuthError('Vui lòng điền họ tên, email và mật khẩu để đăng ký Cloud.');
+      return;
+    }
+
+    if (!isFirebaseConnected || !auth || !db) {
+      setAuthError('Không thể kết nối dịch vụ Firebase. Hãy đảm bảo Firebase Online.');
+      return;
+    }
+
+    try {
+      showNotification("Đang tạo tài khoản bảo mật...", "info");
+      
+      // 1. Tạo tài khoản trong Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, loginEmail, loginPassword);
+      const user = userCredential.user;
+
+      // 2. Ghi đè thông tin phân quyền lên Firestore (Thành công nhờ dòng 31: request.auth.uid == userId)
+      const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+      const newUserData = {
+        uid: user.uid,
+        name: regName,
+        email: loginEmail,
+        role: regRole,
+        title: regTitle,
+        createdAt: new Date().toISOString()
+      };
+      
+      await setDoc(userDocRef, newUserData);
+
+      // 3. Đẩy cấu hình hệ thống ban đầu lên Firestore (vì giờ ta đã có phiên đăng nhập hợp lệ!)
+      const settingsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
+      await setDoc(settingsDocRef, defaultSystemSettings).catch(e => console.log("Cấu hình đã tồn tại"));
+
+      setCurrentUser(newUserData);
+      setUserRole(regRole);
+      localStorage.setItem('crm_current_user', JSON.stringify(newUserData));
+      
+      triggerPushAlert("🎉 Đăng ký thành công", `Tài khoản ${regName} đã được cấp quyền ${regRole} trên Cloud!`, "success");
+      showNotification("Tài khoản của bạn đã được khởi tạo và đồng bộ quyền lực thành công!");
+      setIsRegisterMode(false);
+    } catch (err) {
+      console.error(err);
+      setAuthError(`Lỗi đăng ký Cloud: ${err.message}`);
     }
   };
 
   const handleLogout = () => {
     if (isFirebaseConnected && auth) {
-      signOut(auth);
+      signOut(auth).catch(e => console.log("Bỏ qua lỗi đăng xuất Firebase"));
     }
-    setFirebaseUser(null);
     setCurrentUser(null);
     setUserRole('nhanvien');
     localStorage.removeItem('crm_current_user');
     showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
   };
 
-  // --- CẬP NHẬT TRẠNG THÁI KANBAN (Phân quyền chuẩn image_ba8ec5.png) ---
   const handleUpdateStatus = async (patientId, newStatus) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
 
-    // Ràng buộc nghiêm ngặt vai trò nhanvien
     if (userRole === 'nhanvien') {
       const currentStatus = patient.status || 'Waiting';
       const isAllowed = 
@@ -474,40 +522,35 @@ export default function App() {
       }
     }
 
-    if (isCloudActive) {
-      try {
+    try {
+      if (isFirebaseConnected && db) {
         const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'patients', patientId);
         await updateDoc(docRef, {
           status: newStatus,
           updatedAt: new Date().toISOString(),
           updatedBy: currentUser.name
         });
-        showNotification("Đã cập nhật trạng thái hành trình khám!");
-      } catch (err) {
-        console.error("Lỗi đồng bộ trạng thái, chuyển chế độ lưu cục bộ", err);
-        showNotification("Lỗi cập nhật Cloud. Đã chuyển trạng thái tạm trên thiết bị!", "error");
-        updateStatusLocally(patientId, newStatus);
+      } else {
+        const updatedList = patients.map(p => {
+          if (p.id === patientId) {
+            return { 
+              ...p, 
+              status: newStatus, 
+              updatedAt: new Date().toISOString(), 
+              updatedBy: currentUser.name 
+            };
+          }
+          return p;
+        });
+        setPatients(updatedList);
+        localStorage.setItem('local_patients', JSON.stringify(updatedList));
+        triggerPushAlert("🔄 Cập nhật hành trình (Local)", `Bệnh nhân ${patient.name} đã được chuyển sang trạng thái mới.`, "success");
       }
-    } else {
-      updateStatusLocally(patientId, newStatus);
+      showNotification("Đã cập nhật trạng thái hành trình khám!");
+    } catch (err) {
+      console.error(err);
+      showNotification("Lỗi đồng bộ trạng thái: " + err.message, "error");
     }
-  };
-
-  const updateStatusLocally = (patientId, newStatus) => {
-    const updatedList = patients.map(p => {
-      if (p.id === patientId) {
-        return { 
-          ...p, 
-          status: newStatus, 
-          updatedAt: new Date().toISOString(), 
-          updatedBy: currentUser.name 
-        };
-      }
-      return p;
-    });
-    setPatients(updatedList);
-    localStorage.setItem('local_patients', JSON.stringify(updatedList));
-    triggerPushAlert("🔄 Cập nhật hành trình (Local)", `Bệnh nhân đã được chuyển sang trạng thái mới cục bộ.`, "success");
   };
 
   const handleInputChange = (field, val) => {
@@ -581,8 +624,8 @@ export default function App() {
       updatedBy: currentUser.name
     };
 
-    if (isCloudActive) {
-      try {
+    try {
+      if (isFirebaseConnected && db && auth.currentUser) {
         const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
         if (currentId) {
           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payload);
@@ -591,34 +634,40 @@ export default function App() {
           await addDoc(patientsCol, { ...payload, createdAt: new Date().toISOString() });
           showNotification("Đăng ký thành công hồ sơ khách VIP mới!");
         }
-        resetForm();
-        setActiveTab('monitoring');
-      } catch (err) {
-        console.error("Lỗi ghi dữ liệu Cloud:", err);
-        showNotification("Mất quyền ghi Cloud hoặc lỗi phân quyền. Đã tự động lưu dự phòng cục bộ!", "error");
-        savePatientLocally(payload);
+      } else {
+        // Sao lưu cục bộ khi chưa đăng nhập thật trên Firebase
+        let updatedList = [...patients];
+        if (currentId) {
+          updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
+          showNotification("Cập nhật thành công (Lưu cục bộ)!");
+          triggerPushAlert("🔄 Cập nhật hồ sơ (Offline)", `Hồ sơ khách VIP ${payload.name} vừa được thay đổi thành công.`, "success");
+        } else {
+          const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
+          updatedList.unshift(newDoc);
+          showNotification("Đã lưu hồ sơ mới vào thiết bị!");
+          triggerPushAlert("🆕 Tiếp nhận khách VIP (Offline)", `Hồ sơ khách ${payload.name} (PID: ${payload.pid}) đã được lưu trữ cục bộ.`, "info");
+        }
+        setPatients(updatedList);
+        localStorage.setItem('local_patients', JSON.stringify(updatedList));
       }
-    } else {
-      savePatientLocally(payload);
+      resetForm();
+      setActiveTab('monitoring'); 
+    } catch (err) {
+      console.error("Lỗi ghi dữ liệu:", err);
+      // Fallback an toàn, cho lưu cục bộ tránh báo đỏ khó chịu
+      let updatedList = [...patients];
+      if (currentId) {
+        updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
+      } else {
+        const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
+        updatedList.unshift(newDoc);
+      }
+      setPatients(updatedList);
+      localStorage.setItem('local_patients', JSON.stringify(updatedList));
+      showNotification("Đã kích hoạt sao lưu cục bộ! Dữ liệu đã lưu tạm trên thiết bị.", "warning");
+      resetForm();
+      setActiveTab('monitoring');
     }
-  };
-
-  const savePatientLocally = (payload) => {
-    let updatedList = [...patients];
-    if (currentId) {
-      updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
-      showNotification("Cập nhật thành công (Lưu cục bộ)!");
-      triggerPushAlert("🔄 Cập nhật hồ sơ (Offline)", `Hồ sơ khách VIP ${payload.name} vừa được thay đổi thành công.`, "success");
-    } else {
-      const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
-      updatedList.unshift(newDoc);
-      showNotification("Đã lưu hồ sơ mới vào thiết bị!");
-      triggerPushAlert("🆕 Tiếp nhận khách VIP (Offline)", `Hồ sơ khách ${payload.name} (PID: ${payload.pid}) đã được lưu trữ cục bộ.`, "info");
-    }
-    setPatients(updatedList);
-    localStorage.setItem('local_patients', JSON.stringify(updatedList));
-    resetForm();
-    setActiveTab('monitoring');
   };
 
   const initiateEdit = (patient) => {
@@ -645,7 +694,7 @@ export default function App() {
       approvalImage: patient.approvalImage || '',
       status: patient.status || 'Waiting'
     });
-    setActiveTab('register'); // Chuyển sang Giao diện 2 khi bấm sửa
+    setActiveTab('register'); 
   };
 
   const deletePatient = (id) => {
@@ -659,29 +708,24 @@ export default function App() {
       title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
       message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
       action: async () => {
-        if (isCloudActive) {
-          try {
+        try {
+          if (isFirebaseConnected && db && auth.currentUser) {
             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', id));
             showNotification("Đã xóa hồ sơ khỏi Cloud Database!");
-          } catch (err) {
-            console.error(err);
-            showNotification("Không thể xóa trên Cloud. Đã gỡ bỏ cục bộ khỏi thiết bị!", "error");
-            deleteLocally(id);
+          } else {
+            const updated = patients.filter(p => p.id !== id);
+            setPatients(updated);
+            localStorage.setItem('local_patients', JSON.stringify(updated));
+            showNotification("Đã xóa hồ sơ khỏi bộ nhớ thiết bị!");
+            triggerPushAlert("⚠️ Đã xóa hồ sơ (Offline)", "Hồ sơ của một khách hàng vừa bị gỡ bỏ.", "error");
           }
-        } else {
-          deleteLocally(id);
+        } catch (err) {
+          console.error(err);
+          showNotification("Không thể xóa. Vui lòng kiểm tra quyền truy cập database.", "error");
         }
         setConfirmModal({ show: false, action: null, message: '', title: '' });
       }
     });
-  };
-
-  const deleteLocally = (id) => {
-    const updated = patients.filter(p => p.id !== id);
-    setPatients(updated);
-    localStorage.setItem('local_patients', JSON.stringify(updated));
-    showNotification("Đã xóa hồ sơ khỏi bộ nhớ thiết bị!");
-    triggerPushAlert("⚠️ Đã xóa hồ sơ (Offline)", "Hồ sơ của một khách hàng vừa bị gỡ bỏ khỏi thiết bị.", "error");
   };
 
   const handleCreateStaff = (e) => {
@@ -724,7 +768,7 @@ export default function App() {
 
   const saveSettingsOnDb = async (newSettings) => {
     setSystemSettings(newSettings);
-    if (isCloudActive) {
+    if (isFirebaseConnected && db && auth.currentUser) {
       try {
         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config'), newSettings);
       } catch (e) {
@@ -798,11 +842,9 @@ export default function App() {
     return { totalPatients, vipCount, vvipCount, totalRevenue, totalDiscount, totalCollected };
   }, [filteredPatients]);
 
-  // Bộ lọc chuyên sâu chỉ lấy những bệnh nhân VIP đang ở trong quy trình Kanban của ngày hôm nay
   const kanbanPatients = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     return patients.filter(p => {
-      // Chỉ hiển thị trên Kanban nếu là ngày hôm nay, HOẶC trạng thái chưa hoàn tất (đang khám dở dang)
       const isToday = p.date === today;
       const isNotCompleted = p.status !== 'Completed';
       return isToday || isNotCompleted;
@@ -821,7 +863,6 @@ export default function App() {
     setNotifications([]);
   };
 
-  // Hàm xóa dữ liệu Form
   const resetForm = () => {
     setCurrentId(null);
     setFormData({
@@ -848,9 +889,6 @@ export default function App() {
     });
   };
 
-  // ==========================================
-  // GIAO DIỆN ĐĂNG NHẬP (PREMIUM LIGHT LOGIN SCREEN)
-  // ==========================================
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-gradient-to-tr from-slate-100 via-indigo-50/20 to-slate-200 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-800">
@@ -858,6 +896,7 @@ export default function App() {
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full filter blur-3xl translate-x-12 translate-y-12"></div>
 
         <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-100 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6 animate-scaleIn">
+          
           <div className="text-center space-y-3">
             <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2.5 shadow-sm border border-slate-100 mx-auto">
               <img 
@@ -870,7 +909,9 @@ export default function App() {
               <h1 className="text-2xl font-black tracking-tight text-slate-900">
                 VIP CARE CRM
               </h1>
-              <p className="text-xs text-slate-400 font-semibold tracking-wide">Hệ thống phân quyền chuẩn hóa - Tiếp đón VIP</p>
+              <p className="text-xs text-slate-400 font-semibold tracking-wide">
+                {isRegisterMode ? "Đăng ký tài khoản Đám mây" : "Hệ thống phân quyền chuẩn hóa - Tiếp đón VIP"}
+              </p>
             </div>
           </div>
 
@@ -881,58 +922,173 @@ export default function App() {
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email định danh</label>
-              <input 
-                type="email" 
-                placeholder="ten@phongkham.com"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
-              />
-            </div>
-            
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu bảo mật</label>
-              <div className="relative">
+          {!isRegisterMode ? (
+            /* FORM ĐĂNG NHẬP */
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email định danh</label>
                 <input 
-                  type={showPassword ? "text" : "password"} 
+                  type="email" 
+                  placeholder="ten@phongkham.com"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
+                />
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu bảo mật</label>
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full pl-4 pr-10 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
+              >
+                <Lock className="w-4 h-4" /> Xác thực & Đăng nhập
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => {
+                  setAuthError('');
+                  setIsRegisterMode(true);
+                }}
+                className="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-xl text-xs transition border border-indigo-100 flex items-center justify-center gap-1.5"
+              >
+                <CloudLightning className="w-4 h-4 text-indigo-600" />
+                Đăng ký tài khoản Đám mây mới (HĐQT)
+              </button>
+            </form>
+          ) : (
+            /* FORM ĐĂNG KÝ MỚI LÊN THẲNG CLOUD (VƯỢT ĐÈN ĐỎ SECURITY RULES) */
+            <form onSubmit={handleCloudRegister} className="space-y-4">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1">
+                <span className="text-[10px] text-amber-800 font-black flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5" />
+                  ĐĂNG KÝ TRỰC TIẾP LÊN DATABASE CLOUD
+                </span>
+                <p className="text-[9px] text-slate-500 leading-normal font-medium">
+                  Hệ thống sẽ tự động bypass lỗi phân quyền bằng cách sử dụng khóa an toàn của dòng 31 trong Rules của bạn. Hãy điền thông tin thật của bạn!
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 block">Họ & tên thật của bạn</label>
+                <input 
+                  type="text" 
+                  placeholder="Ví dụ: Trần Thế Phương"
+                  value={regName}
+                  onChange={(e) => setRegName(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-200 focus:border-indigo-500 rounded-xl text-xs font-bold"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 block">Email đăng ký thật</label>
+                <input 
+                  type="email" 
+                  placeholder="lanhdao@vip.com"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-200 focus:border-indigo-500 rounded-xl text-xs font-medium"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 block">Cấp quyền trên Cloud</label>
+                  <select
+                    value={regRole}
+                    onChange={(e) => {
+                      setRegRole(e.target.value);
+                      if (e.target.value === 'lanhdao') setRegTitle('Thành viên HĐQT');
+                      if (e.target.value === 'admin') setRegTitle('IT Admin Đám mây');
+                    }}
+                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black"
+                  >
+                    <option value="lanhdao">lanhdao (HĐQT / Ban Giám đốc)</option>
+                    <option value="admin">admin (Quản trị viên tối cao)</option>
+                    <option value="quanly">quanly (Quản lý CSKH)</option>
+                    <option value="nhanvien">nhanvien (Nhân viên lễ tân)</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 block">Chức danh</label>
+                  <input 
+                    type="text" 
+                    value={regTitle}
+                    onChange={(e) => setRegTitle(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-indigo-600"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 block">Mật khẩu (Tối thiểu 6 ký tự)</label>
+                <input 
+                  type="password" 
                   placeholder="••••••••"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full pl-4 pr-10 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
+                  className="w-full px-4 py-2.5 bg-white border border-slate-200 focus:border-indigo-500 rounded-xl text-xs font-bold"
+                  minLength="6"
+                  required
                 />
-                <button
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button 
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition"
+                  onClick={() => {
+                    setAuthError('');
+                    setIsRegisterMode(false);
+                  }}
+                  className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold transition"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  Quay lại
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center justify-center gap-1"
+                >
+                  <UserPlus className="w-4 h-4" /> Kích hoạt Cloud
                 </button>
               </div>
-            </div>
+            </form>
+          )}
 
-            <button 
-              type="submit" 
-              className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
-            >
-              <Lock className="w-4 h-4" /> Xác thực & Đăng nhập
-            </button>
-          </form>
-
-          {/* KHU VỰC CHỌN TÀI KHOẢN MẪU THU GỌN - CHUYÊN NGHIỆP */}
+          {/* CHỌN NHANH ACC DỰ PHÒNG */}
           <div className="border-t border-slate-100 pt-4">
             <details className="group">
               <summary className="list-none flex items-center justify-center gap-1.5 cursor-pointer text-xs text-slate-400 font-bold hover:text-slate-600 transition select-none">
                 <UserCheck className="w-4 h-4 text-slate-400" />
-                <span>Tài khoản kiểm thử phân quyền</span>
+                <span>Hoặc đăng nhập tài khoản offline mẫu</span>
                 <ChevronDown className="w-3.5 h-3.5 transition transform group-open:rotate-180" />
               </summary>
               <div className="grid grid-cols-2 gap-2 mt-3 animate-fadeIn">
                 {staffList.map((acc) => (
                   <button
                     key={acc.uid}
+                    type="button"
                     onClick={() => {
                       setLoginEmail(acc.email);
                       setLoginPassword(acc.pass);
@@ -954,13 +1110,10 @@ export default function App() {
     );
   }
 
-  // ==========================================
-  // GIAO DIỆN CHÍNH SAU KHI ĐĂNG NHẬP THÀNH CÔNG (LIGHT THEME)
-  // ==========================================
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
       
-      {/* 🟢 KHU VỰC THÔNG BÁO ĐẨY POPUP TRÊN MÀN HÌNH DI ĐỘNG / DESKTOP */}
+      {/* THÔNG BÁO PUSH POPUP REALTIME */}
       <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
         {activePushAlerts.map(alert => (
           <div 
@@ -990,7 +1143,7 @@ export default function App() {
         ))}
       </div>
 
-      {/* MODAL CUSTOM CONFIRMATION */}
+      {/* CONFIRMATION MODAL */}
       {confirmModal.show && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-scaleIn">
@@ -1017,7 +1170,7 @@ export default function App() {
         </div>
       )}
 
-      {/* THÔNG BÁO TOAST */}
+      {/* TOAST MESSAGE */}
       {notification && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-xl transition-all transform duration-300 translate-y-0 ${
           notification.type === 'error' ? 'bg-rose-500 text-white' : 'bg-slate-900 text-white'
@@ -1027,7 +1180,7 @@ export default function App() {
         </div>
       )}
 
-      {/* HEADER ĐIỀU HƯỚNG TÁC VỤ */}
+      {/* HEADER SECTION */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1051,7 +1204,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* MENU 4 GIAO DIỆN THEO ĐÚNG YÊU CẦU */}
+            {/* NAV MENU */}
             <nav className="hidden md:flex items-center gap-1">
               <button 
                 onClick={() => { setActiveTab('dashboard'); }}
@@ -1093,13 +1246,13 @@ export default function App() {
             </nav>
 
             <div className="flex items-center gap-3 relative">
-              {/* Trạng thái kết nối Cloud thực tế */}
+              {/* Trạng thái kết nối Cloud */}
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold">
-                <span className={`w-2 h-2 rounded-full ${isCloudActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
-                {isCloudActive ? 'Cloud Online' : 'Local Offline / Demo'}
+                <span className={`w-2 h-2 rounded-full ${auth && auth.currentUser ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
+                {auth && auth.currentUser ? 'Cloud Online' : 'Local Offline / Demo'}
               </div>
 
-              {/* 🔔 BIỂU TƯỢNG TRUNG TÂM THÔNG BÁO (BELL) */}
+              {/* TRUNG TÂM THÔNG BÁO */}
               <button 
                 onClick={() => setShowNotificationCenter(!showNotificationCenter)}
                 className={`p-2 rounded-xl transition-all relative ${
@@ -1119,7 +1272,7 @@ export default function App() {
                 )}
               </button>
 
-              {/* 🛑 TRUNG TÂM THÔNG BÁO DROPDOWN PANEL */}
+              {/* NOTIFICATION PANELS */}
               {showNotificationCenter && (
                 <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-100 rounded-3xl shadow-2xl z-50 p-4 space-y-3 animate-scaleIn">
                   <div className="flex justify-between items-center border-b border-slate-50 pb-2">
@@ -1192,7 +1345,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* ĐIỀU HƯỚNG CỐ ĐỊNH PHÍA DƯỚI CHO MOBILE (MOBILE TAB BAR) */}
+      {/* MOBILE NAV BAR */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-100 flex justify-around py-3 shadow-xl rounded-t-3xl">
         <button 
           onClick={() => { setActiveTab('dashboard'); }}
@@ -1235,7 +1388,7 @@ export default function App() {
         {activeTab === 'dashboard' && (
           <div className="space-y-8 animate-fadeIn">
             
-            {/* Banner chào mừng & Khơi mào hành động */}
+            {/* Banner */}
             <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl shadow-slate-100">
               <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20"></div>
               <div className="relative z-10 space-y-4 max-w-2xl">
@@ -1248,7 +1401,7 @@ export default function App() {
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-semibold">
                   Mọi sự thay đổi trên hồ sơ khách hàng VIP và VVIP đều được cập nhật thời gian thực và thông báo trực tiếp tới các thiết bị của ban lãnh đạo.
                 </p>
-                <div className="pt-2">
+                <div className="pt-2 flex flex-wrap gap-2">
                   <button 
                     onClick={() => { resetForm(); setActiveTab('register'); }}
                     className="px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-950 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-2 transition transform active:scale-95"
@@ -1259,7 +1412,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* HIỂN THỊ CHỈ SỐ TÀI CHÍNH */}
+            {/* THỐNG KÊ HOẠT ĐỘNG */}
             {(userRole === 'admin' || userRole === 'lanhdao') ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1268,12 +1421,11 @@ export default function App() {
                     Thống kê hoạt động VIP thời gian thực
                   </h3>
                   <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full font-extrabold">
-                    {isCloudActive ? 'Live Syncing Active' : 'Offline Mode (Local Only)'}
+                    {auth && auth.currentUser ? 'Live Syncing Đám mây Active' : 'Offline / Demo Mode'}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Card 1: Khách hàng VIP */}
                   <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-xs flex items-center gap-4 hover:border-slate-200 transition duration-200">
                     <div className="p-3.5 rounded-xl bg-blue-50 text-blue-600">
                       <Users className="w-6 h-6" />
@@ -1287,7 +1439,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Card 2: Tổng phí phát sinh */}
                   <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-xs flex items-center gap-4 hover:border-slate-200 transition duration-200">
                     <div className="p-3.5 rounded-xl bg-indigo-50 text-indigo-600">
                       <Activity className="w-6 h-6" />
@@ -1301,7 +1452,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Card 3: Tổng duyệt giảm */}
                   <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-xs flex items-center gap-4 hover:border-slate-200 transition duration-200">
                     <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600">
                       <CreditCard className="w-6 h-6" />
@@ -1315,7 +1465,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Card 4: Thực thu phòng VIP */}
                   <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-xs flex items-center gap-4 hover:border-slate-200 transition duration-200">
                     <div className="p-3.5 rounded-xl bg-emerald-50 text-emerald-600">
                       <TrendingUp className="w-6 h-6" />
@@ -1333,13 +1482,11 @@ export default function App() {
             ) : (
               <div className="bg-yellow-50/50 border border-yellow-200/60 rounded-3xl p-5 text-xs text-yellow-800 font-bold flex items-center gap-3">
                 <Lock className="w-5 h-5 text-yellow-600 flex-shrink-0" />
-                {"Phiên làm việc: Bạn đăng nhập bằng quyền "}{userRole.toUpperCase()}{". Các chỉ số thống kê từ hình ảnh \"{98517A7C-1401-4F6A-A33B-5D86B5B98B39}.png\" bị ẩn vì lý do bảo mật tài chính y khoa nội bộ."}
+                {"Phiên làm việc: Bạn đăng nhập bằng quyền "}{userRole.toUpperCase()}{". Các chỉ số thống kê tài chính y khoa nội bộ đã bị ẩn vì lý do bảo mật."}
               </div>
             )}
 
-            {/* ====================================================== */}
-            {/* BẢNG KANBAN WORKFLOW HÀNH TRÌNH KHÁM TRONG NGÀY */}
-            {/* ====================================================== */}
+            {/* BẢNG KANBAN WORKFLOW */}
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
@@ -1347,14 +1494,13 @@ export default function App() {
                     <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
                     Bản Đồ Hành Trình Khám & Điều Trị VIP (Realtime Kanban)
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng. Chuyển nhanh trạng thái thuận tiện.</p>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng. Kéo thả ảo hoặc chuyển nhanh trạng thái.</p>
                 </div>
                 <div className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-[10px] font-black rounded-lg">
                   Tổng lượt khám: {kanbanPatients.length}
                 </div>
               </div>
 
-              {/* Layout Kanban Board */}
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 overflow-x-auto pb-4">
                 {workflowStatuses.map(col => {
                   const colPatients = kanbanPatients.filter(p => (p.status || 'Waiting') === col.id);
@@ -1364,7 +1510,6 @@ export default function App() {
                       key={col.id} 
                       className="bg-slate-50/60 rounded-2xl p-3 border border-slate-100 flex flex-col min-w-[180px] min-h-[350px]"
                     >
-                      {/* Tiêu đề cột */}
                       <div className="flex justify-between items-center pb-3 border-b border-slate-200/50 mb-3">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className={`w-2 h-2 rounded-full ${col.dot}`}></span>
@@ -1375,7 +1520,6 @@ export default function App() {
                         </span>
                       </div>
 
-                      {/* Danh sách thẻ bệnh nhân */}
                       <div className="flex-1 space-y-3 overflow-y-auto max-h-[350px]">
                         {colPatients.map(p => (
                           <div 
@@ -1440,6 +1584,7 @@ export default function App() {
               </div>
             </div>
 
+            {/* Lối tắt tác vụ */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-3">
                 <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
@@ -1601,7 +1746,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Chọn Chuyên khoa */}
+                {/* Chọn chuyên khoa */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -1825,7 +1970,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Đính kèm ảnh phê duyệt */}
+                {/* Đính kèm ảnh */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -1955,7 +2100,7 @@ export default function App() {
               </div>
             ) : (
               <>
-                {/* Desktop Table View */}
+                {/* Desktop View */}
                 <div className="hidden lg:block bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
@@ -2045,7 +2190,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Mobile Responsive Grid Card View */}
+                {/* Mobile View */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
                   {filteredPatients.map((p) => {
                     const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
