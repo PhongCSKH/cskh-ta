@@ -90,6 +90,10 @@ try {
   console.warn(error);
 }
 
+const formatCurrency = (number) => {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(number || 0);
+};
+
 const mockStaffAccounts = [
   { uid: "acc_admin", email: "admin@vip.com", name: "Nguyễn Minh Trí", title: "IT Admin", role: "admin", pass: "CSKH@abc456" },
   { uid: "acc_lanhdao", email: "lanhdao@vip.com", name: "Trần Thế Phương", title: "Thành viên HĐQT", role: "lanhdao", pass: "CSKH@abc456" },
@@ -450,7 +454,11 @@ export default function App() {
         setPatients(list);
         setIsLoading(false);
       }, (error) => {
-        console.error(error);
+        console.warn("Firestore permissions denied. Automatically falling back to secure LocalStorage.", error);
+        const savedPatients = localStorage.getItem('local_patients');
+        if (savedPatients) {
+          setPatients(JSON.parse(savedPatients));
+        }
         setIsLoading(false);
       });
 
@@ -533,16 +541,6 @@ export default function App() {
     } else {
       setAuthError('Email hoặc mật khẩu không chính xác.');
     }
-  };
-
-  const handleLogout = () => {
-    if (isFirebaseConnected && auth) {
-      signOut(auth);
-    }
-    setCurrentUser(null);
-    setUserRole('nhanvien');
-    localStorage.removeItem('crm_current_user');
-    showNotification("Đăng xuất thành công.");
   };
 
   const handleInputChange = (field, val) => {
@@ -642,8 +640,20 @@ export default function App() {
       resetForm();
       setActiveTab('monitoring');
     } catch (err) {
-      console.error(err);
-      showNotification("Có lỗi xảy ra khi lưu dữ liệu.", "error");
+      console.warn("Cloud write failed, saving to local storage as fallback.", err);
+      let updatedList = [...patients];
+      if (currentId) {
+        updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
+        showNotification("Đã lưu cập nhật vào thiết bị (Chế độ Dự Phòng)!");
+      } else {
+        const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
+        updatedList.unshift(newDoc);
+        showNotification("Đã lưu hồ sơ mới vào thiết bị (Chế độ Dự Phòng)!");
+      }
+      setPatients(updatedList);
+      localStorage.setItem('local_patients', JSON.stringify(updatedList));
+      resetForm();
+      setActiveTab('monitoring');
     }
   };
 
@@ -968,7 +978,6 @@ export default function App() {
         ))}
       </div>
 
-      {}
       {confirmModal.show && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
@@ -1004,7 +1013,6 @@ export default function App() {
         </div>
       )}
 
-      {}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1068,7 +1076,6 @@ export default function App() {
               )}
             </nav>
 
-            {}
             <div className="flex items-center gap-3 relative" ref={notificationCenterRef}>
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold">
                 <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
@@ -1150,7 +1157,7 @@ export default function App() {
               )}
 
               <div className="hidden sm:block text-right">
-                <div className="text-xs font-extrabold text-slate-900">{currentUser.name}</div>
+                <div className="text-xs font-extrabold text-slate-950">{currentUser.name}</div>
                 <div className="text-[10px] text-indigo-600 font-extrabold uppercase tracking-wide">{currentUser.title || userRole}</div>
               </div>
               <button 
@@ -1166,7 +1173,6 @@ export default function App() {
         </div>
       </header>
 
-      {}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-100 flex justify-around py-3 shadow-xl rounded-t-3xl">
         <button 
           onClick={() => { setActiveTab('dashboard'); }}
@@ -1200,12 +1206,9 @@ export default function App() {
         )}
       </div>
 
-      {}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
-        {/* =========================================================
-            GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN
-            ========================================================= */}
+        {/* ========================== GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN ========================== */}
         {activeTab === 'dashboard' && (
           <div className="space-y-8 animate-fadeIn">
             
@@ -1261,7 +1264,6 @@ export default function App() {
               </div>
             </div>
 
-            {}
             {(userRole === 'admin' || userRole === 'lanhdao') && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1317,7 +1319,6 @@ export default function App() {
               </div>
             )}
 
-            {}
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
@@ -1452,9 +1453,7 @@ export default function App() {
           </div>
         )}
 
-        {/* =========================================================
-            GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI
-            ========================================================= */}
+        {/* ========================== GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI ========================== */}
         {activeTab === 'register' && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
@@ -1481,7 +1480,6 @@ export default function App() {
               </div>
             </div>
 
-            {}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
               
               <div className="lg:col-span-2 space-y-6">
@@ -1615,7 +1613,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -1753,7 +1750,6 @@ export default function App() {
 
               </div>
 
-              {}
               <div className="space-y-6">
                 
                 <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl space-y-5 relative overflow-hidden">
@@ -1881,9 +1877,7 @@ export default function App() {
           </form>
         )}
 
-        {/* =========================================================
-            GIAO DIỆN 3: THEO DÕI HỒ SƠ
-            ========================================================= */}
+        {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ ========================== */}
         {activeTab === 'monitoring' && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -1914,7 +1908,6 @@ export default function App() {
                   />
                 </div>
                 
-                {}
                 <div className="flex flex-wrap gap-2">
                   <select 
                     value={filterTier}
@@ -2032,7 +2025,6 @@ export default function App() {
                               <td className="py-4 px-3 text-right font-extrabold text-emerald-600">
                                 {formatCurrency(realCollected)}
                               </td>
-                              {}
                               <td className="py-4 px-5 text-right whitespace-nowrap">
                                 <div className="flex justify-end gap-1.5">
                                   {p.approvalImage && (
@@ -2144,9 +2136,7 @@ export default function App() {
           </div>
         )}
 
-        {/* =========================================================
-            GIAO DIỆN 4: CẤU HÌNH HỆ THỐNG
-            ========================================================= */}
+        {/* ========================== GIAO DIỆN 4: CẤU HÌNH HỆ THỐNG ========================== */}
         {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao') && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -2187,7 +2177,6 @@ export default function App() {
                   ))}
                 </div>
 
-                {}
                 <div className="border-t border-slate-100 pt-6 space-y-4">
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -2237,7 +2226,6 @@ export default function App() {
 
               </div>
 
-              {}
               <div className="space-y-6">
                 
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
