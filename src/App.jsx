@@ -91,26 +91,60 @@ try {
 }
 
 const mockStaffAccounts = [
-  { uid: "acc_admin", email: "admin@vip.com", name: "Nguyễn Minh Trí", title: "IT Admin", role: "admin", pass: "123456" },
-  { uid: "acc_lanhdao", email: "lanhdao@vip.com", name: "Trần Thế Phương", title: "Thành viên HĐQT", role: "lanhdao", pass: "123456" },
-  { uid: "acc_quanly", email: "quanly@vip.com", name: "Lê Thu Thảo", title: "Quản Lý Chăm Sóc VIP", role: "quanly", pass: "123456" },
-  { uid: "acc_nhanvien", email: "nhanvien@vip.com", name: "Phạm Hoàng Nam", title: "Lễ Tân Phòng Khám VIP", role: "nhanvien", pass: "123456" }
+  { uid: "acc_admin", email: "admin@vip.com", name: "Nguyễn Minh Trí", title: "IT Admin", role: "admin", pass: "CSKH@abc456" },
+  { uid: "acc_lanhdao", email: "lanhdao@vip.com", name: "Trần Thế Phương", title: "Thành viên HĐQT", role: "lanhdao", pass: "CSKH@abc456" },
+  { uid: "acc_quanly", email: "quanly@vip.com", name: "Lê Thu Thảo", title: "Quản Lý Chăm Sóc VIP", role: "quanly", pass: "CSKH@abc456" },
+  { uid: "acc_nhanvien", email: "nhanvien@vip.com", name: "Phạm Hoàng Nam", title: "Lễ Tân Phòng Khám VIP", role: "nhanvien", pass: "CSKH@abc456" }
+];
+
+const defaultSpecialties = [
+  "CK Chấn thương chỉnh hình", 
+  "CK Cơ xương khớp", 
+  "CK Da Liễu", 
+  "CK Dinh dưỡng", 
+  "CK Đầu - Mặt - Cổ", 
+  "CK Điều trị béo phì", 
+  "CK HEP-D", 
+  "CK Hô Hấp", 
+  "CK Hỗ trợ sinh sản", 
+  "CK Huyết học", 
+  "CK Mắt", 
+  "CK Miễn dịch lâm sàng", 
+  "CK Nam học", 
+  "CK Ngoại Lồng ngực - Mạch máu", 
+  "CK Ngoại Nhi", 
+  "CK Ngoại Thần Kinh", 
+  "CK Ngoại Tim Mạch", 
+  "CK Ngoại tổng quát", 
+  "CK Ngoại Vú", 
+  "CK Nhi", 
+  "CK Nội soi", 
+  "CK Nội Thận", 
+  "CK Nội tiết", 
+  "CK Nội tổng quát", 
+  "CK Phục hồi Chức năng", 
+  "CK Răng Hàm Mặt", 
+  "CK Sản phụ khoa", 
+  "CK Sơ sinh", 
+  "CK Tai mũi họng", 
+  "CK Tâm thần", 
+  "CK Thần kinh", 
+  "CK Thần kinh - Cột sống", 
+  "CK Tiết Niệu", 
+  "CK Tiêu hóa", 
+  "CK Tim mạch", 
+  "CK Tim mạch can thiệp", 
+  "CK Ung Bướu", 
+  "CK Viêm gan và gan nhiễm mỡ", 
+  "CK Vista", 
+  "CK Xạ trị", 
+  "CK Y học bào thai", 
+  "Khác", 
+  "Khám sàng lọc trước tiêm"
 ];
 
 const defaultSystemSettings = {
-  specialties: [
-    "Nội tổng quát",
-    "Ngoại khoa",
-    "Nhi khoa",
-    "Sản phụ khoa",
-    "Tai Mũi Họng",
-    "Răng Hàm Mặt",
-    "Mắt",
-    "Tim mạch",
-    "Da liễu",
-    "Hồi sức cấp cứu (ICU)",
-    "Khám VIP Theo Yêu Cầu"
-  ],
+  specialties: defaultSpecialties,
   totalFormulaFields: {
     phiKham: true,
     ngoaiTru: true,
@@ -125,11 +159,11 @@ const defaultSystemSettings = {
 
 const workflowStatuses = [
   { id: 'Waiting', label: 'Chờ Tiếp Đón', color: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-400' },
-  { id: 'Examining', label: 'Đang Khám Lâm Sàng', color: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
+  { id: 'Received', label: 'Đã Tiếp Đón', color: 'bg-indigo-50 text-indigo-700 border-indigo-200', dot: 'bg-indigo-500' },
+  { id: 'Examining', label: 'Đang Khám', color: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
   { id: 'Testing', label: 'Đang Làm CLS/CĐHA', color: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
   { id: 'Reviewing', label: 'Chờ Kết Luận', color: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
-  { id: 'Approving', label: 'Chờ HĐQT Duyệt', color: 'bg-rose-50 text-rose-700 border-rose-200', dot: 'bg-rose-500' },
-  { id: 'Pharmacy', label: 'Đang Chờ Thuốc', color: 'bg-yellow-50 text-yellow-800 border-yellow-200', dot: 'bg-yellow-500' },
+  { id: 'Pharmacy', label: 'Đang Chờ Thuốc/Tiêm Ngừa', color: 'bg-yellow-50 text-yellow-850 border-yellow-200', dot: 'bg-yellow-500' },
   { id: 'Completed', label: 'Đã Hoàn Tất', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' }
 ];
 
@@ -152,7 +186,7 @@ export default function App() {
   const [lightboxImage, setLightboxImage] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
 
-  const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'nhanvien', pass: '123456', title: '' });
+  const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'nhanvien', pass: 'CSKH@abc456', title: '' });
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSpecialty, setFilterSpecialty] = useState('');
@@ -247,7 +281,7 @@ export default function App() {
 
   const requestIosNotificationPermission = async () => {
     if (!('Notification' in window)) {
-      showNotification("Thiết bị hoặc trình duyệt này không hỗ trợ thông báo đẩy.", "error");
+      showNotification("Thiết bị không hỗ trợ thông báo đẩy.", "error");
       return;
     }
 
@@ -260,10 +294,10 @@ export default function App() {
       setIosNotificationStatus(permission);
       
       if (permission === 'granted') {
-        showNotification("Đã kích hoạt thành công thông báo trên thiết bị!");
-        triggerPushAlert("🟢 Đã bật thông báo", "Hệ thống cảnh báo ngầm sẵn sàng hoạt động thời gian thực.");
+        showNotification("Đã kích hoạt thành công thông báo!");
+        triggerPushAlert("🟢 Đã bật thông báo", "Hệ thống sẵn sàng nhận dữ liệu thời gian thực.");
       } else {
-        showNotification("Quyền thông báo bị từ chối. Hãy kiểm tra cài đặt iPhone.", "error");
+        showNotification("Quyền thông báo bị từ chối.", "error");
       }
     } catch (error) {
       console.error(error);
@@ -391,8 +425,8 @@ export default function App() {
             const statusLabel = workflowStatuses.find(s => s.id === data.status)?.label || data.status;
             if (change.type === "added") {
               triggerPushAlert(
-                `🆕 Tiếp nhận hành trình VIP`,
-                `Bệnh nhân: ${data.name} (PID: ${data.pid}) đã được tiếp đón vào luồng: ${statusLabel}.`,
+                `🆕 Tiếp nhận khách ${data.tier}`,
+                `Bệnh nhân: ${data.name} (PID: ${data.pid}) đã được tiếp đón trạng thái: ${statusLabel}.`,
                 'info'
               );
             }
@@ -477,7 +511,7 @@ export default function App() {
     if (isFirebaseConnected && auth) {
       try {
         await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-        showNotification("Đăng nhập đám mây Cloud thành công!");
+        showNotification("Đăng nhập thành công!");
       } catch (err) {
         performLocalLogin();
       }
@@ -495,9 +529,9 @@ export default function App() {
       setUserRole(account.role);
       localStorage.setItem('crm_current_user', JSON.stringify(account));
       showNotification(`Chào mừng ${account.name} quay trở lại!`);
-      triggerPushAlert("👋 Đăng nhập thành công", `Chào mừng ${account.name} đã truy cập CRM.`);
+      triggerPushAlert("👋 Đăng nhập thành công", `Chào mừng ${account.name} đã truy cập.`);
     } else {
-      setAuthError('Email hoặc mật khẩu không chính xác. Hãy liên hệ quản trị viên.');
+      setAuthError('Email hoặc mật khẩu không chính xác.');
     }
   };
 
@@ -508,59 +542,12 @@ export default function App() {
     setCurrentUser(null);
     setUserRole('nhanvien');
     localStorage.removeItem('crm_current_user');
-    showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
-  };
-
-  const handleUpdateStatus = async (patientId, newStatus) => {
-    const patient = patients.find(p => p.id === patientId);
-    if (!patient) return;
-
-    if (userRole === 'nhanvien') {
-      const currentStatus = patient.status || 'Waiting';
-      const isAllowed = 
-        (currentStatus === 'Waiting' && newStatus === 'Examining') || 
-        (currentStatus === 'Pharmacy' && newStatus === 'Completed');
-
-      if (!isAllowed) {
-        showNotification("Lỗi: Tài khoản nhân viên chỉ được phép chuyển trạng thái theo đúng luồng bàn giao quy định!", "error");
-        return;
-      }
-    }
-
-    try {
-      if (isFirebaseConnected && db) {
-        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'patients', patientId);
-        await updateDoc(docRef, {
-          status: newStatus,
-          updatedAt: new Date().toISOString(),
-          updatedBy: currentUser.name
-        });
-      } else {
-        const updatedList = patients.map(p => {
-          if (p.id === patientId) {
-            return { 
-              ...p, 
-              status: newStatus, 
-              updatedAt: new Date().toISOString(), 
-              updatedBy: currentUser.name 
-            };
-          }
-          return p;
-        });
-        setPatients(updatedList);
-        localStorage.setItem('local_patients', JSON.stringify(updatedList));
-        triggerPushAlert("🔄 Cập nhật hành trình (Cục bộ)", `Khách hàng ${patient.name} đã được cập nhật trạng thái mới.`, "success");
-      }
-      showNotification("Đã cập nhật trạng thái hành trình khám!");
-    } catch (err) {
-      console.error(err);
-      showNotification("Lỗi đồng bộ trạng thái lên database!", "error");
-    }
+    showNotification("Đăng xuất thành công.");
   };
 
   const handleInputChange = (field, val) => {
     if (field === 'discountRate' && userRole === 'nhanvien') {
-      showNotification("Tài khoản cấp nhân viên không có quyền duyệt tỷ lệ chiết khấu giảm giá!", "error");
+      showNotification("Tài khoản nhân viên không có quyền duyệt chiết khấu!", "error");
       return;
     }
     setFormData(prev => ({ ...prev, [field]: val }));
@@ -587,7 +574,7 @@ export default function App() {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      showNotification("Ảnh công văn vượt quá giới hạn 2MB!", "error");
+      showNotification("Ảnh vượt quá giới hạn 2MB!", "error");
       return;
     }
 
@@ -605,7 +592,7 @@ export default function App() {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
         handleInputChange('approvalImage', compressedBase64);
-        showNotification("Đã đính kèm chứng từ phê duyệt thành công!");
+        showNotification("Đã đính kèm chứng từ thành công!");
       };
     };
     reader.readAsDataURL(file);
@@ -614,11 +601,11 @@ export default function App() {
   const savePatient = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      showNotification("Họ và tên khách hàng không được để trống!", "error");
+      showNotification("Họ & Tên khách hàng không được để trống!", "error");
       return;
     }
     if (!formData.pid.trim()) {
-      showNotification("Mã định danh bệnh nhân PID là bắt buộc!", "error");
+      showNotification("Mã PID là bắt buộc!", "error");
       return;
     }
 
@@ -634,20 +621,20 @@ export default function App() {
         const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
         if (currentId) {
           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payload);
-          showNotification("Cập nhật hồ sơ thành công!");
+          showNotification("Cập nhật thành công!");
         } else {
           await addDoc(patientsCol, { ...payload, createdAt: new Date().toISOString() });
-          showNotification("Đã xử lý hồ sơ tiếp đón mới thành công!");
+          showNotification("Đăng ký thành công!");
         }
       } else {
         let updatedList = [...patients];
         if (currentId) {
           updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
-          showNotification("Cập nhật thành công vào bộ nhớ thiết bị!");
+          showNotification("Cập nhật thành công!");
         } else {
           const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
           updatedList.unshift(newDoc);
-          showNotification("Đã lưu hồ sơ mới vào thiết bị!");
+          showNotification("Đã lưu hồ sơ thành công!");
         }
         setPatients(updatedList);
         localStorage.setItem('local_patients', JSON.stringify(updatedList));
@@ -656,7 +643,7 @@ export default function App() {
       setActiveTab('monitoring');
     } catch (err) {
       console.error(err);
-      showNotification("Lỗi hệ thống hoặc bạn không đủ quyền cập nhật dữ liệu.", "error");
+      showNotification("Có lỗi xảy ra khi lưu dữ liệu.", "error");
     }
   };
 
@@ -687,44 +674,14 @@ export default function App() {
     setActiveTab('register');
   };
 
-  const deletePatient = (id) => {
-    if (userRole === 'nhanvien') {
-      showNotification("Lỗi: Cấp bậc nhân viên không được phép xóa dữ liệu!", "error");
-      return;
-    }
-
-    setConfirmModal({
-      show: true,
-      title: "Xác nhận gỡ bỏ dữ liệu",
-      message: "Bạn có chắc chắn muốn gỡ bỏ vĩnh viễn hồ sơ này khỏi hệ thống không? Tác vụ này không thể hoàn tác.",
-      action: async () => {
-        try {
-          if (isFirebaseConnected && db) {
-            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', id));
-            showNotification("Đã xóa hồ sơ khỏi máy chủ Cloud!");
-          } else {
-            const updated = patients.filter(p => p.id !== id);
-            setPatients(updated);
-            localStorage.setItem('local_patients', JSON.stringify(updated));
-            showNotification("Đã gỡ bỏ hồ sơ khỏi thiết bị!");
-          }
-        } catch (err) {
-          console.error(err);
-          showNotification("Không thể thực hiện. Vui lòng kiểm tra kết nối mạng.", "error");
-        }
-        setConfirmModal({ show: false, action: null, message: '', title: '' });
-      }
-    });
-  };
-
   const handleCreateStaff = (e) => {
     e.preventDefault();
     if (userRole !== 'admin') {
-      showNotification("Chỉ quyền quản trị tối cao mới được thực hiện tác vụ này!", "error");
+      showNotification("Chỉ IT Admin mới được phép thao tác!", "error");
       return;
     }
     if (!newStaff.name.trim() || !newStaff.email.trim() || !newStaff.pass.trim()) {
-      showNotification("Vui lòng nhập đầy đủ các trường thông tin bắt buộc!", "error");
+      showNotification("Vui lòng điền đầy đủ thông tin!", "error");
       return;
     }
 
@@ -740,19 +697,19 @@ export default function App() {
     const updatedList = [...staffList, created];
     setStaffList(updatedList);
     localStorage.setItem('crm_staff_accounts', JSON.stringify(updatedList));
-    showNotification(`Đã tạo tài khoản cho ${newStaff.name} thành công!`);
-    setNewStaff({ name: '', email: '', role: 'nhanvien', pass: '123456', title: '' });
+    showNotification(`Đã tạo tài khoản thành công!`);
+    setNewStaff({ name: '', email: '', role: 'nhanvien', pass: 'CSKH@abc456', title: '' });
   };
 
   const handleDeleteStaff = (uid) => {
     if (uid === currentUser.uid || uid === "acc_admin") {
-      showNotification("Không thể tự gỡ bỏ tài khoản chính đang sử dụng!", "error");
+      showNotification("Không thể tự xóa tài khoản đang hoạt động!", "error");
       return;
     }
     const updated = staffList.filter(s => s.uid !== uid);
     setStaffList(updated);
     localStorage.setItem('crm_staff_accounts', JSON.stringify(updated));
-    showNotification("Đã thu hồi quyền truy cập hệ thống.");
+    showNotification("Đã thu hồi tài khoản thành công.");
   };
 
   const saveSettingsOnDb = async (newSettings) => {
@@ -783,19 +740,19 @@ export default function App() {
     });
 
     if (addedCount === 0) {
-      showNotification("Các chuyên khoa nhập vào đã có sẵn trong danh mục!", "error");
+      showNotification("Các chuyên khoa đã tồn tại!", "error");
       return;
     }
 
     saveSettingsOnDb({ ...systemSettings, specialties: updatedSpecialties });
     setNewSpecialtyInput('');
-    showNotification(`Đã thêm mới thành công ${addedCount} chuyên khoa!`);
+    showNotification(`Đã thêm mới ${addedCount} chuyên khoa!`);
   };
 
   const handleRemoveSpecialty = (spec) => {
     const updated = systemSettings.specialties.filter(s => s !== spec);
     saveSettingsOnDb({ ...systemSettings, specialties: updated });
-    showNotification("Đã gỡ bỏ chuyên khoa khỏi danh mục.");
+    showNotification("Đã gỡ bỏ chuyên khoa.");
   };
 
   const handleFormulaCheckboxChange = (field) => {
@@ -804,16 +761,12 @@ export default function App() {
       [field]: !systemSettings.totalFormulaFields[field] 
     };
     saveSettingsOnDb({ ...systemSettings, totalFormulaFields: updatedFormula });
-    showNotification("Công thức tính tổng phí tự động đã được cập nhật!");
+    showNotification("Công thức tổng cộng đã được cập nhật!");
   };
 
   const handleDiscountFormulaChange = (type) => {
     saveSettingsOnDb({ ...systemSettings, discountFormulaType: type });
     showNotification("Phương thức tính miễn giảm đã thay đổi!");
-  };
-
-  const formatCurrency = (number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(number || 0);
   };
 
   const filteredPatients = useMemo(() => {
@@ -864,32 +817,6 @@ export default function App() {
     setNotifications([]);
   };
 
-  const resetForm = () => {
-    setCurrentId(null);
-    setFormData({
-      name: '',
-      tier: 'VIP',
-      boardApproval: '',
-      notes: '',
-      pid: '',
-      date: new Date().toISOString().split('T')[0],
-      specialties: [],
-      ngoaiTru: 0,
-      capCuu: 0,
-      noiTru: 0,
-      ngoaiVien: 0,
-      phiKham: 0,
-      clsCdha: 0,
-      thuocVacxin: 0,
-      insuranceAdvance: 0,
-      discountRate: 0,
-      approvedDiscountAmount: 0,
-      totalAmount: 0,
-      approvalImage: '',
-      status: 'Waiting'
-    });
-  };
-
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-gradient-to-tr from-slate-100 via-indigo-50/20 to-slate-200 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-800">
@@ -907,9 +834,9 @@ export default function App() {
             </div>
             <div className="space-y-1">
               <h1 className="text-2xl font-black tracking-tight text-slate-900">
-                VIP CARE CRM
+                QL KH VIP-VVIP
               </h1>
-              <p className="text-xs text-slate-400 font-semibold tracking-wide">Hệ thống Tiếp Đón Đặc Quyền</p>
+              <p className="text-xs text-slate-400 font-semibold tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
             </div>
           </div>
 
@@ -922,10 +849,10 @@ export default function App() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email định danh</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email </label>
               <input 
                 type="email" 
-                placeholder="ten@phongkham.com"
+                placeholder="nhập email tại đây"
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
@@ -933,7 +860,7 @@ export default function App() {
             </div>
             
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu hệ thống</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu</label>
               <div className="relative">
                 <input 
                   type={showPassword ? "text" : "password"} 
@@ -956,7 +883,7 @@ export default function App() {
               type="submit" 
               className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
             >
-              <Lock className="w-4 h-4" /> Xác thực & Đăng nhập
+              <Lock className="w-4 h-4" /> Xác thực
             </button>
           </form>
 
@@ -971,14 +898,6 @@ export default function App() {
       {lightboxImage && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 animate-fadeIn">
           <div className="absolute top-4 right-4 z-50 flex gap-2">
-            <a 
-              href={lightboxImage} 
-              target="_blank" 
-              rel="noreferrer" 
-              className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition"
-            >
-              <Eye className="w-5 h-5" />
-            </a>
             <button 
               onClick={() => setLightboxImage(null)}
               className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition"
@@ -993,7 +912,6 @@ export default function App() {
               className="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-scaleIn"
             />
           </div>
-          <p className="text-white/60 text-xs font-semibold mt-4">Chứng từ đính kèm hồ sơ hành trình VIP</p>
         </div>
       )}
 
@@ -1050,6 +968,7 @@ export default function App() {
         ))}
       </div>
 
+      {}
       {confirmModal.show && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
@@ -1069,7 +988,7 @@ export default function App() {
                 onClick={confirmModal.action}
                 className="px-5 py-2 bg-rose-500 hover:bg-rose-600 text-xs font-bold text-white rounded-xl transition shadow-xs"
               >
-                Xác nhận
+                Xác nhận xóa
               </button>
             </div>
           </div>
@@ -1085,6 +1004,7 @@ export default function App() {
         </div>
       )}
 
+      {}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1099,12 +1019,12 @@ export default function App() {
               </div>
               <div>
                 <h1 className="text-sm font-black tracking-tight text-slate-900 flex items-center gap-1.5">
-                  VIP CARE CRM
+                  QL KH VIP-VVIP
                   <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-wider">
                     {userRole}
                   </span>
                 </h1>
-                <p className="text-[10px] text-slate-400 font-semibold">Hệ thống Tiếp Đón Đặc Quyền VIP</p>
+                <p className="text-[10px] text-slate-400 font-semibold">Tiếp nhận khách hàng VIP-VVIP</p>
               </div>
             </div>
 
@@ -1148,10 +1068,11 @@ export default function App() {
               )}
             </nav>
 
+            {}
             <div className="flex items-center gap-3 relative" ref={notificationCenterRef}>
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold">
                 <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
-                {isFirebaseConnected ? 'Cloud Online' : 'Local Offline'}
+                {isFirebaseConnected ? 'Live' : 'Offline'}
               </div>
 
               <button 
@@ -1235,7 +1156,7 @@ export default function App() {
               <button 
                 onClick={handleLogout}
                 className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                title="Đăng xuất khỏi hệ thống"
+                title="Đăng xuất"
               >
                 <LogOut className="w-5 h-5" />
               </button>
@@ -1245,6 +1166,7 @@ export default function App() {
         </div>
       </header>
 
+      {}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-100 flex justify-around py-3 shadow-xl rounded-t-3xl">
         <button 
           onClick={() => { setActiveTab('dashboard'); }}
@@ -1278,8 +1200,12 @@ export default function App() {
         )}
       </div>
 
+      {}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
+        {/* =========================================================
+            GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN
+            ========================================================= */}
         {activeTab === 'dashboard' && (
           <div className="space-y-8 animate-fadeIn">
             
@@ -1315,14 +1241,14 @@ export default function App() {
             <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl shadow-slate-100">
               <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20"></div>
               <div className="relative z-10 space-y-4 max-w-2xl">
-                <span className="px-3 py-1 bg-white/10 backdrop-blur-xs rounded-full text-[10px] font-black uppercase tracking-wider text-amber-300">
-                  Hệ thống Tiếp Đón & Quản Lý Đặc Quyền
+                <span className="px-3 py-1 bg-amber-400 text-slate-950 rounded-full text-[10px] font-black uppercase tracking-wider">
+                  Phòng Chăm Sóc Khách Hàng
                 </span>
                 <h2 className="text-xl sm:text-3xl font-black tracking-tight leading-tight">
-                  Chào mừng trở lại, {currentUser.name}!
+                  Chào, {currentUser.name}!
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-semibold">
-                  Mọi sự thay đổi trên hồ sơ khách hàng VIP và VVIP đều được cập nhật thời gian thực và thông báo trực tiếp tới các thiết bị của ban lãnh đạo.
+                  Công cụ hỗ trợ quản lý và theo dõi việc tiếp đón và chi phí của nhóm Khách hàng VIP, VVIP, Ngoại giao của Ban giám đốc.
                 </p>
                 <div className="pt-2">
                   <button 
@@ -1335,25 +1261,26 @@ export default function App() {
               </div>
             </div>
 
+            {}
             {(userRole === 'admin' || userRole === 'lanhdao') && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-                    Thống kê hoạt động VIP thời gian thực
+                    Những gì của ngày hôm nay
                   </h3>
                   <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full font-extrabold">
-                    {isFirebaseConnected ? 'Live Syncing Active' : 'Offline Mode (Local Only)'}
+                    {isFirebaseConnected ? 'Live' : 'Offline'}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-xs flex items-center gap-4 hover:border-slate-200 transition duration-200">
                     <div className="p-3.5 rounded-xl bg-blue-50 text-blue-600">
                       <Users className="w-6 h-6" />
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Khách hàng VIP</span>
+                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Khách hàng</span>
                       <span className="text-xl font-black text-slate-900">{metrics.totalPatients}</span>
                       <span className="text-[11px] text-slate-500 block">
                         VIP: {metrics.vipCount} | VVIP: {metrics.vvipCount}
@@ -1366,10 +1293,10 @@ export default function App() {
                       <Activity className="w-6 h-6" />
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Tổng phí phát sinh</span>
+                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Tổng chi phí</span>
                       <span className="text-xl font-black text-slate-900">{formatCurrency(metrics.totalRevenue)}</span>
                       <span className="text-[11px] text-slate-500 block">
-                        Phí y khoa gốc
+                        Tổng chi phí sử dụng
                       </span>
                     </div>
                   </div>
@@ -1386,31 +1313,19 @@ export default function App() {
                       </span>
                     </div>
                   </div>
-
-                  <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-xs flex items-center gap-4 hover:border-slate-200 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-emerald-50 text-emerald-600">
-                      <TrendingUp className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Thực thu phòng VIP</span>
-                      <span className="text-xl font-black text-emerald-600">{formatCurrency(metrics.totalCollected)}</span>
-                      <span className="text-[11px] text-slate-500 block">
-                        Sau khi giảm trừ
-                      </span>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
 
+            {}
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
                   <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
                     <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
-                    Hành Trình Khách Hàng
+                    Hành Trình Khách Hàng (Realtime Kanban)
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng. Điều phối và chuyển tiếp nhanh trạng thái.</p>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng.</p>
                 </div>
                 <div className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-[10px] font-black rounded-lg">
                   Tổng lượt khám: {kanbanPatients.length}
@@ -1479,10 +1394,10 @@ export default function App() {
                               </select>
                             </div>
 
-                            <div className="flex justify-between items-center text-[8px] text-slate-400 border-t border-slate-100 pt-1.5 font-semibold">
-                              <span className="truncate">By: {p.updatedBy?.split(' ')[0] || 'Lễ tân'}</span>
+                            <div className="flex flex-col gap-0.5 text-[8px] text-slate-400 border-t border-slate-100 pt-1.5 font-semibold">
+                              <span className="truncate">NV cập nhật: {p.updatedBy || 'Lễ tân'}</span>
                               <span className="flex-shrink-0 text-slate-300">
-                                {p.updatedAt ? new Date(p.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '---'}
+                                {p.updatedAt ? new Date(p.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date(p.updatedAt).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'}) : '---'}
                               </span>
                             </div>
                           </div>
@@ -1503,7 +1418,7 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-3">
                 <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo theo dõi hồ sơ khách VIP
+                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo dõi hồ sơ
                 </h4>
                 <p className="text-xs text-slate-500 leading-relaxed font-semibold">
                   Truy cập nhanh danh sách bệnh nhân VIP/VVIP đang điều trị tại phòng khám và bệnh viện chuyên khoa. Thực hiện tra cứu tiến trình và biên lai đính kèm.
@@ -1519,7 +1434,7 @@ export default function App() {
               {(userRole === 'admin' || userRole === 'lanhdao') && (
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-3">
                   <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống & nhân sự
+                    <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống
                   </h4>
                   <p className="text-xs text-slate-500 leading-relaxed font-semibold">
                     Thiết lập công thức tính tổng phí điều trị, cấu hình các chuyên khoa tiếp nhận và phân quyền tài khoản cho đội ngũ tiếp đón.
@@ -1537,15 +1452,17 @@ export default function App() {
           </div>
         )}
 
+        {/* =========================================================
+            GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI
+            ========================================================= */}
         {activeTab === 'register' && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
             <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-150 shadow-md">
               <div>
                 <h2 className="text-base font-black text-slate-950 flex items-center gap-1.5">
-                  {currentId ? "Cập Nhật Hồ Sơ Khách Hàng VIP" : "Đăng Ký Hồ Sơ Khách VIP/VVIP Mới"}
+                  {currentId ? "Cập Nhật Tiến Độ" : "Tạo lượt VIP/VVIP Mới"}
                 </h2>
-                <p className="text-[11px] text-slate-400 font-semibold">Khai báo thông tin hành chính, danh mục chỉ định khám, biểu phí phát sinh thực tế.</p>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 <button 
@@ -1557,13 +1474,14 @@ export default function App() {
                 </button>
                 <button 
                   type="submit"
-                  className="px-5 py-2 bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
+                  className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
                 >
-                  <Check className="w-4 h-4" /> {currentId ? "Cập nhật dữ liệu" : "Hoàn tất đăng ký"}
+                  <Check className="w-4 h-4" /> {currentId ? "Cập nhật" : "Đăng ký"}
                 </button>
               </div>
             </div>
 
+            {}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
               
               <div className="lg:col-span-2 space-y-6">
@@ -1571,15 +1489,15 @@ export default function App() {
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-5">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-50 pb-3 flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                    Thông Tin Hành Chính Khách VIP (Nhập Tay)
+                    Thông Tin Hành Chính
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách VIP/VVIP <span className="text-red-500">*</span></label>
+                      <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách hàng *</label>
                       <input 
                         type="text" 
-                        placeholder="Nhập tay họ và tên..."
+                        placeholder="Nhập họ và tên Khách hàng"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800"
@@ -1588,11 +1506,11 @@ export default function App() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Mã PID <span className="text-red-500">*</span></label>
+                      <label className="text-xs font-bold text-slate-600 block">Mã PID *</label>
                       <div className="flex gap-2">
                         <input 
                           type="text" 
-                          placeholder="Nhập mã bệnh nhân PID..."
+                          placeholder="Nhập/Quét mã bệnh nhân PID..."
                           value={formData.pid}
                           onChange={(e) => handleInputChange('pid', e.target.value)}
                           className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-mono font-black bg-white text-slate-800"
@@ -1602,7 +1520,6 @@ export default function App() {
                           type="button"
                           onClick={handleSimulateScan}
                           className="px-3 bg-slate-100 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs"
-                          title="Quét mã vạch"
                         >
                           <Scan className="w-4 h-4 text-slate-500" /> Quét mã
                         </button>
@@ -1644,7 +1561,7 @@ export default function App() {
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">Trạng Thái Hành Trình (Vị Trí Kanban Khởi Tạo)</label>
+                      <label className="text-xs font-bold text-slate-600 block">Trạng Thái (Vị Trí Kanban Ban Đầu)</label>
                       <select
                         value={formData.status}
                         onChange={(e) => handleInputChange('status', e.target.value)}
@@ -1677,7 +1594,7 @@ export default function App() {
                         </div>
                         <input 
                           type="text" 
-                          placeholder="Hoặc gõ nhập tay thành viên hội đồng quản trị duyệt..."
+                          placeholder="Thành viên hội đồng quản trị duyệt..."
                           value={formData.boardApproval}
                           onChange={(e) => handleInputChange('boardApproval', e.target.value)}
                           className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-semibold bg-white text-slate-800"
@@ -1686,10 +1603,10 @@ export default function App() {
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">Ghi chú <span className="text-slate-400 font-semibold">(Nhập tay)</span></label>
+                      <label className="text-xs font-bold text-slate-600 block">Ghi chú</label>
                       <textarea 
                         rows="2"
-                        placeholder="Mô tả ghi chú tiếp đón lâm sàng..."
+                        placeholder="Mô tả ghi chú nếu có..."
                         value={formData.notes}
                         onChange={(e) => handleInputChange('notes', e.target.value)}
                         className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-medium bg-white text-slate-800"
@@ -1698,10 +1615,11 @@ export default function App() {
                   </div>
                 </div>
 
+                {}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                    Chỉ Định Chuyên Khoa <span className="text-slate-400 font-semibold">(Chọn 1 hoặc nhiều)</span>
+                    Chuyên khoa thăm khám
                   </h3>
 
                   <div className="flex flex-wrap gap-2">
@@ -1727,7 +1645,7 @@ export default function App() {
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-5">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-50 pb-3 flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                    Chi Phí Điều Trị & Lâm Sàng Thực Tế (VND)
+                    Chi Phí Điều Trị & Lâm Sàng Thực Tế
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1835,6 +1753,7 @@ export default function App() {
 
               </div>
 
+              {}
               <div className="space-y-6">
                 
                 <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl space-y-5 relative overflow-hidden">
@@ -1842,7 +1761,7 @@ export default function App() {
                   
                   <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
                     <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
-                    Biên lai đồng bộ chi phí VIP
+                    Bảng tổng hợp chi phí
                   </h3>
 
                   <div className="space-y-1.5 pt-2 relative z-10">
@@ -1859,7 +1778,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 relative z-10">
+                  <div className="grid grid-cols-1 gap-3 relative z-10">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
                         Duyệt giảm (%) {userRole === 'nhanvien' && '🔒'}
@@ -1882,35 +1801,35 @@ export default function App() {
                         <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold">%</span>
                       </div>
                     </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-300 block">Hạng hiện tại</label>
-                      <div className="py-2.5 px-3 bg-slate-800 rounded-xl border border-slate-700 text-xs font-black text-center text-amber-400 uppercase tracking-widest">
-                        {formData.tier}
-                      </div>
-                    </div>
                   </div>
 
                   <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
                     
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-400">Tổng phí tự động:</span>
-                      <input 
-                        type="text"
-                        value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
-                        onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
-                        className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden"
-                      />
+                      <div className="flex items-center gap-1">
+                        <input 
+                          type="text"
+                          value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
+                          onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
+                          className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden"
+                        />
+                        <span>đ</span>
+                      </div>
                     </div>
 
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
-                      <input 
-                        type="text"
-                        value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
-                        onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
-                        className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden"
-                      />
+                      <div className="flex items-center gap-1">
+                        <span className="text-rose-400">-</span>
+                        <input 
+                          type="text"
+                          value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
+                          onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
+                          className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden"
+                        />
+                        <span className="text-rose-400">đ</span>
+                      </div>
                     </div>
 
                     <div className="flex justify-between items-center text-xs">
@@ -1950,8 +1869,7 @@ export default function App() {
                     ) : (
                       <label className="border-2 border-dashed border-slate-200 rounded-3xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition duration-200">
                         <Upload className="w-8 h-8 text-slate-400" />
-                        <span className="text-xs font-bold text-slate-700 text-center">Bấm để tải ảnh công văn phê duyệt</span>
-                        <span className="text-[10px] text-slate-400 text-center">Được mã hóa và lưu trữ trực tuyến</span>
+                        <span className="text-xs font-bold text-slate-700 text-center">Bấm để tải ảnh</span>
                         <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                       </label>
                     )}
@@ -1963,15 +1881,17 @@ export default function App() {
           </form>
         )}
 
+        {/* =========================================================
+            GIAO DIỆN 3: THEO DÕI HỒ SƠ
+            ========================================================= */}
         {activeTab === 'monitoring' && (
           <div className="space-y-6 animate-fadeIn">
             
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h2 className="text-lg font-black text-slate-950 flex items-center gap-2">
-                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Giao diện 3: Theo Dõi Hồ Sơ Khách VIP
+                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo Dõi Hồ Sơ Khách Hàng VIP-VVIP
                 </h2>
-                <p className="text-xs text-slate-400 font-semibold mt-1">Giám sát hoạt động khám bệnh, tra cứu nhanh thông tin và bảo lưu lịch sử duyệt giảm.</p>
               </div>
               <button 
                 onClick={() => { resetForm(); setActiveTab('register'); }}
@@ -1987,22 +1907,23 @@ export default function App() {
                   <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-400" />
                   <input 
                     type="text" 
-                    placeholder="Tìm theo tên bệnh nhân, mã PID, ghi chú lâm sàng..."
+                    placeholder="Tìm theo tên, mã PID, ghi chú..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-xs font-bold"
                   />
                 </div>
                 
+                {}
                 <div className="flex flex-wrap gap-2">
                   <select 
                     value={filterTier}
                     onChange={(e) => setFilterTier(e.target.value)}
                     className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"
                   >
-                    <option value="">Tất cả hạng VIP</option>
-                    <option value="VIP">Hạng VIP</option>
-                    <option value="VVIP">Hạng VVIP</option>
+                    <option value="">Tất cả</option>
+                    <option value="VIP">VIP</option>
+                    <option value="VVIP">VVIP</option>
                   </select>
 
                   <select 
@@ -2038,7 +1959,7 @@ export default function App() {
             {isLoading ? (
               <div className="bg-white p-16 rounded-3xl border border-slate-100 flex flex-col items-center justify-center gap-3">
                 <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
-                <p className="text-slate-400 font-semibold text-xs">Đang đồng bộ dữ liệu bảo mật...</p>
+                <p className="text-slate-400 font-semibold text-xs">Đang cập nhật...</p>
               </div>
             ) : filteredPatients.length === 0 ? (
               <div className="bg-white p-16 rounded-3xl border border-slate-100 text-center space-y-4 shadow-xs">
@@ -2046,8 +1967,8 @@ export default function App() {
                   <ClipboardList className="w-8 h-8" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy hồ sơ phù hợp</h3>
-                  <p className="text-slate-400 text-xs mt-1 font-medium">Không tìm thấy gì hết nè.</p>
+                  <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy gì hết nè</h3>
+                  <p className="text-slate-400 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
                 </div>
               </div>
             ) : (
@@ -2111,27 +2032,28 @@ export default function App() {
                               <td className="py-4 px-3 text-right font-extrabold text-emerald-600">
                                 {formatCurrency(realCollected)}
                               </td>
+                              {}
                               <td className="py-4 px-5 text-right whitespace-nowrap">
                                 <div className="flex justify-end gap-1.5">
                                   {p.approvalImage && (
                                     <button 
                                       onClick={() => setLightboxImage(p.approvalImage)}
                                       className="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-100 rounded-xl transition" 
-                                      title="Xem nhanh chứng từ"
+                                      title="Ảnh duyệt"
                                     >
                                       <ImageIcon className="w-4 h-4" />
                                     </button>
                                   )}
-                                  <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-950 hover:text-white rounded-xl transition" title="Chỉnh sửa hồ sơ">
+                                  <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-950 hover:text-white rounded-xl transition" title="Sửa">
                                     <Edit3 className="w-4 h-4" />
                                   </button>
                                   
                                   {userRole !== 'nhanvien' ? (
-                                    <button onClick={() => deletePatient(p.id)} className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" title="Xóa hồ sơ">
+                                    <button onClick={() => deletePatient(p.id)} className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" title="Xóa">
                                       <Trash2 className="w-4 h-4" />
                                     </button>
                                   ) : (
-                                    <span className="p-1.5 text-slate-300 cursor-not-allowed" title="Nhân viên không được gỡ">
+                                    <span className="p-1.5 text-slate-300 cursor-not-allowed">
                                       <Lock className="w-4 h-4" />
                                     </span>
                                   )}
@@ -2200,7 +2122,7 @@ export default function App() {
                               onClick={() => setLightboxImage(p.approvalImage)}
                               className="px-3 py-1.5 bg-slate-50 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1"
                             >
-                              <ImageIcon className="w-3.5 h-3.5" /> Xem nhanh
+                              <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
                             </button>
                           )}
                           <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1">
@@ -2222,12 +2144,14 @@ export default function App() {
           </div>
         )}
 
+        {/* =========================================================
+            GIAO DIỆN 4: CẤU HÌNH HỆ THỐNG
+            ========================================================= */}
         {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao') && (
           <div className="space-y-6 animate-fadeIn">
             
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs">
-              <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Hệ Thống</h2>
-              <p className="text-xs text-slate-400 mt-1">Cài đặt công thức tính tổng phí điều trị, cấu hình danh mục chuyên khoa và gán quyền nhân viên.</p>
+              <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -2263,6 +2187,7 @@ export default function App() {
                   ))}
                 </div>
 
+                {}
                 <div className="border-t border-slate-100 pt-6 space-y-4">
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -2312,6 +2237,7 @@ export default function App() {
 
               </div>
 
+              {}
               <div className="space-y-6">
                 
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
@@ -2323,7 +2249,7 @@ export default function App() {
                   <div className="flex gap-2">
                     <input 
                       type="text" 
-                      placeholder="Nhập chuyên khoa (cách nhau bằng dấu phẩy để thêm nhiều)..."
+                      placeholder="Thêm chuyên khoa mới..."
                       value={newSpecialtyInput}
                       onChange={(e) => setNewSpecialtyInput(e.target.value)}
                       className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
@@ -2374,7 +2300,7 @@ export default function App() {
                         />
                         <input 
                           type="text" 
-                          placeholder="Chức danh (VD: Lễ tân VIP)" 
+                          placeholder="Chức danh" 
                           value={newStaff.title}
                           onChange={(e) => setNewStaff({ ...newStaff, title: e.target.value })}
                           className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
@@ -2391,7 +2317,7 @@ export default function App() {
                         />
                         <input 
                           type="password" 
-                          placeholder="Mật khẩu (mặc định 123456)" 
+                          placeholder="Mật khẩu (mặc định CSKH@abc456)" 
                           value={newStaff.pass}
                           onChange={(e) => setNewStaff({ ...newStaff, pass: e.target.value })}
                           className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
@@ -2399,16 +2325,16 @@ export default function App() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-500 block uppercase tracking-wider">Vai trò phân quyền</label>
+                        <label className="text-[10px] font-bold text-slate-500 block uppercase tracking-wider">Chọn Vai Trò (Role)</label>
                         <select 
                           value={newStaff.role}
                           onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
                           className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold"
                         >
-                          <option value="nhanvien">Nhân Viên</option>
-                          <option value="quanly">Quản Lý</option>
-                          <option value="lanhdao">Quản Trị</option>
-                          <option value="admin">IT Toàn Quyền</option>
+                          <option value="nhanvien">nhanvien</option>
+                          <option value="quanly">quanly</option>
+                          <option value="lanhdao">lanhdao</option>
+                          <option value="admin">admin</option>
                         </select>
                       </div>
                       <button 
@@ -2436,7 +2362,7 @@ export default function App() {
                               type="button"
                               onClick={() => handleDeleteStaff(staff.uid)}
                               className="p-1 text-slate-400 hover:text-red-500 rounded"
-                              title="Thu hồi tài khoản"
+                              title="Xóa"
                             >
                               <X className="w-4 h-4" />
                             </button>
