@@ -14,9 +14,9 @@ import {
 import { 
   getAuth, 
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut,
-  onAuthStateChanged 
+  onAuthStateChanged,
+  createUserWithEmailAndPassword
 } from 'firebase/auth';
 import { 
   Users, 
@@ -57,14 +57,9 @@ import {
   CheckCircle2,
   ChevronDown,
   ArrowRightLeft,
-  Database,
-  CloudLightning,
   Image as ImageIcon
 } from 'lucide-react';
 
-// =========================================================================
-// ĐỒNG BỘ CẤU HÌNH FIREBASE THỰC TẾ CSKH-TA
-// =========================================================================
 const defaultFirebaseConfig = {
   apiKey: "AIzaSyBMmXRbUFvXRsUH6anb22sKlY8JlqiF7Lk",
   authDomain: "cskh-ta.firebaseapp.com",
@@ -75,28 +70,25 @@ const defaultFirebaseConfig = {
 };
 
 const isFirebaseConfigured = true;
-
 let firebaseConfig = defaultFirebaseConfig;
 if (typeof __firebase_config !== 'undefined') {
   try {
     firebaseConfig = JSON.parse(__firebase_config);
   } catch (e) {
-    console.error("Lỗi parse cấu hình Firebase:", e);
+    console.error(e);
   }
 }
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'cskh-ta';
-
 let app, auth, db;
 try {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
 } catch (error) {
-  console.warn("Lỗi khởi tạo Firebase, đang sử dụng chế độ dự phòng LocalStorage.");
+  console.warn(error);
 }
 
-// 4 tài khoản nhân viên mặc định tương thích hoàn toàn với image_ba8ec5.png
 const mockStaffAccounts = [
   { uid: "acc_admin", email: "admin@vip.com", name: "Nguyễn Minh Trí", title: "IT Admin", role: "admin", pass: "123456" },
   { uid: "acc_lanhdao", email: "lanhdao@vip.com", name: "Trần Thế Phương", title: "Thành viên HĐQT", role: "lanhdao", pass: "123456" },
@@ -130,7 +122,6 @@ const defaultSystemSettings = {
   discountFormulaType: 'total_minus_insurance_advance'
 };
 
-// Định nghĩa 6 trạng thái trong hành trình khách hàng VIP
 const workflowStatuses = [
   { id: 'Waiting', label: 'Chờ Tiếp Đón', color: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-400' },
   { id: 'Examining', label: 'Đang Khám Lâm Sàng', color: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
@@ -144,36 +135,26 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState('nhanvien');
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'register', 'monitoring', 'settings'
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [patients, setPatients] = useState([]);
   const [staffList, setStaffList] = useState([]);
   const [systemSettings, setSystemSettings] = useState(defaultSystemSettings);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSyncingWithCloud, setIsSyncingWithCloud] = useState(false);
 
-  // States Đăng nhập / Đăng ký
-  const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  const [regName, setRegName] = useState('');
-  const [regRole, setRegRole] = useState('lanhdao');
-  const [regTitle, setRegTitle] = useState('Thành viên HĐQT');
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
 
-  // Modals tùy biến
   const [confirmModal, setConfirmModal] = useState({ show: false, action: null, message: '', title: '' });
 
-  // Quản lý tạo tài khoản nhân sự (Chỉ dành cho Admin)
   const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'nhanvien', pass: '123456', title: '' });
 
-  // Tìm kiếm & Lọc hồ sơ khách VIP
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSpecialty, setFilterSpecialty] = useState('');
   const [filterTier, setFilterTier] = useState('');
   const [filterDate, setFilterDate] = useState('');
 
-  // Form Khách hàng VIP
   const [currentId, setCurrentId] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -195,17 +176,24 @@ export default function App() {
     approvedDiscountAmount: 0,
     totalAmount: 0,
     approvalImage: '',
-    status: 'Waiting' 
+    status: 'Waiting'
   });
 
   const [newSpecialtyInput, setNewSpecialtyInput] = useState('');
   const [notification, setNotification] = useState(null);
 
-  // --- TRUNG TÂM THÔNG BÁO ---
   const [notifications, setNotifications] = useState([]);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const [activePushAlerts, setActivePushAlerts] = useState([]);
   const isInitialMount = useRef(true);
+
+  const [showRegisterCloudModal, setShowRegisterCloudModal] = useState(false);
+  const [regCloudEmail, setRegCloudEmail] = useState('');
+  const [regCloudPassword, setRegCloudPassword] = useState('');
+  const [regCloudName, setRegCloudName] = useState('');
+  const [regCloudRole, setRegCloudRole] = useState('lanhdao');
+  const [regCloudTitle, setRegCloudTitle] = useState('Thành viên HĐQT');
+  const [regError, setRegError] = useState('');
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
@@ -230,12 +218,70 @@ export default function App() {
       ...prev
     ]);
 
+    if (Notification.permission === 'granted') {
+      try {
+        new Notification(title, {
+          body: message,
+          icon: 'https://iili.io/F66acRs.png',
+          badge: 'https://iili.io/F66acRs.png'
+        });
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
     setTimeout(() => {
       setActivePushAlerts(prev => prev.filter(alert => alert.id !== id));
     }, 6000);
   };
 
+  const initializeDefaultCloudData = async () => {
+    if (!db) return;
+    try {
+      const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
+      const configSnap = await getDoc(configRef);
+      if (!configSnap.exists()) {
+        await setDoc(configRef, defaultSystemSettings);
+      }
+      const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
+      const samplePatientRef = doc(patientsCol, 'sample_id_001');
+      const sampleSnap = await getDoc(samplePatientRef);
+      if (!sampleSnap.exists()) {
+        await setDoc(samplePatientRef, {
+          name: "Nguyễn Văn Test",
+          pid: "88888888",
+          tier: "VVIP",
+          boardApproval: "Sếp Dũng",
+          notes: "Hồ sơ bàn giao tiếp đón đặc quyền",
+          date: new Date().toISOString().split('T')[0],
+          specialties: ["Nội tổng quát"],
+          ngoaiTru: 800000,
+          capCuu: 0,
+          noiTru: 0,
+          ngoaiVien: 0,
+          phiKham: 0,
+          clsCdha: 0,
+          thuocVacxin: 0,
+          insuranceAdvance: 0,
+          discountRate: 0,
+          approvedDiscountAmount: 0,
+          totalAmount: 800000,
+          status: "Waiting",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          updatedBy: "Hệ thống"
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
     const faviconUrl = 'https://iili.io/F66acRs.png';
     const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
     link.type = 'image/png';
@@ -266,7 +312,7 @@ export default function App() {
       setUserRole(parsedUser.role || 'nhanvien');
     }
 
-    if (auth && db && (isFirebaseConfigured || typeof __firebase_config !== 'undefined')) {
+    if (auth && db && isFirebaseConfigured) {
       setIsFirebaseConnected(true);
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
@@ -276,22 +322,20 @@ export default function App() {
               const userData = userDoc.data();
               setCurrentUser(userData);
               setUserRole(userData.role);
-              localStorage.setItem('crm_current_user', JSON.stringify(userData));
             } else {
-              // Dự phòng nếu chưa có document lưu thông tin người dùng trong Firestore
               const fallbackUser = { 
                 uid: firebaseUser.uid, 
                 email: firebaseUser.email, 
-                role: 'lanhdao', // Mặc định là lanhdao để không bị khóa chức năng
+                role: 'lanhdao', 
                 name: firebaseUser.email.split('@')[0],
-                title: 'Thành viên Ban Giám Đốc Đám Mây'
+                title: 'Thành viên HĐQT'
               };
               setCurrentUser(fallbackUser);
               setUserRole('lanhdao');
-              localStorage.setItem('crm_current_user', JSON.stringify(fallbackUser));
             }
+            await initializeDefaultCloudData();
           } catch (e) {
-            console.error("Lỗi đồng bộ Firebase Auth:", e);
+            console.error(e);
           }
         }
         setIsLoading(false);
@@ -315,7 +359,7 @@ export default function App() {
         if (docSnap.exists()) {
           setSystemSettings(docSnap.data());
         } else {
-          setDoc(settingsDocRef, systemSettings).catch(e => console.log("Bỏ qua ghi cấu hình khởi tạo"));
+          setDoc(settingsDocRef, systemSettings);
         }
       }, (err) => console.error(err));
 
@@ -331,17 +375,18 @@ export default function App() {
         } else {
           snapshot.docChanges().forEach((change) => {
             const data = change.doc.data();
+            const statusLabel = workflowStatuses.find(s => s.id === data.status)?.label || data.status;
             if (change.type === "added") {
               triggerPushAlert(
                 `🆕 Tiếp nhận khách ${data.tier}`,
-                `Bệnh nhân: ${data.name} (PID: ${data.pid}) đã được tiếp đón.`,
+                `Bệnh nhân: ${data.name} (PID: ${data.pid}) đã được tiếp đón trạng thái: ${statusLabel}.`,
                 'info'
               );
             }
             if (change.type === "modified") {
               triggerPushAlert(
                 `🔄 Cập nhật hành trình`,
-                `Hồ sơ khách hàng ${data.name} (PID: ${data.pid}) vừa đổi trạng thái: ${data.status || 'Chờ Tiếp Đón'}.`,
+                `Hồ sơ khách hàng ${data.name} (PID: ${data.pid}) vừa đổi trạng thái sang: ${statusLabel}.`,
                 'success'
               );
             }
@@ -358,7 +403,7 @@ export default function App() {
         setPatients(list);
         setIsLoading(false);
       }, (error) => {
-        console.error("Lỗi bảo mật hoặc đường dẫn Firestore:", error);
+        console.error(error);
         setIsLoading(false);
       });
 
@@ -421,7 +466,6 @@ export default function App() {
         await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
         showNotification("Đăng nhập đám mây Cloud thành công!");
       } catch (err) {
-        console.warn("Lỗi đăng nhập Firebase, kiểm tra danh mục nhân sự local...", err);
         performLocalLogin();
       }
     } else {
@@ -440,65 +484,41 @@ export default function App() {
       showNotification(`Chào mừng ${account.name} (${account.title}) quay trở lại!`);
       triggerPushAlert("👋 Đăng nhập thành công", `Chào mừng ${account.name} đã truy cập CRM.`);
     } else {
-      setAuthError('Email hoặc mật khẩu không chính xác. Hãy đăng ký tài khoản Cloud thực tế ở nút bên dưới.');
+      setAuthError('Email hoặc mật khẩu không chính xác. Thử chọn nhanh tài khoản mẫu bên dưới.');
     }
   };
 
-  // TẠO TÀI KHOẢN MỚI THỰC TẾ LÊN CLOUD VÀ TỰ CẤP QUYỀN (VƯỢT DEADLOCK RULE DÒNG 31)
-  const handleCloudRegister = async (e) => {
+  const handleRegisterCloudAccount = async (e) => {
     e.preventDefault();
-    setAuthError('');
-
-    if (!loginEmail || !loginPassword || !regName) {
-      setAuthError('Vui lòng điền họ tên, email và mật khẩu để đăng ký Cloud.');
+    setRegError('');
+    if (!regCloudEmail || !regCloudPassword || !regCloudName) {
+      setRegError('Vui lòng điền đầy đủ các thông tin đăng ký bắt buộc.');
       return;
     }
-
-    if (!isFirebaseConnected || !auth || !db) {
-      setAuthError('Không thể kết nối dịch vụ Firebase. Hãy đảm bảo Firebase Online.');
-      return;
-    }
-
     try {
-      showNotification("Đang tạo tài khoản bảo mật...", "info");
-      
-      // 1. Tạo tài khoản trong Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, loginEmail, loginPassword);
-      const user = userCredential.user;
-
-      // 2. Ghi đè thông tin phân quyền lên Firestore (Thành công nhờ dòng 31: request.auth.uid == userId)
-      const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
-      const newUserData = {
-        uid: user.uid,
-        name: regName,
-        email: loginEmail,
-        role: regRole,
-        title: regTitle,
-        createdAt: new Date().toISOString()
+      const userCredential = await createUserWithEmailAndPassword(auth, regCloudEmail, regCloudPassword);
+      const firebaseUser = userCredential.user;
+      const docPayload = {
+        uid: firebaseUser.uid,
+        name: regCloudName,
+        email: regCloudEmail,
+        role: regCloudRole,
+        title: regCloudTitle
       };
-      
-      await setDoc(userDocRef, newUserData);
-
-      // 3. Đẩy cấu hình hệ thống ban đầu lên Firestore (vì giờ ta đã có phiên đăng nhập hợp lệ!)
-      const settingsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
-      await setDoc(settingsDocRef, defaultSystemSettings).catch(e => console.log("Cấu hình đã tồn tại"));
-
-      setCurrentUser(newUserData);
-      setUserRole(regRole);
-      localStorage.setItem('crm_current_user', JSON.stringify(newUserData));
-      
-      triggerPushAlert("🎉 Đăng ký thành công", `Tài khoản ${regName} đã được cấp quyền ${regRole} trên Cloud!`, "success");
-      showNotification("Tài khoản của bạn đã được khởi tạo và đồng bộ quyền lực thành công!");
-      setIsRegisterMode(false);
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', firebaseUser.uid), docPayload);
+      await initializeDefaultCloudData();
+      setCurrentUser(docPayload);
+      setUserRole(regCloudRole);
+      setShowRegisterCloudModal(false);
+      showNotification("Đăng ký & Thiết lập quyền Cloud thành công!");
     } catch (err) {
-      console.error(err);
-      setAuthError(`Lỗi đăng ký Cloud: ${err.message}`);
+      setRegError(err.message || 'Lỗi đăng ký tài khoản Cloud.');
     }
   };
 
   const handleLogout = () => {
     if (isFirebaseConnected && auth) {
-      signOut(auth).catch(e => console.log("Bỏ qua lỗi đăng xuất Firebase"));
+      signOut(auth);
     }
     setCurrentUser(null);
     setUserRole('nhanvien');
@@ -549,7 +569,7 @@ export default function App() {
       showNotification("Đã cập nhật trạng thái hành trình khám!");
     } catch (err) {
       console.error(err);
-      showNotification("Lỗi đồng bộ trạng thái: " + err.message, "error");
+      showNotification("Lỗi đồng bộ trạng thái lên database!", "error");
     }
   };
 
@@ -625,7 +645,7 @@ export default function App() {
     };
 
     try {
-      if (isFirebaseConnected && db && auth.currentUser) {
+      if (isFirebaseConnected && db) {
         const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
         if (currentId) {
           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payload);
@@ -635,7 +655,6 @@ export default function App() {
           showNotification("Đăng ký thành công hồ sơ khách VIP mới!");
         }
       } else {
-        // Sao lưu cục bộ khi chưa đăng nhập thật trên Firebase
         let updatedList = [...patients];
         if (currentId) {
           updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
@@ -651,22 +670,10 @@ export default function App() {
         localStorage.setItem('local_patients', JSON.stringify(updatedList));
       }
       resetForm();
-      setActiveTab('monitoring'); 
-    } catch (err) {
-      console.error("Lỗi ghi dữ liệu:", err);
-      // Fallback an toàn, cho lưu cục bộ tránh báo đỏ khó chịu
-      let updatedList = [...patients];
-      if (currentId) {
-        updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
-      } else {
-        const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
-        updatedList.unshift(newDoc);
-      }
-      setPatients(updatedList);
-      localStorage.setItem('local_patients', JSON.stringify(updatedList));
-      showNotification("Đã kích hoạt sao lưu cục bộ! Dữ liệu đã lưu tạm trên thiết bị.", "warning");
-      resetForm();
       setActiveTab('monitoring');
+    } catch (err) {
+      console.error(err);
+      showNotification("Có lỗi xảy ra hoặc bạn không đủ quyền ghi dữ liệu lên Cloud.", "error");
     }
   };
 
@@ -694,7 +701,7 @@ export default function App() {
       approvalImage: patient.approvalImage || '',
       status: patient.status || 'Waiting'
     });
-    setActiveTab('register'); 
+    setActiveTab('register');
   };
 
   const deletePatient = (id) => {
@@ -709,7 +716,7 @@ export default function App() {
       message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
       action: async () => {
         try {
-          if (isFirebaseConnected && db && auth.currentUser) {
+          if (isFirebaseConnected && db) {
             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', id));
             showNotification("Đã xóa hồ sơ khỏi Cloud Database!");
           } else {
@@ -768,11 +775,11 @@ export default function App() {
 
   const saveSettingsOnDb = async (newSettings) => {
     setSystemSettings(newSettings);
-    if (isFirebaseConnected && db && auth.currentUser) {
+    if (isFirebaseConnected && db) {
       try {
         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config'), newSettings);
       } catch (e) {
-        console.error("Lỗi đồng bộ cấu hình:", e);
+        console.error(e);
       }
     } else {
       localStorage.setItem('local_settings', JSON.stringify(newSettings));
@@ -895,8 +902,7 @@ export default function App() {
         <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/5 rounded-full filter blur-3xl -translate-x-12 -translate-y-12"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full filter blur-3xl translate-x-12 translate-y-12"></div>
 
-        <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-100 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6 animate-scaleIn">
-          
+        <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-100 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
           <div className="text-center space-y-3">
             <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2.5 shadow-sm border border-slate-100 mx-auto">
               <img 
@@ -909,10 +915,26 @@ export default function App() {
               <h1 className="text-2xl font-black tracking-tight text-slate-900">
                 VIP CARE CRM
               </h1>
-              <p className="text-xs text-slate-400 font-semibold tracking-wide">
-                {isRegisterMode ? "Đăng ký tài khoản Đám mây" : "Hệ thống phân quyền chuẩn hóa - Tiếp đón VIP"}
-              </p>
+              <p className="text-xs text-slate-400 font-semibold tracking-wide">Hệ thống phân quyền chuẩn hóa - Tiếp đón VIP</p>
             </div>
+          </div>
+
+          <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-center space-y-2">
+            <h4 className="text-xs font-black text-indigo-900 uppercase">Khởi tạo dữ liệu lên Cloud</h4>
+            <p className="text-[10px] text-indigo-700 leading-normal font-semibold">Bấm đăng ký tài khoản Cloud Lãnh đạo thực tế ngay bên dưới để khởi tạo cấu trúc dữ liệu trống trên Firestore của bạn.</p>
+            <button
+              onClick={() => {
+                setRegCloudEmail('lanhdao@vip.com');
+                setRegCloudPassword('123456');
+                setRegCloudName('Trần Thế Phương');
+                setRegCloudRole('lanhdao');
+                setRegCloudTitle('Thành viên HĐQT');
+                setShowRegisterCloudModal(true);
+              }}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 mx-auto"
+            >
+              <UserPlus className="w-3.5 h-3.5" /> Đăng ký tài khoản Đám mây mới (HĐQT)
+            </button>
           </div>
 
           {authError && (
@@ -922,173 +944,57 @@ export default function App() {
             </div>
           )}
 
-          {!isRegisterMode ? (
-            /* FORM ĐĂNG NHẬP */
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email định danh</label>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email định danh</label>
+              <input 
+                type="email" 
+                placeholder="ten@phongkham.com"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
+              />
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu bảo mật</label>
+              <div className="relative">
                 <input 
-                  type="email" 
-                  placeholder="ten@phongkham.com"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
-                />
-              </div>
-              
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu bảo mật</label>
-                <div className="relative">
-                  <input 
-                    type={showPassword ? "text" : "password"} 
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full pl-4 pr-10 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <button 
-                type="submit" 
-                className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
-              >
-                <Lock className="w-4 h-4" /> Xác thực & Đăng nhập
-              </button>
-
-              <button 
-                type="button"
-                onClick={() => {
-                  setAuthError('');
-                  setIsRegisterMode(true);
-                }}
-                className="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-xl text-xs transition border border-indigo-100 flex items-center justify-center gap-1.5"
-              >
-                <CloudLightning className="w-4 h-4 text-indigo-600" />
-                Đăng ký tài khoản Đám mây mới (HĐQT)
-              </button>
-            </form>
-          ) : (
-            /* FORM ĐĂNG KÝ MỚI LÊN THẲNG CLOUD (VƯỢT ĐÈN ĐỎ SECURITY RULES) */
-            <form onSubmit={handleCloudRegister} className="space-y-4">
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1">
-                <span className="text-[10px] text-amber-800 font-black flex items-center gap-1.5">
-                  <Database className="w-3.5 h-3.5" />
-                  ĐĂNG KÝ TRỰC TIẾP LÊN DATABASE CLOUD
-                </span>
-                <p className="text-[9px] text-slate-500 leading-normal font-medium">
-                  Hệ thống sẽ tự động bypass lỗi phân quyền bằng cách sử dụng khóa an toàn của dòng 31 trong Rules của bạn. Hãy điền thông tin thật của bạn!
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 block">Họ & tên thật của bạn</label>
-                <input 
-                  type="text" 
-                  placeholder="Ví dụ: Trần Thế Phương"
-                  value={regName}
-                  onChange={(e) => setRegName(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-200 focus:border-indigo-500 rounded-xl text-xs font-bold"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 block">Email đăng ký thật</label>
-                <input 
-                  type="email" 
-                  placeholder="lanhdao@vip.com"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-200 focus:border-indigo-500 rounded-xl text-xs font-medium"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 block">Cấp quyền trên Cloud</label>
-                  <select
-                    value={regRole}
-                    onChange={(e) => {
-                      setRegRole(e.target.value);
-                      if (e.target.value === 'lanhdao') setRegTitle('Thành viên HĐQT');
-                      if (e.target.value === 'admin') setRegTitle('IT Admin Đám mây');
-                    }}
-                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black"
-                  >
-                    <option value="lanhdao">lanhdao (HĐQT / Ban Giám đốc)</option>
-                    <option value="admin">admin (Quản trị viên tối cao)</option>
-                    <option value="quanly">quanly (Quản lý CSKH)</option>
-                    <option value="nhanvien">nhanvien (Nhân viên lễ tân)</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 block">Chức danh</label>
-                  <input 
-                    type="text" 
-                    value={regTitle}
-                    onChange={(e) => setRegTitle(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-indigo-600"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 block">Mật khẩu (Tối thiểu 6 ký tự)</label>
-                <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   placeholder="••••••••"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-200 focus:border-indigo-500 rounded-xl text-xs font-bold"
-                  minLength="6"
-                  required
+                  className="w-full pl-4 pr-10 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
                 />
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button 
+                <button
                   type="button"
-                  onClick={() => {
-                    setAuthError('');
-                    setIsRegisterMode(false);
-                  }}
-                  className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold transition"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition"
                 >
-                  Quay lại
-                </button>
-                <button 
-                  type="submit" 
-                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-md flex items-center justify-center gap-1"
-                >
-                  <UserPlus className="w-4 h-4" /> Kích hoạt Cloud
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-            </form>
-          )}
+            </div>
 
-          {/* CHỌN NHANH ACC DỰ PHÒNG */}
+            <button 
+              type="submit" 
+              className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
+            >
+              <Lock className="w-4 h-4" /> Xác thực & Đăng nhập
+            </button>
+          </form>
+
           <div className="border-t border-slate-100 pt-4">
             <details className="group">
               <summary className="list-none flex items-center justify-center gap-1.5 cursor-pointer text-xs text-slate-400 font-bold hover:text-slate-600 transition select-none">
                 <UserCheck className="w-4 h-4 text-slate-400" />
-                <span>Hoặc đăng nhập tài khoản offline mẫu</span>
+                <span>Tài khoản kiểm thử phân quyền</span>
                 <ChevronDown className="w-3.5 h-3.5 transition transform group-open:rotate-180" />
               </summary>
-              <div className="grid grid-cols-2 gap-2 mt-3 animate-fadeIn">
+              <div className="grid grid-cols-2 gap-2 mt-3">
                 {staffList.map((acc) => (
                   <button
                     key={acc.uid}
-                    type="button"
                     onClick={() => {
                       setLoginEmail(acc.email);
                       setLoginPassword(acc.pass);
@@ -1106,19 +1012,98 @@ export default function App() {
             </details>
           </div>
         </div>
+
+        {showRegisterCloudModal && (
+          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-black text-slate-900 uppercase">Kích hoạt tài khoản Cloud Thực Tế</h3>
+                <button onClick={() => setShowRegisterCloudModal(false)}>
+                  <X className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                </button>
+              </div>
+              {regError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 font-bold">
+                  {regError}
+                </div>
+              )}
+              <form onSubmit={handleRegisterCloudAccount} className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Họ và tên</label>
+                  <input
+                    type="text"
+                    value={regCloudName}
+                    onChange={(e) => setRegCloudName(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Email Đăng Nhập Cloud</label>
+                  <input
+                    type="email"
+                    value={regCloudEmail}
+                    onChange={(e) => setRegCloudEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Mật khẩu (Tối thiểu 6 ký tự)</label>
+                  <input
+                    type="password"
+                    value={regCloudPassword}
+                    onChange={(e) => setRegCloudPassword(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Vai trò (Role)</label>
+                    <select
+                      value={regCloudRole}
+                      onChange={(e) => setRegCloudRole(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white font-bold"
+                    >
+                      <option value="admin">admin (T Admin)</option>
+                      <option value="lanhdao">lanhdao (HĐQT)</option>
+                      <option value="quanly">quanly (Quản lý)</option>
+                      <option value="nhanvien">nhanvien (Lễ tân)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Chức danh hiển thị</label>
+                    <input
+                      type="text"
+                      value={regCloudTitle}
+                      onChange={(e) => setRegCloudTitle(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs"
+                      required
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-md"
+                >
+                  Đăng ký & Khởi tạo Database Cloud
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
-      
-      {/* THÔNG BÁO PUSH POPUP REALTIME */}
       <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
         {activePushAlerts.map(alert => (
           <div 
             key={alert.id}
-            className={`pointer-events-auto p-4 rounded-2xl shadow-xl border flex gap-3 items-start transition-all transform duration-300 animate-slideIn bg-white ${
+            className={`pointer-events-auto p-4 rounded-2xl shadow-xl border flex gap-3 items-start transition-all transform duration-300 bg-white ${
               alert.type === 'success' ? 'border-emerald-100 bg-emerald-50/95' :
               alert.type === 'error' ? 'border-rose-100 bg-rose-50/95' : 'border-indigo-100 bg-indigo-50/95'
             }`}
@@ -1127,7 +1112,7 @@ export default function App() {
               alert.type === 'success' ? 'bg-emerald-500' :
               alert.type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'
             }`}>
-              <BellRing className="w-4 h-4 animate-bounce" />
+              <BellRing className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="text-xs font-extrabold text-slate-900">{alert.title}</h4>
@@ -1143,10 +1128,9 @@ export default function App() {
         ))}
       </div>
 
-      {/* CONFIRMATION MODAL */}
       {confirmModal.show && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-scaleIn">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
             <div className="flex items-center gap-2.5 text-rose-600">
               <ShieldAlert className="w-5 h-5 flex-shrink-0 text-rose-500" />
               <h3 className="text-base font-extrabold text-slate-950">{confirmModal.title || "Xác nhận tác vụ"}</h3>
@@ -1170,7 +1154,6 @@ export default function App() {
         </div>
       )}
 
-      {/* TOAST MESSAGE */}
       {notification && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-xl transition-all transform duration-300 translate-y-0 ${
           notification.type === 'error' ? 'bg-rose-500 text-white' : 'bg-slate-900 text-white'
@@ -1180,7 +1163,6 @@ export default function App() {
         </div>
       )}
 
-      {/* HEADER SECTION */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1204,7 +1186,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* NAV MENU */}
             <nav className="hidden md:flex items-center gap-1">
               <button 
                 onClick={() => { setActiveTab('dashboard'); }}
@@ -1246,13 +1227,11 @@ export default function App() {
             </nav>
 
             <div className="flex items-center gap-3 relative">
-              {/* Trạng thái kết nối Cloud */}
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold">
-                <span className={`w-2 h-2 rounded-full ${auth && auth.currentUser ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
-                {auth && auth.currentUser ? 'Cloud Online' : 'Local Offline / Demo'}
+                <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
+                {isFirebaseConnected ? 'Cloud Online' : 'Local Offline'}
               </div>
 
-              {/* TRUNG TÂM THÔNG BÁO */}
               <button 
                 onClick={() => setShowNotificationCenter(!showNotificationCenter)}
                 className={`p-2 rounded-xl transition-all relative ${
@@ -1262,7 +1241,7 @@ export default function App() {
               >
                 {unreadCount > 0 ? (
                   <>
-                    <BellRing className="w-5 h-5 text-indigo-600 animate-pulse" />
+                    <BellRing className="w-5 h-5 text-indigo-600" />
                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-600 text-white font-black text-[9px] rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                       {unreadCount}
                     </span>
@@ -1272,9 +1251,8 @@ export default function App() {
                 )}
               </button>
 
-              {/* NOTIFICATION PANELS */}
               {showNotificationCenter && (
-                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-100 rounded-3xl shadow-2xl z-50 p-4 space-y-3 animate-scaleIn">
+                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-100 rounded-3xl shadow-2xl z-50 p-4 space-y-3">
                   <div className="flex justify-between items-center border-b border-slate-50 pb-2">
                     <div className="flex items-center gap-1.5">
                       <BellRing className="w-4 h-4 text-indigo-600" />
@@ -1345,7 +1323,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* MOBILE NAV BAR */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-100 flex justify-around py-3 shadow-xl rounded-t-3xl">
         <button 
           onClick={() => { setActiveTab('dashboard'); }}
@@ -1379,16 +1356,11 @@ export default function App() {
         )}
       </div>
 
-      {/* MAIN CONTAINER */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
-        {/* ====================================================== */}
-        {/* GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN (DASHBOARD) */}
-        {/* ====================================================== */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-8 animate-fadeIn">
+          <div className="space-y-8">
             
-            {/* Banner */}
             <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl shadow-slate-100">
               <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20"></div>
               <div className="relative z-10 space-y-4 max-w-2xl">
@@ -1401,7 +1373,7 @@ export default function App() {
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-semibold">
                   Mọi sự thay đổi trên hồ sơ khách hàng VIP và VVIP đều được cập nhật thời gian thực và thông báo trực tiếp tới các thiết bị của ban lãnh đạo.
                 </p>
-                <div className="pt-2 flex flex-wrap gap-2">
+                <div className="pt-2">
                   <button 
                     onClick={() => { resetForm(); setActiveTab('register'); }}
                     className="px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-950 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-2 transition transform active:scale-95"
@@ -1412,7 +1384,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* THỐNG KÊ HOẠT ĐỘNG */}
             {(userRole === 'admin' || userRole === 'lanhdao') ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1421,7 +1392,7 @@ export default function App() {
                     Thống kê hoạt động VIP thời gian thực
                   </h3>
                   <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full font-extrabold">
-                    {auth && auth.currentUser ? 'Live Syncing Đám mây Active' : 'Offline / Demo Mode'}
+                    {isFirebaseConnected ? 'Live Syncing Active' : 'Offline Mode (Local Only)'}
                   </span>
                 </div>
 
@@ -1482,11 +1453,10 @@ export default function App() {
             ) : (
               <div className="bg-yellow-50/50 border border-yellow-200/60 rounded-3xl p-5 text-xs text-yellow-800 font-bold flex items-center gap-3">
                 <Lock className="w-5 h-5 text-yellow-600 flex-shrink-0" />
-                {"Phiên làm việc: Bạn đăng nhập bằng quyền "}{userRole.toUpperCase()}{". Các chỉ số thống kê tài chính y khoa nội bộ đã bị ẩn vì lý do bảo mật."}
+                {"Phiên làm việc: Bạn đăng nhập bằng quyền "}{userRole.toUpperCase()}{". Các chỉ số thống kê từ hình ảnh \"{98517A7C-1401-4F6A-A33B-5D86B5B98B39}.png\" bị ẩn vì lý do bảo mật tài chính y khoa nội bộ."}
               </div>
             )}
 
-            {/* BẢNG KANBAN WORKFLOW */}
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
@@ -1584,7 +1554,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Lối tắt tác vụ */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-3">
                 <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
@@ -1622,9 +1591,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ====================================================== */}
-        {/* GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI */}
-        {/* ====================================================== */}
         {activeTab === 'register' && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn">
             
@@ -1654,7 +1620,6 @@ export default function App() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
-              {/* Form trái */}
               <div className="lg:col-span-2 space-y-6">
                 
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-5">
@@ -1723,6 +1688,19 @@ export default function App() {
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-600 block">Trạng Thái Hành Trình (Vị Trí Kanban Ban Đầu)</label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) => handleInputChange('status', e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-800 bg-white"
+                      >
+                        {workflowStatuses.map(status => (
+                          <option key={status.id} value={status.id}>{status.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-600 block">HĐQT Phê Duyệt <span className="text-slate-400 font-semibold">(Nhập tay)</span></label>
                       <input 
                         type="text" 
@@ -1746,7 +1724,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Chọn chuyên khoa */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -1773,7 +1750,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Chi phí lâm sàng */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-5">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-50 pb-3 flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -1885,10 +1861,8 @@ export default function App() {
 
               </div>
 
-              {/* Form phải */}
               <div className="space-y-6">
                 
-                {/* Biên lai đồng bộ chi phí */}
                 <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl space-y-5 relative overflow-hidden">
                   <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
                   
@@ -1970,7 +1944,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Đính kèm ảnh */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -2006,16 +1979,13 @@ export default function App() {
           </form>
         )}
 
-        {/* ====================================================== */}
-        {/* GIAO DIỆN 3: THEO DÕI HỒ SƠ */}
-        {/* ====================================================== */}
         {activeTab === 'monitoring' && (
           <div className="space-y-6 animate-fadeIn">
             
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h2 className="text-lg font-black text-slate-950 flex items-center gap-2">
-                  <ClipboardList className="w-5 h-5 text-indigo-600 animate-pulse" /> Giao diện 3: Theo Dõi Hồ Sơ Khách VIP
+                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Giao diện 3: Theo Dõi Hồ Sơ Khách VIP
                 </h2>
                 <p className="text-xs text-slate-400 font-semibold mt-1">Giám sát hoạt động khám bệnh, tra cứu nhanh thông tin và bảo lưu lịch sử duyệt giảm.</p>
               </div>
@@ -2027,7 +1997,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Bộ lọc tìm kiếm */}
             <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
               <div className="flex flex-col md:flex-row gap-3">
                 <div className="flex-1 relative">
@@ -2082,7 +2051,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* DANH SÁCH BỆNH NHÂN */}
             {isLoading ? (
               <div className="bg-white p-16 rounded-3xl border border-slate-100 flex flex-col items-center justify-center gap-3">
                 <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
@@ -2100,7 +2068,6 @@ export default function App() {
               </div>
             ) : (
               <>
-                {/* Desktop View */}
                 <div className="hidden lg:block bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-xs">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
@@ -2190,7 +2157,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Mobile View */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
                   {filteredPatients.map((p) => {
                     const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
@@ -2265,9 +2231,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ====================================================== */}
-        {/* GIAO DIỆN 4: CẤU HÌNH HỆ THỐNG */}
-        {/* ====================================================== */}
         {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao') && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -2358,7 +2321,6 @@ export default function App() {
 
               </div>
 
-              {/* Chuyên khoa & Phân quyền nhân sự */}
               <div className="space-y-6">
                 
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
@@ -2513,7 +2475,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.4</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.3</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
