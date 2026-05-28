@@ -54,17 +54,24 @@ import {
   BellRing,
   Clock,
   CheckCircle2,
+  ChevronDown,
   Image as ImageIcon
 } from 'lucide-react';
 
+// =========================================================================
+// ⚠️ ĐỒNG BỘ CẤU HÌNH FIREBASE THỰC TẾ CSKH-TA
+// =========================================================================
 const defaultFirebaseConfig = {
-  apiKey: "",
-  authDomain: "mock-project.firebaseapp.com",
-  projectId: "mock-project",
-  storageBucket: "mock-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abc123xyz"
+  apiKey: "AIzaSyBMmXRbUFvXRsUH6anb22sKlY8JlqiF7Lk",
+  authDomain: "cskh-ta.firebaseapp.com",
+  projectId: "cskh-ta",
+  storageBucket: "cskh-ta.firebasestorage.app",
+  messagingSenderId: "271160621415",
+  appId: "1:271160621415:web:778102be1efcd5ba4717c2"
 };
+
+// Cấu hình luôn bật vì thông số đã được điền chính xác
+const isFirebaseConfigured = true;
 
 let firebaseConfig = defaultFirebaseConfig;
 if (typeof __firebase_config !== 'undefined') {
@@ -75,7 +82,6 @@ if (typeof __firebase_config !== 'undefined') {
   }
 }
 
-// Cập nhật App ID mặc định đồng bộ thành cskh-ta theo yêu cầu của bạn
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'cskh-ta';
 
 let app, auth, db;
@@ -84,7 +90,7 @@ try {
   auth = getAuth(app);
   db = getFirestore(app);
 } catch (error) {
-  console.warn("Đang chạy ở chế độ dự phòng LocalStorage.");
+  console.warn("Lỗi khởi tạo Firebase, đang sử dụng chế độ dự phòng LocalStorage.");
 }
 
 // 4 tài khoản nhân viên mặc định tương thích hoàn toàn với image_ba8ec5.png
@@ -216,7 +222,7 @@ export default function App() {
 
   // --- THIẾT LẬP FAVICON & PHIÊN ĐĂNG NHẬP ---
   useEffect(() => {
-    // 1. Thay đổi Favicon của trang web sang URL yêu cầu
+    // 1. Thay đổi Favicon của trang web sang logo bệnh viện
     const faviconUrl = 'https://iili.io/F66acRs.png';
     const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
     link.type = 'image/png';
@@ -250,8 +256,8 @@ export default function App() {
       setUserRole(parsedUser.role || 'nhanvien');
     }
 
-    // 5. Đồng bộ Firebase nếu kết nối thành công
-    if (auth && db) {
+    // 5. Đồng bộ Firebase nếu cấu hình hợp lệ và kết nối thành công
+    if (auth && db && (isFirebaseConfigured || typeof __firebase_config !== 'undefined')) {
       setIsFirebaseConnected(true);
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
@@ -280,6 +286,7 @@ export default function App() {
       });
       return () => unsubscribe();
     } else {
+      setIsFirebaseConnected(false);
       setIsLoading(false);
     }
   }, []);
@@ -756,96 +763,107 @@ export default function App() {
   };
 
   // ==========================================
-  // GIAO DIỆN ĐĂNG NHẬP (LOGIN SCREEN GLASSMORPHISM)
+  // GIAO DIỆN ĐĂNG NHẬP (PREMIUM LIGHT LOGIN SCREEN)
   // ==========================================
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-100">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-amber-500/10 rounded-full filter blur-3xl -translate-x-12 -translate-y-12"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full filter blur-3xl translate-x-12 translate-y-12"></div>
+      <div className="min-h-screen bg-gradient-to-tr from-slate-100 via-indigo-50/20 to-slate-200 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-800">
+        {/* Vòng tròn trang trí nền sáng */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/5 rounded-full filter blur-3xl -translate-x-12 -translate-y-12"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full filter blur-3xl translate-x-12 translate-y-12"></div>
 
-        <div className="max-w-md w-full bg-slate-900/80 backdrop-blur-md border border-slate-800 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
-          <div className="text-center space-y-2">
-            <div className="w-16 h-16 bg-gradient-to-tr from-amber-500 to-yellow-300 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/20 mx-auto">
-              <Sparkles className="w-8 h-8 text-slate-950" />
+        <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-100 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6 animate-scaleIn">
+          <div className="text-center space-y-3">
+            {/* Logo Bệnh Viện Tích Hợp Đồng Bộ */}
+            <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2.5 shadow-sm border border-slate-100 mx-auto">
+              <img 
+                src="https://iili.io/F66acRs.png" 
+                alt="Hospital Logo" 
+                className="w-full h-full object-contain" 
+              />
             </div>
-            <h1 className="text-2xl font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-              VIP CARE CRM
-            </h1>
-            <p className="text-xs text-slate-400 font-medium">Hệ thống phân quyền chuẩn hóa - Đặc quyền tiếp đón VIP</p>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-black tracking-tight text-slate-900">
+                VIP CARE CRM
+              </h1>
+              <p className="text-xs text-slate-400 font-semibold tracking-wide">Hệ thống phân quyền chuẩn hóa - Tiếp đón VIP</p>
+            </div>
           </div>
 
           {authError && (
-            <div className="p-3 bg-rose-950/40 border border-rose-500/50 rounded-xl text-xs text-rose-300 text-center font-bold flex items-center gap-1.5 justify-center">
-              <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-400" />
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 text-center font-bold flex items-center gap-1.5 justify-center">
+              <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-500" />
               {authError}
             </div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Email định danh</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email định danh</label>
               <input 
                 type="email" 
                 placeholder="ten@phongkham.com"
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-950/80 border border-slate-800 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 rounded-xl text-sm focus:outline-hidden text-white font-medium"
+                className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
               />
             </div>
             
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Mật khẩu bảo mật</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu bảo mật</label>
               <div className="relative">
                 <input 
                   type={showPassword ? "text" : "password"} 
                   placeholder="••••••••"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full pl-4 pr-10 py-3 bg-slate-950/80 border border-slate-800 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 rounded-xl text-sm focus:outline-hidden text-white font-medium"
+                  className="w-full pl-4 pr-10 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-slate-500 hover:text-slate-300 transition"
+                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition"
                 >
-                  {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
             <button 
               type="submit" 
-              className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 font-bold rounded-xl text-sm transition shadow-lg shadow-amber-500/10 flex items-center justify-center gap-2"
+              className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
             >
               <Lock className="w-4 h-4" /> Xác thực & Đăng nhập
             </button>
           </form>
 
-          {/* QUICK SWITCHER - TIỆN ÍCH KIỂM THỬ 4 ROLE CHO NGƯỜI DÙNG */}
-          <div className="border-t border-slate-800/80 pt-4 space-y-3">
-            <div className="flex items-center gap-1.5 text-xs text-amber-400/90 font-extrabold justify-center">
-              <UserCheck className="w-4 h-4" /> Chọn nhanh tài khoản mẫu để kiểm thử phân quyền:
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2">
-              {staffList.map((acc) => (
-                <button
-                  key={acc.uid}
-                  onClick={() => {
-                    setLoginEmail(acc.email);
-                    setLoginPassword(acc.pass);
-                  }}
-                  className="p-2.5 bg-slate-950/50 hover:bg-slate-950 border border-slate-800 rounded-xl text-left transition hover:border-amber-400/40 focus:ring-1 focus:ring-amber-400"
-                >
-                  <span className="font-extrabold text-slate-200 block text-xs truncate">{acc.name}</span>
-                  <span className="text-[10px] text-slate-500 block font-medium truncate">{acc.title}</span>
-                  <span className="inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 bg-slate-800 text-amber-500 rounded uppercase">
-                    Role: {acc.role}
-                  </span>
-                </button>
-              ))}
-            </div>
+          {/* KHU VỰC CHỌN TÀI KHOẢN MẪU THU GỌN - CHUYÊN NGHIỆP */}
+          <div className="border-t border-slate-100 pt-4">
+            <details className="group">
+              <summary className="list-none flex items-center justify-center gap-1.5 cursor-pointer text-xs text-slate-400 font-bold hover:text-slate-600 transition select-none">
+                <UserCheck className="w-4 h-4 text-slate-400" />
+                <span>Tài khoản kiểm thử phân quyền</span>
+                <ChevronDown className="w-3.5 h-3.5 transition transform group-open:rotate-180" />
+              </summary>
+              <div className="grid grid-cols-2 gap-2 mt-3 animate-fadeIn">
+                {staffList.map((acc) => (
+                  <button
+                    key={acc.uid}
+                    onClick={() => {
+                      setLoginEmail(acc.email);
+                      setLoginPassword(acc.pass);
+                    }}
+                    className="p-3 bg-slate-50 hover:bg-slate-100 border border-slate-150 rounded-xl text-left transition hover:border-indigo-300 focus:ring-1 focus:ring-indigo-400"
+                  >
+                    <span className="font-extrabold text-slate-800 block text-xs truncate">{acc.name}</span>
+                    <span className="text-[10px] text-slate-400 block font-medium truncate">{acc.title}</span>
+                    <span className="inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded-sm uppercase">
+                      {acc.role}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </details>
           </div>
         </div>
       </div>
@@ -858,7 +876,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
       
-      {/* 🟢 KHU VỰC THÔNG BÁO ĐẨY POPUP TRÊN MÀN HÌNH DI ĐỘNG / DESKTOP (PUSH NOTIFICATION CENTER CORES) */}
+      {/* 🟢 KHU VỰC THÔNG BÁO ĐẨY POPUP TRÊN MÀN HÌNH DI ĐỘNG / DESKTOP */}
       <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
         {activePushAlerts.map(alert => (
           <div 
@@ -931,8 +949,12 @@ export default function App() {
           <div className="flex justify-between items-center h-16">
             
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-indigo-300 flex items-center justify-center shadow-md shadow-indigo-100">
-                <Sparkles className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-slate-100 bg-white p-1">
+                <img 
+                  src="https://iili.io/F66acRs.png" 
+                  alt="Hospital Logo" 
+                  className="w-full h-full object-contain" 
+                />
               </div>
               <div>
                 <h1 className="text-sm font-black tracking-tight text-slate-900 flex items-center gap-1.5">
@@ -987,6 +1009,12 @@ export default function App() {
             </nav>
 
             <div className="flex items-center gap-3 relative">
+              {/* Trạng thái kết nối Cloud */}
+              <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold">
+                <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
+                {isFirebaseConnected ? 'Cloud Online' : 'Local Offline'}
+              </div>
+
               {/* 🔔 BIỂU TƯỢNG TRUNG TÂM THÔNG BÁO (BELL) */}
               <button 
                 onClick={() => setShowNotificationCenter(!showNotificationCenter)}
@@ -1007,7 +1035,7 @@ export default function App() {
                 )}
               </button>
 
-              {/* 🛑 TRUNG TÂM THÔNG BÁO DROPDOWN PANEL (ĐẶC BIỆT DÀNH CHO DI ĐỘNG/MÁY TÍNH) */}
+              {/* 🛑 TRUNG TÂM THÔNG BÁO DROPDOWN PANEL */}
               {showNotificationCenter && (
                 <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-100 rounded-3xl shadow-2xl z-50 p-4 space-y-3 animate-scaleIn">
                   <div className="flex justify-between items-center border-b border-slate-50 pb-2">
@@ -1147,6 +1175,19 @@ export default function App() {
               </div>
             </div>
 
+            {/* ⚠️ CẢNH BÁO CHƯA CẤU HÌNH THỰC TẾ TRÊN DASHBOARD */}
+            {!isFirebaseConnected && (
+              <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 text-xs text-amber-800 font-bold flex items-center gap-3 shadow-xs">
+                <Lock className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-black">Hệ thống đang hoạt động ở chế độ Offline (Cục bộ)</p>
+                  <p className="font-medium text-slate-500 mt-1 leading-relaxed">
+                    Dữ liệu bạn vừa nhập chỉ được lưu tạm trên trình duyệt của máy bạn. Bạn cần cập nhật thông số <code className="bg-slate-100 px-1.5 py-0.5 rounded text-amber-700 font-mono">defaultFirebaseConfig</code> trong tệp <strong className="text-indigo-600">App.jsx</strong> tại tài liệu **Canvas** bằng API Key thực tế của bạn để kích hoạt khả năng Realtime đồng bộ xuyên suốt các thiết bị khác.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* HIỂN THỊ CHỈ SỐ TÀI CHÍNH */}
             {/* Tương thích tuyệt đối với hình ảnh {98517A7C-1401-4F6A-A33B-5D86B5B98B39}.png */}
             {(userRole === 'admin' || userRole === 'lanhdao') ? (
@@ -1157,7 +1198,7 @@ export default function App() {
                     Thống kê hoạt động VIP thời gian thực
                   </h3>
                   <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full font-extrabold">
-                    Live Syncing Active
+                    {isFirebaseConnected ? 'Live Syncing Active' : 'Offline Mode (Local Only)'}
                   </span>
                 </div>
 
@@ -1938,7 +1979,7 @@ export default function App() {
                 <div>
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
-                    Cấu Hình Các Trường Cộng Tổng
+                    Cấu Hinh Các Trường Cộng Tổng
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">Lựa chọn các loại chi phí phát sinh để tự động tính vào [Tổng cộng]:</p>
                 </div>
@@ -2171,7 +2212,7 @@ export default function App() {
       </main>
 
       {/* FOOTER */}
-      <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-slate-200/50">
+      <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
           <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.3</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
