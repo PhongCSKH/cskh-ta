@@ -306,10 +306,12 @@ export default function App() {
     try {
       const token = await getToken(messaging, { 
         vapidKey: "BFjwAUlwacxhmYk0TiQdDTDYJKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQIAcSuG3iAAqtNnkPtJAW_s" 
+      }).catch(err => {
+        return null;
       });
       if (token) {
         const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userId);
-        await updateDoc(userDocRef, { fcmToken: token });
+        await updateDoc(userDocRef, { fcmToken: token }).catch(e => console.warn(e));
       }
     } catch (err) {
       console.warn(err);
@@ -389,6 +391,16 @@ export default function App() {
       status: 'Waiting',
       history: []
     });
+  };
+
+  const handleLogout = () => {
+    if (isFirebaseConnected && auth) {
+      signOut(auth).catch(e => console.warn(e));
+    }
+    setCurrentUser(null);
+    setUserRole('nhanvien');
+    localStorage.removeItem('crm_current_user');
+    showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
   };
 
   useEffect(() => {
@@ -510,7 +522,7 @@ export default function App() {
               const userData = userDoc.data();
               setCurrentUser(userData);
               setUserRole(userData.role);
-              await saveFcmTokenToDatabase(firebaseUser.uid);
+              saveFcmTokenToDatabase(firebaseUser.uid).catch(e => console.warn(e));
             } else {
               const fallbackUser = { 
                 uid: firebaseUser.uid, 
@@ -717,38 +729,32 @@ export default function App() {
     });
   };
 
-  const handleMultipleImagesUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-    
-    const readers = files.map(file => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const img = new Image();
-          img.src = reader.result;
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 800;
-            const scale = MAX_WIDTH / img.width;
-            canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
-            canvas.height = img.width > MAX_WIDTH ? img.height * scale : img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.7));
-          };
-        };
-        reader.readAsDataURL(file);
-      });
-    });
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      showNotification("Ảnh vượt quá giới hạn 2MB!", "error");
+      return;
+    }
 
-    Promise.all(readers).then((newImages) => {
-      setFormData(prev => ({
-        ...prev,
-        approvalImages: [...(prev.approvalImages || []), ...newImages]
-      }));
-      showNotification("Đã thêm các ảnh phê duyệt thành công!");
-    });
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const img = new Image();
+      img.src = reader.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const scale = MAX_WIDTH / img.width;
+        canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
+        canvas.height = img.width > MAX_WIDTH ? img.height * scale : img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        handleInputChange('approvalImage', compressedBase64);
+        showNotification("Đã đính kèm chứng từ thành công!");
+      };
+    };
+    reader.readAsDataURL(file);
   };
 
   const savePatient = async (e) => {
@@ -1393,7 +1399,7 @@ export default function App() {
               </button>
 
               <button 
-                onClick={() => { setActiveTab('monitoring'); }}
+                onClick={() => { resetForm(); setActiveTab('monitoring'); }}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                   activeTab === 'monitoring' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
                 }`}
@@ -1481,7 +1487,7 @@ export default function App() {
                           }`} />
                           <div className="flex-1 space-y-0.5">
                             <strong className="text-slate-800 block leading-tight">{n.title}</strong>
-                            <p className="text-[11px] text-slate-500 leading-normal font-medium">{n.message}</p>
+                            <p className="text-[11px] text-slate-550 leading-normal font-medium">{n.message}</p>
                             <span className="text-[9px] text-slate-400 font-bold block flex items-center gap-1 mt-1">
                               <Clock className="w-3 h-3" /> {n.timestamp}
                             </span>
@@ -2582,7 +2588,7 @@ export default function App() {
                               <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
                             </button>
                           )}
-                          <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
+                          <button onClick={() => animate-fadeIn} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
                             <Edit3 className="w-3.5 h-3.5" /> Sửa
                           </button>
                           
@@ -2655,7 +2661,7 @@ export default function App() {
                     { key: 'clsCdha', label: 'CLS/CDHA' },
                     { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
                   ].map((field) => (
-                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition">
+                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-150 hover:bg-slate-50 cursor-pointer transition">
                       <input 
                         type="checkbox"
                         checked={systemSettings.totalFormulaFields[field.key] || false}
@@ -2862,7 +2868,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.1</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
