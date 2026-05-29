@@ -677,6 +677,16 @@ export default function App() {
     }
   };
 
+  const handleLogout = () => {
+    if (isFirebaseConnected && auth) {
+      signOut(auth).catch(e => console.warn(e));
+    }
+    setCurrentUser(null);
+    setUserRole('nhanvien');
+    localStorage.removeItem('crm_current_user');
+    showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
+  };
+
   const handleInputChange = (field, val) => {
     if (field === 'discountRate' && userRole === 'nhanvien') {
       showNotification("Tài khoản nhân viên không có quyền duyệt chiết khấu!", "error");
@@ -1470,9 +1480,9 @@ export default function App() {
                     <Smartphone className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-black text-slate-900 uppercase">Chưa kích hoạt thông báo đến thiết bị</h4>
+                    <h4 className="text-xs font-black text-slate-900 uppercase">Chưa kích hoạt cảnh báo ngầm thiết bị</h4>
                     <p className="text-[11px] text-slate-500 mt-0.5 font-semibold leading-relaxed">
-                      Bạn cần bấm kích hoạt dưới đây.
+                      Để nhận thông báo báo cáo ca VVIP và duyệt chi phí ngay cả khi đóng ứng dụng hoặc khóa màn hình iPhone, bạn cần bấm kích hoạt dưới đây.
                     </p>
                   </div>
                 </div>
@@ -1548,7 +1558,7 @@ export default function App() {
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-100">
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
@@ -1702,7 +1712,7 @@ export default function App() {
             
             <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-md">
               <div>
-                <h2 className="text-base font-black text-slate-950 flex items-center gap-1.5">
+                <h2 className="text-base font-black text-slate-955 flex items-center gap-1.5">
                   {currentId ? "Cập Nhật Tiến Độ" : "Tạo lượt VIP/VVIP Mới"}
                 </h2>
               </div>
@@ -2128,7 +2138,7 @@ export default function App() {
             
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h2 className="text-lg font-black text-slate-950 flex items-center gap-2">
+                <h2 className="text-lg font-black text-slate-955 flex items-center gap-2">
                   <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo Dõi Hồ Sơ Khách Hàng VIP-VVIP
                 </h2>
               </div>
@@ -2361,7 +2371,7 @@ export default function App() {
 
                         <div className="bg-slate-50 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-655">
                           <div>Phê duyệt: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
-                          {p.notes && <div className="text-slate-550 italic">"{p.notes}"</div>}
+                          {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
                         </div>
 
                         <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
@@ -2371,7 +2381,7 @@ export default function App() {
                           </div>
                           <div>
                             <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
-                            <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
+                            <span className="text-[11px] font-bold text-rose-600 font-mono font-bold">-{formatCurrency(p.approvedDiscountAmount)}</span>
                           </div>
                           <div>
                             <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
@@ -2462,7 +2472,7 @@ export default function App() {
                     { key: 'clsCdha', label: 'CLS/CDHA' },
                     { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
                   ].map((field) => (
-                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition">
+                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-150 hover:bg-slate-50 cursor-pointer transition">
                       <input 
                         type="checkbox"
                         checked={systemSettings.totalFormulaFields[field.key] || false}
@@ -2624,7 +2634,7 @@ export default function App() {
                       </div>
                       <button 
                         type="submit"
-                        className="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 border border-slate-900 transition flex items-center justify-center gap-1"
+                        className="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center justify-center gap-1"
                       >
                         <UserPlus className="w-4 h-4" /> Đăng ký tài khoản nhân viên
                       </button>
@@ -2669,7 +2679,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.9.1</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.9.2</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
