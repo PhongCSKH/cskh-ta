@@ -17,6 +17,7 @@ import {
   signOut,
   onAuthStateChanged 
 } from 'firebase/auth';
+import { getMessaging, getToken } from 'firebase/messaging';
 import { 
   Users, 
   Plus, 
@@ -81,11 +82,14 @@ if (typeof __firebase_config !== 'undefined') {
 }
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'cskh-ta';
-let app, auth, db;
+let app, auth, db, messaging;
 try {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    messaging = getMessaging(app);
+  }
 } catch (error) {
   console.warn(error);
 }
@@ -189,6 +193,8 @@ export default function App() {
   const [confirmModal, setConfirmModal] = useState({ show: false, action: null, message: '', title: '' });
   const [lightboxImage, setLightboxImage] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [scannerError, setScannerError] = useState('');
+  const html5QrCodeRef = useRef(null);
 
   const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'nhanvien', pass: 'CSKH@abc456', title: '' });
 
@@ -283,6 +289,21 @@ export default function App() {
     }
   };
 
+  const saveFcmTokenToDatabase = async (userId) => {
+    if (!db || !messaging) return;
+    try {
+      const token = await getToken(messaging, { 
+        vapidKey: "BFjwAUlwacxhmYk0TiQdDTDYJKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQIAcSuG3iAAqtNnkPtJAW_s" 
+      });
+      if (token) {
+        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userId);
+        await updateDoc(userDocRef, { fcmToken: token });
+      }
+    } catch (err) {
+      console.warn(err);
+    }
+  };
+
   const requestIosNotificationPermission = async () => {
     if (!('Notification' in window)) {
       showNotification("Thiết bị không hỗ trợ thông báo đẩy.", "error");
@@ -299,6 +320,9 @@ export default function App() {
       
       if (permission === 'granted') {
         showNotification("Đã kích hoạt thành công thông báo!");
+        if (currentUser && currentUser.uid) {
+          await saveFcmTokenToDatabase(currentUser.uid);
+        }
         triggerPushAlert("🟢 Đã bật thông báo", "Hệ thống sẵn sàng nhận dữ liệu thời gian thực.");
       } else {
         showNotification("Quyền thông báo bị từ chối.", "error");
@@ -309,18 +333,89 @@ export default function App() {
     }
   };
 
-  const handleSimulateScan = () => {
-    setIsScanning(true);
-    setTimeout(() => {
-      const generatedPid = Math.floor(10000000 + Math.random() * 90000000).toString();
-      handleInputChange('pid', generatedPid);
+  const stopScanner = () => {
+    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+      html5QrCodeRef.current.stop().then(() => {
+        html5QrCodeRef.current.clear();
+        setIsScanning(false);
+        setScannerError('');
+      }).catch(err => {
+        console.error(err);
+        setIsScanning(false);
+        setScannerError('');
+      });
+    } else {
       setIsScanning(false);
-      showNotification("Đã nhận diện mã bệnh nhân thành công!");
-    }, 2500);
+      setScannerError('');
+    }
   };
 
   useEffect(() => {
+    let html5QrCode;
+    if (isScanning) {
+      const startCamera = async () => {
+        if (typeof window.Html5Qrcode === 'undefined') {
+          await new Promise(resolve => setTimeout(resolve, 800));
+          if (typeof window.Html5Qrcode === 'undefined') {
+            setScannerError("Chưa tải xong thư viện quét mã. Vui lòng thử lại.");
+            return;
+          }
+        }
+        
+        try {
+          html5QrCode = new window.Html5Qrcode("reader");
+          html5QrCodeRef.current = html5QrCode;
+          
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            {
+              fps: 15,
+              qrbox: (width, height) => {
+                const size = Math.min(width, height) * 0.75;
+                return { width: size, height: size };
+              }
+            },
+            (decodedText) => {
+              handleInputChange('pid', decodedText);
+              showNotification("Đã quét thành công mã: " + decodedText);
+              stopScanner();
+            },
+            (errorMessage) => {
+              // silent
+            }
+          );
+        } catch (err) {
+          console.error("Camera error:", err);
+          setScannerError("Không thể truy cập camera. Vui lòng cấp quyền camera trong cài đặt trình duyệt.");
+        }
+      };
+      
+      startCamera();
+    }
+    
+    return () => {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+        }).catch(e => console.warn(e));
+      }
+    };
+  }, [isScanning]);
+
+  useEffect(() => {
     checkIosPermissionStatus();
+
+    if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(e => console.warn(e));
+    }
+
+    if (!document.getElementById('html5-qrcode-script')) {
+      const script = document.createElement('script');
+      script.id = 'html5-qrcode-script';
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js';
+      script.async = true;
+      document.head.appendChild(script);
+    }
 
     function handleClickOutside(event) {
       if (notificationCenterRef.current && !notificationCenterRef.current.contains(event.target)) {
@@ -369,11 +464,13 @@ export default function App() {
       const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
           try {
-            const userDoc = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', firebaseUser.uid));
+            const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', firebaseUser.uid);
+            const userDoc = await getDoc(userDocRef);
             if (userDoc.exists()) {
               const userData = userDoc.data();
               setCurrentUser(userData);
               setUserRole(userData.role);
+              await saveFcmTokenToDatabase(firebaseUser.uid);
             } else {
               const fallbackUser = { 
                 uid: firebaseUser.uid, 
@@ -1012,27 +1109,99 @@ export default function App() {
 
       {isScanning && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <style>{`
+            #reader video {
+              width: 100% !important;
+              height: 100% !important;
+              object-fit: cover !important;
+              border-radius: 1rem;
+            }
+            #reader {
+              border: none !important;
+            }
+          `}</style>
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 border border-slate-200 shadow-2xl animate-scaleIn">
-            <div className="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto relative overflow-hidden">
-              <Scan className="w-8 h-8 animate-pulse" />
-              <div className="absolute left-0 right-0 h-0.5 bg-red-500 top-1/2 animate-bounce"></div>
-            </div>
             <div>
-              <h4 className="text-sm font-black text-slate-900 uppercase tracking-wide">Trình quét mã laser</h4>
-              <p className="text-xs text-slate-400 font-semibold mt-1">Đang giả lập kết nối và nhận diện luồng quét từ mắt đọc phần cứng...</p>
+              <h4 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center justify-center gap-1.5">
+                <Scan className="w-4 h-4 text-indigo-600 animate-pulse" /> Trình quét mã camera
+              </h4>
+              <p className="text-[11px] text-slate-400 font-semibold mt-1">
+                {scannerError ? "Lỗi truy cập thiết bị" : "Đặt mã vạch hoặc mã QR của bệnh nhân vào giữa khung hình"}
+              </p>
             </div>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-              <div className="bg-indigo-600 h-full animate-progress rounded-full"></div>
-            </div>
+
+            {scannerError ? (
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-[11px] text-rose-600 font-semibold space-y-2">
+                <p>{scannerError}</p>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setScannerError('');
+                    setIsScanning(false);
+                    setTimeout(() => setIsScanning(true), 200);
+                  }}
+                  className="px-3 py-1 bg-rose-600 text-white rounded-lg font-bold"
+                >
+                  Thử lại
+                </button>
+              </div>
+            ) : (
+              <div className="relative w-full aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 flex items-center justify-center">
+                <div id="reader" className="absolute inset-0 w-full h-full"></div>
+                
+                <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 z-10">
+                  <div className="flex justify-between">
+                    <div className="w-4 h-4 border-t-4 border-l-4 border-indigo-500 rounded-tl-xs"></div>
+                    <div className="w-4 h-4 border-t-4 border-r-4 border-indigo-500 rounded-tr-xs"></div>
+                  </div>
+                  <div className="absolute inset-x-0 h-0.5 bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-bounce" style={{ top: '45%' }}></div>
+                  <div className="flex justify-between">
+                    <div className="w-4 h-4 border-b-4 border-l-4 border-indigo-500 rounded-bl-xs"></div>
+                    <div className="w-4 h-4 border-b-4 border-r-4 border-indigo-500 rounded-br-xs"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <button
-              onClick={() => setIsScanning(false)}
-              className="px-4 py-1.5 border border-slate-200 text-slate-500 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition"
+              type="button"
+              onClick={stopScanner}
+              className="px-4 py-1.5 border border-slate-200 text-slate-500 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition w-full"
             >
               Hủy bỏ quét
             </button>
           </div>
         </div>
       )}
+
+      <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
+        {activePushAlerts.map(alert => (
+          <div 
+            key={alert.id}
+            className={`pointer-events-auto p-4 rounded-2xl shadow-xl border flex gap-3 items-start transition-all transform duration-300 bg-white ${
+              alert.type === 'success' ? 'border-emerald-100 bg-emerald-50/95' :
+              alert.type === 'error' ? 'border-rose-100 bg-rose-50/95' : 'border-indigo-100 bg-indigo-50/95'
+            }`}
+          >
+            <div className={`p-1.5 rounded-lg text-white ${
+              alert.type === 'success' ? 'bg-emerald-500' :
+              alert.type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'
+            }`}>
+              <BellRing className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xs font-extrabold text-slate-900">{alert.title}</h4>
+              <p className="text-[11px] text-slate-600 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
+            </div>
+            <button 
+              onClick={() => setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id))}
+              className="text-slate-400 hover:text-slate-600 p-0.5 transition"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
 
       {confirmModal.show && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
@@ -1211,7 +1380,7 @@ export default function App() {
               )}
 
               <div className="hidden sm:block text-right">
-                <div className="text-xs font-extrabold text-slate-950">{currentUser.name}</div>
+                <div className="text-xs font-extrabold text-slate-955">{currentUser.name}</div>
                 <div className="text-[10px] text-indigo-600 font-extrabold uppercase tracking-wide">{currentUser.title || userRole}</div>
               </div>
               <button 
@@ -1272,7 +1441,7 @@ export default function App() {
                     <Smartphone className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-black text-slate-900 uppercase">Chưa kích hoạt thông báo thiết bị</h4>
+                    <h4 className="text-xs font-black text-slate-900 uppercase">Chưa kích hoạt thông báo cho thiết bị</h4>
                     <p className="text-[11px] text-slate-500 mt-0.5 font-semibold leading-relaxed">
                       Bạn cần bấm kích hoạt dưới đây.
                     </p>
@@ -1337,7 +1506,7 @@ export default function App() {
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+                    <div className="p-3.5 rounded-xl bg-indigo-50 text-indigo-600 border-indigo-100">
                       <Activity className="w-6 h-6" />
                     </div>
                     <div>
@@ -1419,7 +1588,7 @@ export default function App() {
 
                             <div className="flex flex-wrap gap-0.5">
                               {p.specialties?.slice(0, 2).map((spec, i) => (
-                                <span key={i} className="text-[8px] bg-slate-50 text-slate-550 border border-slate-200 px-1 py-0.2 rounded font-semibold truncate max-w-[80px]">
+                                <span key={i} className="text-[8px] bg-slate-50 text-slate-555 border border-slate-200 px-1 py-0.2 rounded font-semibold truncate max-w-[80px]">
                                   {spec}
                                 </span>
                               ))}
@@ -1443,7 +1612,7 @@ export default function App() {
 
                             <div className="flex flex-col gap-0.5 text-[8px] text-slate-400 border-t border-slate-200 pt-1.5 font-semibold">
                               <span className="truncate">NV cập nhật: {p.updatedBy || 'Lễ tân'}</span>
-                              <span className="flex-shrink-0 text-slate-300">
+                              <span className="flex-shrink-0 text-slate-300 font-mono">
                                 {p.updatedAt ? new Date(p.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date(p.updatedAt).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'}) : '---'}
                               </span>
                             </div>
@@ -1467,7 +1636,7 @@ export default function App() {
                 <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                   <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo dõi hồ sơ
                 </h4>
-                <p className="text-xs text-slate-500 leading-relaxed font-semibold">
+                <p className="text-xs text-slate-555 leading-relaxed font-semibold">
                   Truy cập nhanh danh sách bệnh nhân VIP/VVIP đang điều trị tại phòng khám và bệnh viện chuyên khoa. Thực hiện tra cứu tiến trình và biên lai đính kèm.
                 </p>
                 <button 
@@ -1483,7 +1652,7 @@ export default function App() {
                   <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                     <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống
                   </h4>
-                  <p className="text-xs text-slate-500 leading-relaxed font-semibold">
+                  <p className="text-xs text-slate-555 leading-relaxed font-semibold">
                     Thiết lập công thức tính tổng phí điều trị, cấu hình các chuyên khoa tiếp nhận và phân quyền tài khoản cho đội ngũ tiếp đón.
                   </p>
                   <button 
@@ -1543,7 +1712,7 @@ export default function App() {
                         placeholder="Nhập họ và tên Khách hàng"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800 animate-fadeIn"
                         required
                       />
                     </div>
@@ -1556,13 +1725,16 @@ export default function App() {
                           placeholder="Nhập/Quét mã bệnh nhân PID..."
                           value={formData.pid}
                           onChange={(e) => handleInputChange('pid', e.target.value)}
-                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-mono font-black bg-white text-slate-800"
+                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-mono font-black bg-white text-slate-800 animate-fadeIn"
                           required
                         />
                         <button
                           type="button"
-                          onClick={handleSimulateScan}
-                          className="px-3 bg-slate-100 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs"
+                          onClick={() => {
+                            setScannerError('');
+                            setIsScanning(true);
+                          }}
+                          className="px-3 bg-slate-100 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs border border-slate-200/80"
                         >
                           <Scan className="w-4 h-4 text-slate-500" /> Quét mã
                         </button>
@@ -1576,7 +1748,7 @@ export default function App() {
                           type="button"
                           onClick={() => handleInputChange('tier', 'VIP')}
                           className={`py-2 px-4 rounded-xl text-xs font-bold border transition ${
-                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700 font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
                           Hạng VIP
@@ -1585,7 +1757,7 @@ export default function App() {
                           type="button"
                           onClick={() => handleInputChange('tier', 'VVIP')}
                           className={`py-2 px-4 rounded-xl text-xs font-bold border transition ${
-                            formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                            formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-200 text-amber-700 font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
                           Hạng VVIP
@@ -1608,7 +1780,7 @@ export default function App() {
                       <select
                         value={formData.status}
                         onChange={(e) => handleInputChange('status', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-800 bg-white"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-800 bg-white cursor-pointer"
                       >
                         {workflowStatuses.map(status => (
                           <option key={status.id} value={status.id}>{status.label}</option>
@@ -1627,7 +1799,7 @@ export default function App() {
                               onClick={() => handleInputChange('boardApproval', boss)}
                               className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
                                 formData.boardApproval === boss 
-                                  ? 'bg-slate-900 border-slate-900 text-white shadow-xs' 
+                                  ? 'bg-slate-900 border-slate-900 text-white shadow-xs font-extrabold' 
                                   : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                               }`}
                             >
@@ -1640,7 +1812,7 @@ export default function App() {
                           placeholder="Thành viên hội đồng quản trị duyệt..."
                           value={formData.boardApproval}
                           onChange={(e) => handleInputChange('boardApproval', e.target.value)}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-semibold bg-white text-slate-800"
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-semibold bg-white text-slate-800 animate-fadeIn"
                         />
                       </div>
                     </div>
@@ -1813,9 +1985,9 @@ export default function App() {
                         value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
                         onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
                         placeholder="0"
-                        className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-500"
+                        className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-500 font-mono"
                       />
-                      <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold">VNĐ</span>
+                      <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">VNĐ</span>
                     </div>
                   </div>
 
@@ -1839,7 +2011,7 @@ export default function App() {
                               : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
                           }`}
                         />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold">%</span>
+                        <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">%</span>
                       </div>
                     </div>
                   </div>
@@ -1897,7 +2069,7 @@ export default function App() {
                   <div className="space-y-4">
                     {formData.approvalImage ? (
                       <div className="relative rounded-2xl overflow-hidden border border-slate-200">
-                        <img src={formData.approvalImage} alt="Công văn" className="w-full h-48 object-cover" />
+                        <img src={formData.approvalImage} alt="Công văn" className="w-full h-48 object-cover animate-fadeIn" />
                         <button 
                           type="button"
                           onClick={() => handleInputChange('approvalImage', '')}
@@ -1948,7 +2120,7 @@ export default function App() {
                     placeholder="Tìm theo tên, mã PID, ghi chú..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-xs font-bold"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-xs font-bold bg-white"
                   />
                 </div>
                 
@@ -1956,7 +2128,7 @@ export default function App() {
                   <select 
                     value={filterTier}
                     onChange={(e) => setFilterTier(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
                   >
                     <option value="">Tất cả</option>
                     <option value="VIP">VIP</option>
@@ -1966,7 +2138,7 @@ export default function App() {
                   <select 
                     value={filterSpecialty}
                     onChange={(e) => setFilterSpecialty(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
                   >
                     <option value="">Tất cả chuyên khoa</option>
                     {systemSettings.specialties.map((spec, idx) => (
@@ -1978,7 +2150,7 @@ export default function App() {
                     type="date"
                     value={filterDate}
                     onChange={(e) => setFilterDate(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
                   />
 
                   {(searchTerm || filterTier || filterSpecialty || filterDate) && (
@@ -1996,7 +2168,7 @@ export default function App() {
             {isLoading ? (
               <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
                 <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
-                <p className="text-slate-400 font-semibold text-xs">Đang cập nhật...</p>
+                <p className="text-slate-400 font-semibold text-xs animate-pulse">Đang cập nhật...</p>
               </div>
             ) : filteredPatients.length === 0 ? (
               <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
@@ -2032,7 +2204,7 @@ export default function App() {
                           return (
                             <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150">
                               <td className="py-4 px-5">
-                                <div className="font-extrabold text-slate-950 text-sm">{p.name}</div>
+                                <div className="font-extrabold text-slate-955 text-sm">{p.name}</div>
                                 <div className="text-[10px] text-indigo-600 font-mono font-black mt-0.5">PID: {p.pid}</div>
                               </td>
                               <td className="py-4 px-3">
@@ -2080,7 +2252,7 @@ export default function App() {
                                       <ImageIcon className="w-4 h-4" />
                                     </button>
                                   )}
-                                  <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-950 hover:text-white rounded-xl transition" title="Sửa">
+                                  <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
                                     <Edit3 className="w-4 h-4" />
                                   </button>
                                   
@@ -2138,7 +2310,7 @@ export default function App() {
                           <div>
                             <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
                             <h4 className="font-extrabold text-slate-900 text-sm">{p.name}</h4>
-                            <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                            <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 animate-fadeIn">
                               <Calendar className="w-3.5 h-3.5" />
                               Khám ngày: {p.date ? new Date(p.date).toLocaleDateString('vi-VN') : 'Trong ngày'}
                             </p>
@@ -2158,7 +2330,7 @@ export default function App() {
                           ))}
                         </div>
 
-                        <div className="bg-slate-50 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-600">
+                        <div className="bg-slate-50 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-655">
                           <div>Phê duyệt: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
                           {p.notes && <div className="text-slate-550 italic">"{p.notes}"</div>}
                         </div>
@@ -2181,18 +2353,20 @@ export default function App() {
                         <div className="flex justify-end gap-2 pt-1">
                           {p.approvalImage && (
                             <button 
+                              type="button"
                               onClick={() => setLightboxImage(p.approvalImage)}
-                              className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1"
+                              className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
                             >
                               <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
                             </button>
                           )}
-                          <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1">
+                          <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
                             <Edit3 className="w-3.5 h-3.5" /> Sửa
                           </button>
                           
                           {userRole !== 'nhanvien' && (
                             <button 
+                              type="button"
                               onClick={() => {
                                 setConfirmModal({
                                   title: "Xác nhận gỡ bỏ dữ liệu",
@@ -2216,7 +2390,7 @@ export default function App() {
                                   }
                                 });
                               }}
-                              className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 text-[10px] rounded-xl font-bold flex items-center gap-1"
+                              className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
                             >
                               <Trash2 className="w-3.5 h-3.5" /> Xóa
                             </button>
@@ -2347,7 +2521,7 @@ export default function App() {
 
                   <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
                     {systemSettings.specialties.map((spec, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition">
+                      <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition animate-fadeIn">
                         <span className="text-xs font-bold text-slate-700">{spec}</span>
                         <button
                           type="button"
@@ -2411,7 +2585,7 @@ export default function App() {
                         <select 
                           value={newStaff.role}
                           onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold cursor-pointer"
                         >
                           <option value="nhanvien">nhanvien</option>
                           <option value="quanly">quanly</option>
@@ -2465,7 +2639,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.6</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.8</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
