@@ -696,6 +696,79 @@ export default function App() {
     setActiveTab('register');
   };
 
+  const handleUpdateStatus = async (patientId, newStatus) => {
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) return;
+
+    if (userRole === 'nhanvien') {
+      const currentStatus = patient.status || 'Waiting';
+      const isAllowed = 
+        (currentStatus === 'Waiting' && newStatus === 'Examining') || 
+        (currentStatus === 'Pharmacy' && newStatus === 'Completed');
+
+      if (!isAllowed) {
+        showNotification("Lỗi: Tài khoản nhân viên chỉ được phép chuyển trạng thái theo đúng luồng bàn giao quy định!", "error");
+        return;
+      }
+    }
+
+    try {
+      if (isFirebaseConnected && db) {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'patients', patientId);
+        await updateDoc(docRef, {
+          status: newStatus,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentUser.name
+        });
+      } else {
+        const updatedList = patients.map(p => {
+          if (p.id === patientId) {
+            return { 
+              ...p, 
+              status: newStatus, 
+              updatedAt: new Date().toISOString(), 
+              updatedBy: currentUser.name 
+            };
+          }
+          return p;
+        });
+        setPatients(updatedList);
+        localStorage.setItem('local_patients', JSON.stringify(updatedList));
+        triggerPushAlert("🔄 Cập nhật hành trình (Cục bộ)", `Khách hàng ${patient.name} đã được cập nhật trạng thái mới.`, "success");
+      }
+      showNotification("Đã cập nhật trạng thái hành trình khám!");
+    } catch (err) {
+      console.error(err);
+      showNotification("Lỗi đồng bộ trạng thái lên database!", "error");
+    }
+  };
+
+  const resetForm = () => {
+    setCurrentId(null);
+    setFormData({
+      name: '',
+      tier: 'VIP',
+      boardApproval: '',
+      notes: '',
+      pid: '',
+      date: new Date().toISOString().split('T')[0],
+      specialties: [],
+      ngoaiTru: 0,
+      capCuu: 0,
+      noiTru: 0,
+      ngoaiVien: 0,
+      phiKham: 0,
+      clsCdha: 0,
+      thuocVacxin: 0,
+      insuranceAdvance: 0,
+      discountRate: 0,
+      approvedDiscountAmount: 0,
+      totalAmount: 0,
+      approvalImage: '',
+      status: 'Waiting'
+    });
+  };
+
   const handleCreateStaff = (e) => {
     e.preventDefault();
     if (userRole !== 'admin') {
@@ -987,6 +1060,7 @@ export default function App() {
         </div>
       )}
 
+      {}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1430,6 +1504,7 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI ========================== */}
+        {}
         {activeTab === 'register' && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
@@ -1456,7 +1531,6 @@ export default function App() {
               </div>
             </div>
 
-            {}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
               
               <div className="lg:col-span-2 space-y-6">
@@ -1590,7 +1664,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -1617,7 +1690,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-5">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-50 pb-3 flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -1779,7 +1851,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {}
                   <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
                     
                     <div className="flex justify-between items-center text-xs">
@@ -1789,7 +1860,7 @@ export default function App() {
                           type="text"
                           value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
                           onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
-                          className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden"
+                          className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
                         />
                         <span>đ</span>
                       </div>
@@ -1803,7 +1874,7 @@ export default function App() {
                           type="text"
                           value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
                           onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
-                          className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden"
+                          className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
                         />
                         <span className="text-rose-400">đ</span>
                       </div>
@@ -1816,7 +1887,7 @@ export default function App() {
 
                     <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
                       <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
-                      <span className="text-lg font-black text-emerald-400">
+                      <span className="text-lg font-black text-emerald-400 font-mono">
                         {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
                       </span>
                     </div>
@@ -1859,6 +1930,7 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ ========================== */}
+        {}
         {activeTab === 'monitoring' && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -1876,7 +1948,6 @@ export default function App() {
               </button>
             </div>
 
-            {}
             <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
               <div className="flex flex-col md:flex-row gap-3">
                 <div className="flex-1 relative">
@@ -1931,7 +2002,6 @@ export default function App() {
               </div>
             </div>
 
-            {}
             {isLoading ? (
               <div className="bg-white p-16 rounded-3xl border border-slate-100 flex flex-col items-center justify-center gap-3">
                 <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
@@ -1998,14 +2068,14 @@ export default function App() {
                                 <div className="font-bold text-slate-700">{p.boardApproval || '---'}</div>
                                 {p.notes && <div className="text-[10px] text-slate-400 max-w-[150px] truncate" title={p.notes}>{p.notes}</div>}
                               </td>
-                              <td className="py-4 px-3 text-right font-bold text-slate-900">
+                              <td className="py-4 px-3 text-right font-bold text-slate-900 font-mono">
                                 {formatCurrency(p.totalAmount)}
                               </td>
                               <td className="py-4 px-3 text-right">
-                                <div className="font-bold text-rose-600">-{formatCurrency(p.approvedDiscountAmount)}</div>
+                                <div className="font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</div>
                                 <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
                               </td>
-                              <td className="py-4 px-3 text-right font-extrabold text-emerald-600">
+                              <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
                                 {formatCurrency(realCollected)}
                               </td>
                               <td className="py-4 px-5 text-right whitespace-nowrap">
@@ -2024,7 +2094,33 @@ export default function App() {
                                   </button>
                                   
                                   {userRole !== 'nhanvien' ? (
-                                    <button onClick={() => deletePatient(p.id)} className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" title="Xóa">
+                                    <button 
+                                      onClick={() => {
+                                        setConfirmModal({
+                                          show: true,
+                                          title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
+                                          message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+                                          action: async () => {
+                                            try {
+                                              if (isFirebaseConnected && db) {
+                                                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
+                                                showNotification("Đã xóa hồ sơ thành công!");
+                                              } else {
+                                                const updated = patients.filter(item => item.id !== p.id);
+                                                setPatients(updated);
+                                                localStorage.setItem('local_patients', JSON.stringify(updated));
+                                                showNotification("Đã xóa hồ sơ cục bộ!");
+                                              }
+                                              setConfirmModal({ show: false, action: null, message: '', title: '' });
+                                            } catch (err) {
+                                              console.error(err);
+                                            }
+                                          }
+                                        });
+                                      }} 
+                                      className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" 
+                                      title="Xóa"
+                                    >
                                       <Trash2 className="w-4 h-4" />
                                     </button>
                                   ) : (
@@ -2079,15 +2175,15 @@ export default function App() {
                         <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-100 py-3 text-center">
                           <div>
                             <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
-                            <span className="text-[11px] font-bold text-slate-900">{formatCurrency(p.totalAmount)}</span>
+                            <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
                           </div>
                           <div>
                             <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
-                            <span className="text-[11px] font-bold text-rose-600">-{formatCurrency(p.approvedDiscountAmount)}</span>
+                            <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
                           </div>
                           <div>
                             <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
-                            <span className="text-[11px] font-black text-emerald-600">{formatCurrency(realCollected)}</span>
+                            <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
                           </div>
                         </div>
 
@@ -2105,7 +2201,32 @@ export default function App() {
                           </button>
                           
                           {userRole !== 'nhanvien' && (
-                            <button onClick={() => deletePatient(p.id)} className="px-3 py-1.5 bg-rose-50 text-rose-600 text-[10px] rounded-xl font-bold flex items-center gap-1">
+                            <button 
+                              onClick={() => {
+                                setConfirmModal({
+                                  title: "Xác nhận gỡ bỏ dữ liệu",
+                                  message: "Bạn có chắc chắn muốn gỡ bỏ vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+                                  show: true,
+                                  action: async () => {
+                                    try {
+                                      if (isFirebaseConnected && db) {
+                                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
+                                        showNotification("Đã xóa dữ liệu đám mây!");
+                                      } else {
+                                        const updated = patients.filter(item => item.id !== p.id);
+                                        setPatients(updated);
+                                        localStorage.setItem('local_patients', JSON.stringify(updated));
+                                        showNotification("Đã xóa dữ liệu!");
+                                      }
+                                      setConfirmModal({ show: false, action: null, message: '', title: '' });
+                                    } catch (err) {
+                                      console.error(err);
+                                    }
+                                  }
+                                });
+                              }}
+                              className="px-3 py-1.5 bg-rose-50 text-rose-600 text-[10px] rounded-xl font-bold flex items-center gap-1"
+                            >
                               <Trash2 className="w-3.5 h-3.5" /> Xóa
                             </button>
                           )}
@@ -2120,6 +2241,7 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 4: CẤU HÌNH HỆ THỐNG ========================== */}
+        {}
         {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao') && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -2127,7 +2249,6 @@ export default function App() {
               <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
             </div>
 
-            {}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
@@ -2210,6 +2331,7 @@ export default function App() {
 
               </div>
 
+              {}
               <div className="space-y-6">
                 
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
@@ -2353,9 +2475,10 @@ export default function App() {
 
       </main>
 
+      {}
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.3</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.4</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
