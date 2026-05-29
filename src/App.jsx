@@ -98,6 +98,14 @@ const formatCurrency = (number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(number || 0);
 };
 
+const formatDateVN = (dateStr) => {
+  if (!dateStr) return '---';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const [year, month, day] = parts;
+  return `${day}/${month}/${year}`;
+};
+
 const mockStaffAccounts = [
   { uid: "acc_admin", email: "admin@vip.com", name: "Nguyễn Minh Trí", title: "IT Admin", role: "admin", pass: "CSKH@abc456" },
   { uid: "acc_lanhdao", email: "lanhdao@vip.com", name: "Trần Thế Phương", title: "Thành viên HĐQT", role: "lanhdao", pass: "CSKH@abc456" },
@@ -177,9 +185,9 @@ const workflowStatuses = [
 ];
 
 const sites = [
-  { id: 'tsh', label: 'BV Tâm Anh - Tân Sơn Hòa', bg: 'bg-sky-50 text-sky-700 border-sky-200/80', dot: 'bg-sky-500', marker: 'border-l-4 border-l-sky-500' },
-  { id: 'th', label: 'PK Tâm Anh - Tân Hưng', bg: 'bg-violet-50 text-violet-700 border-violet-200/80', dot: 'bg-violet-500', marker: 'border-l-4 border-l-violet-500' },
-  { id: 'ch', label: 'BV Tâm Anh - Chánh Hưng', bg: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500', marker: 'border-l-4 border-l-teal-500' }
+  { id: 'tsh', label: 'BV Tâm Anh - Tân Sơn Hòa', bg: 'bg-sky-50 text-sky-700 border-sky-200/80', dot: 'bg-sky-500', cardBg: 'bg-[#f0f9ff] border-[#bae6fd] hover:border-[#7dd3fc]' },
+  { id: 'th', label: 'PK Tâm Anh - Tân Hưng', bg: 'bg-violet-50 text-violet-700 border-violet-200/80', dot: 'bg-violet-500', cardBg: 'bg-[#faf5ff] border-[#e9d5ff] hover:border-[#d8b4fe]' },
+  { id: 'ch', label: 'BV Tâm Anh - Chánh Hưng', bg: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500', cardBg: 'bg-[#f0fdf4] border-[#bbf7d0] hover:border-[#86efac]' }
 ];
 
 export default function App() {
@@ -729,32 +737,38 @@ export default function App() {
     });
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      showNotification("Ảnh vượt quá giới hạn 2MB!", "error");
-      return;
-    }
+  const handleMultipleImagesUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    const readers = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const img = new Image();
+          img.src = reader.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800;
+            const scale = MAX_WIDTH / img.width;
+            canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
+            canvas.height = img.width > MAX_WIDTH ? img.height * scale : img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          };
+        };
+        reader.readAsDataURL(file);
+      });
+    });
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const img = new Image();
-      img.src = reader.result;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const scale = MAX_WIDTH / img.width;
-        canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
-        canvas.height = img.width > MAX_WIDTH ? img.height * scale : img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-        handleInputChange('approvalImage', compressedBase64);
-        showNotification("Đã đính kèm chứng từ thành công!");
-      };
-    };
-    reader.readAsDataURL(file);
+    Promise.all(readers).then((newImages) => {
+      setFormData(prev => ({
+        ...prev,
+        approvalImages: [...(prev.approvalImages || []), ...newImages]
+      }));
+      showNotification("Đã thêm các ảnh phê duyệt thành công!");
+    });
   };
 
   const savePatient = async (e) => {
@@ -1518,7 +1532,7 @@ export default function App() {
 
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
         <button 
-          onClick={() => { setActiveTab('dashboard'); }}
+          onClick={() => { resetForm(); setActiveTab('dashboard'); }}
           className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
         >
           <LayoutDashboard className="w-5 h-5" />
@@ -1639,7 +1653,7 @@ export default function App() {
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-100">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
@@ -1695,21 +1709,40 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-4 overflow-x-auto pb-4">
+              <div className="flex gap-4 overflow-x-auto pb-4 items-stretch select-none">
                 {workflowStatuses.map(col => {
                   const colPatients = kanbanPatients.filter(p => (p.status || 'Waiting') === col.id);
+                  const isEmpty = colPatients.length === 0;
+
+                  if (isEmpty) {
+                    return (
+                      <div 
+                        key={col.id} 
+                        className="w-12 bg-slate-100/40 rounded-2xl py-3 px-1 border border-slate-200 flex flex-col items-center justify-start transition-all duration-300 ease-in-out shrink-0 select-none cursor-pointer"
+                        title={`Trống: ${col.label}`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${col.dot} mb-2`}></span>
+                        <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-500 mb-2 font-mono">
+                          0
+                        </span>
+                        <span className="text-[9px] font-extrabold text-slate-400 whitespace-nowrap [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
+                          {col.label}
+                        </span>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div 
                       key={col.id} 
-                      className="bg-slate-50/60 rounded-2xl p-3 border border-slate-200 flex flex-col min-w-[150px] min-h-[350px]"
+                      className="bg-slate-50/60 rounded-2xl p-3 border border-slate-200 flex flex-col min-w-[180px] flex-1 transition-all duration-300 ease-in-out shrink-0"
                     >
                       <div className="flex justify-between items-center pb-3 border-b border-slate-200 mb-3">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className={`w-2 h-2 rounded-full ${col.dot}`}></span>
                           <span className="text-[10px] font-black text-slate-700 truncate">{col.label}</span>
                         </div>
-                        <span className="text-[10px] font-black bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-555">
+                        <span className="text-[10px] font-black bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-555 font-mono">
                           {colPatients.length}
                         </span>
                       </div>
@@ -1720,10 +1753,10 @@ export default function App() {
                           return (
                             <div 
                               key={p.id}
-                              className={`bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition duration-150 space-y-2.5 relative group ${patientSite.marker}`}
+                              className={`p-3 rounded-xl border shadow-2xs hover:shadow-xs transition duration-150 space-y-2.5 relative group ${patientSite.cardBg}`}
                             >
                               <div className="flex justify-between items-start gap-1">
-                                <span className="text-[8px] text-indigo-600 font-mono font-black truncate">PID: {p.pid}</span>
+                                <span className="text-[8px] text-slate-500 font-mono font-black truncate">PID: {p.pid}</span>
                                 <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
                                   p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
                                 }`}>
@@ -1749,12 +1782,6 @@ export default function App() {
                             </div>
                           );
                         })}
-
-                        {colPatients.length === 0 && (
-                          <div className="text-center py-8 text-slate-300 text-[10px] font-bold border-2 border-dashed border-slate-200 rounded-xl">
-                            Trống
-                          </div>
-                        )}
                       </div>
                     </div>
                   );
@@ -2429,7 +2456,7 @@ export default function App() {
                                 </span>
                               </td>
                               <td className="py-4 px-3">
-                                <div className="text-slate-500 font-bold">{p.date ? new Date(p.date).toLocaleDateString('vi-VN') : 'Trong ngày'}</div>
+                                <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
                                 <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1 ${pSite.bg}`}>
                                   {pSite.label}
                                 </div>
@@ -2526,14 +2553,14 @@ export default function App() {
                     const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
                     const pSite = sites.find(s => s.label === p.site) || sites[0];
                     return (
-                      <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                      <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
                         <div className="flex justify-between items-start">
                           <div>
                             <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
                             <h4 className="font-extrabold text-slate-900 text-sm">{p.name}</h4>
-                            <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 animate-fadeIn">
+                            <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
                               <Calendar className="w-3.5 h-3.5" />
-                              Khám ngày: {p.date ? new Date(p.date).toLocaleDateString('vi-VN') : 'Trong ngày'}
+                              Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
                             </p>
                             <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1.5 ${pSite.bg}`}>
                               {pSite.label}
@@ -2566,7 +2593,7 @@ export default function App() {
                           </div>
                           <div>
                             <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
-                            <span className="text-[11px] font-bold text-rose-600 font-mono font-bold">-{formatCurrency(p.approvedDiscountAmount)}</span>
+                            <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
                           </div>
                           <div>
                             <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
@@ -2583,12 +2610,12 @@ export default function App() {
                                 setLightboxImages(imgs);
                                 setLightboxIndex(0);
                               }}
-                              className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
+                              className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
                             >
                               <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
                             </button>
                           )}
-                          <button onClick={() => animate-fadeIn} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
+                          <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
                             <Edit3 className="w-3.5 h-3.5" /> Sửa
                           </button>
                           
@@ -2868,7 +2895,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.1</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.2</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
