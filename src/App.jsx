@@ -350,6 +350,32 @@ export default function App() {
     }
   };
 
+  const resetForm = () => {
+    setCurrentId(null);
+    setFormData({
+      name: '',
+      tier: 'VIP',
+      boardApproval: '',
+      notes: '',
+      pid: '',
+      date: new Date().toISOString().split('T')[0],
+      specialties: [],
+      ngoaiTru: 0,
+      capCuu: 0,
+      noiTru: 0,
+      ngoaiVien: 0,
+      phiKham: 0,
+      clsCdha: 0,
+      thuocVacxin: 0,
+      insuranceAdvance: 0,
+      discountRate: 0,
+      approvedDiscountAmount: 0,
+      totalAmount: 0,
+      approvalImage: '',
+      status: 'Waiting'
+    });
+  };
+
   useEffect(() => {
     let html5QrCode;
     if (isScanning) {
@@ -649,16 +675,6 @@ export default function App() {
     } else {
       setAuthError('Email hoặc mật khẩu không chính xác.');
     }
-  };
-
-  const handleLogout = () => {
-    if (isFirebaseConnected && auth) {
-      signOut(auth).catch(e => console.warn(e));
-    }
-    setCurrentUser(null);
-    setUserRole('nhanvien');
-    localStorage.removeItem('crm_current_user');
-    showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
   };
 
   const handleInputChange = (field, val) => {
@@ -1274,7 +1290,7 @@ export default function App() {
 
             <nav className="hidden md:flex items-center gap-1">
               <button 
-                onClick={() => { setActiveTab('dashboard'); }}
+                onClick={() => { resetForm(); setActiveTab('dashboard'); }}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                   activeTab === 'dashboard' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
                 }`}
@@ -1292,7 +1308,7 @@ export default function App() {
               </button>
 
               <button 
-                onClick={() => { setActiveTab('monitoring'); }}
+                onClick={() => { resetForm(); setActiveTab('monitoring'); }}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                   activeTab === 'monitoring' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
                 }`}
@@ -1411,7 +1427,7 @@ export default function App() {
 
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
         <button 
-          onClick={() => { setActiveTab('dashboard'); }}
+          onClick={() => { resetForm(); setActiveTab('dashboard'); }}
           className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
         >
           <LayoutDashboard className="w-5 h-5" />
@@ -1425,7 +1441,7 @@ export default function App() {
           <span>Tiếp nhận VIP</span>
         </button>
         <button 
-          onClick={() => { setActiveTab('monitoring'); }}
+          onClick={() => { resetForm(); setActiveTab('monitoring'); }}
           className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'monitoring' ? 'text-indigo-600' : 'text-slate-400'}`}
         >
           <ClipboardList className="w-5 h-5" />
@@ -1454,9 +1470,9 @@ export default function App() {
                     <Smartphone className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-black text-slate-900 uppercase">Chưa kích hoạt cảnh báo ngầm thiết bị</h4>
+                    <h4 className="text-xs font-black text-slate-900 uppercase">Chưa kích hoạt thông báo đến thiết bị</h4>
                     <p className="text-[11px] text-slate-500 mt-0.5 font-semibold leading-relaxed">
-                      Để nhận thông báo báo cáo ca VVIP và duyệt chi phí ngay cả khi đóng ứng dụng hoặc khóa màn hình iPhone, bạn cần bấm kích hoạt dưới đây.
+                      Bạn cần bấm kích hoạt dưới đây.
                     </p>
                   </div>
                 </div>
@@ -1532,7 +1548,7 @@ export default function App() {
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-100">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
@@ -1575,7 +1591,7 @@ export default function App() {
                           <span className={`w-2 h-2 rounded-full ${col.dot}`}></span>
                           <span className="text-[10px] font-black text-slate-700 truncate">{col.label}</span>
                         </div>
-                        <span className="text-[10px] font-black bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-550">
+                        <span className="text-[10px] font-black bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-555">
                           {colPatients.length}
                         </span>
                       </div>
@@ -1589,7 +1605,7 @@ export default function App() {
                             <div className="flex justify-between items-start gap-1">
                               <span className="text-[8px] text-indigo-600 font-mono font-black truncate">PID: {p.pid}</span>
                               <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
-                                p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                                p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
                               }`}>
                                 {p.tier}
                               </span>
@@ -1858,7 +1874,7 @@ export default function App() {
                           type="button"
                           onClick={() => toggleSpecialtySelection(spec)}
                           className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
-                            isSelected ? 'bg-slate-950 border-slate-950 text-white shadow-md shadow-slate-200' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                            isSelected ? 'bg-slate-955 border-slate-955 text-white shadow-md shadow-slate-200' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                           }`}
                         >
                           {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
@@ -2368,7 +2384,7 @@ export default function App() {
                             <button 
                               type="button"
                               onClick={() => setLightboxImage(p.approvalImage)}
-                              className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
+                              className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
                             >
                               <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
                             </button>
@@ -2564,7 +2580,7 @@ export default function App() {
                           placeholder="Họ tên nhân viên..." 
                           value={newStaff.name}
                           onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold"
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold animate-fadeIn"
                           required
                         />
                         <input 
@@ -2589,7 +2605,7 @@ export default function App() {
                           placeholder="Mã UID (Lấy từ Firebase Authentication)..." 
                           value={newStaff.uid}
                           onChange={(e) => setNewStaff({ ...newStaff, uid: e.target.value })}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-mono font-bold"
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-mono font-bold animate-fadeIn"
                           required
                         />
                       </div>
@@ -2653,7 +2669,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.9</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.9.1</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
