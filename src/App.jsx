@@ -172,7 +172,14 @@ const workflowStatuses = [
   { id: 'Testing', label: 'Đang Làm CLS/CĐHA', color: 'bg-amber-50 text-amber-700 border-amber-200/80', dot: 'bg-amber-500' },
   { id: 'Reviewing', label: 'Chờ Kết Luận', color: 'bg-purple-50 text-purple-700 border-purple-200/80', dot: 'bg-purple-500' },
   { id: 'Pharmacy', label: 'Đang Chờ Thuốc/Tiêm Ngừa', color: 'bg-yellow-50 text-yellow-850 border-yellow-200/80', dot: 'bg-yellow-500' },
+  { id: 'Inpatient', label: 'Đang Nằm Viện', color: 'bg-rose-50 text-rose-700 border-rose-200/80', dot: 'bg-rose-500' },
   { id: 'Completed', label: 'Đã Hoàn Tất', color: 'bg-emerald-50 text-emerald-700 border-emerald-200/80', dot: 'bg-emerald-500' }
+];
+
+const sites = [
+  { id: 'tsh', label: 'BV Tâm Anh - Tân Sơn Hòa', bg: 'bg-sky-50 text-sky-700 border-sky-200/80', dot: 'bg-sky-500', marker: 'border-l-4 border-l-sky-500' },
+  { id: 'th', label: 'PK Tâm Anh - Tân Hưng', bg: 'bg-violet-50 text-violet-700 border-violet-200/80', dot: 'bg-violet-500', marker: 'border-l-4 border-l-violet-500' },
+  { id: 'ch', label: 'BV Tâm Anh - Chánh Hưng', bg: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500', marker: 'border-l-4 border-l-teal-500' }
 ];
 
 export default function App() {
@@ -191,7 +198,8 @@ export default function App() {
   const [authError, setAuthError] = useState('');
 
   const [confirmModal, setConfirmModal] = useState({ show: false, action: null, message: '', title: '' });
-  const [lightboxImage, setLightboxImage] = useState(null);
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isScanning, setIsScanning] = useState(false);
   const [scannerError, setScannerError] = useState('');
   const html5QrCodeRef = useRef(null);
@@ -202,8 +210,10 @@ export default function App() {
   const [filterSpecialty, setFilterSpecialty] = useState('');
   const [filterTier, setFilterTier] = useState('');
   const [filterDate, setFilterDate] = useState('');
+  const [filterSite, setFilterSite] = useState('');
 
   const [currentId, setCurrentId] = useState(null);
+  const [formRightTab, setFormRightTab] = useState('billing');
   const [formData, setFormData] = useState({
     name: '',
     tier: 'VIP',
@@ -212,6 +222,7 @@ export default function App() {
     pid: '',
     date: new Date().toISOString().split('T')[0],
     specialties: [],
+    site: 'BV Tâm Anh - Tân Sơn Hòa',
     ngoaiTru: 0,
     capCuu: 0,
     noiTru: 0,
@@ -223,8 +234,9 @@ export default function App() {
     discountRate: 0,
     approvedDiscountAmount: 0,
     totalAmount: 0,
-    approvalImage: '',
-    status: 'Waiting'
+    approvalImages: [],
+    status: 'Waiting',
+    history: []
   });
 
   const [newSpecialtyInput, setNewSpecialtyInput] = useState('');
@@ -352,6 +364,7 @@ export default function App() {
 
   const resetForm = () => {
     setCurrentId(null);
+    setFormRightTab('billing');
     setFormData({
       name: '',
       tier: 'VIP',
@@ -360,6 +373,7 @@ export default function App() {
       pid: '',
       date: new Date().toISOString().split('T')[0],
       specialties: [],
+      site: 'BV Tâm Anh - Tân Sơn Hòa',
       ngoaiTru: 0,
       capCuu: 0,
       noiTru: 0,
@@ -371,8 +385,9 @@ export default function App() {
       discountRate: 0,
       approvedDiscountAmount: 0,
       totalAmount: 0,
-      approvalImage: '',
-      status: 'Waiting'
+      approvalImages: [],
+      status: 'Waiting',
+      history: []
     });
   };
 
@@ -677,16 +692,6 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
-    if (isFirebaseConnected && auth) {
-      signOut(auth).catch(e => console.warn(e));
-    }
-    setCurrentUser(null);
-    setUserRole('nhanvien');
-    localStorage.removeItem('crm_current_user');
-    showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
-  };
-
   const handleInputChange = (field, val) => {
     if (field === 'discountRate' && userRole === 'nhanvien') {
       showNotification("Tài khoản nhân viên không có quyền duyệt chiết khấu!", "error");
@@ -712,32 +717,38 @@ export default function App() {
     });
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      showNotification("Ảnh vượt quá giới hạn 2MB!", "error");
-      return;
-    }
+  const handleMultipleImagesUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    const readers = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const img = new Image();
+          img.src = reader.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800;
+            const scale = MAX_WIDTH / img.width;
+            canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
+            canvas.height = img.width > MAX_WIDTH ? img.height * scale : img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          };
+        };
+        reader.readAsDataURL(file);
+      });
+    });
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const img = new Image();
-      img.src = reader.result;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const scale = MAX_WIDTH / img.width;
-        canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
-        canvas.height = img.width > MAX_WIDTH ? img.height * scale : img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-        handleInputChange('approvalImage', compressedBase64);
-        showNotification("Đã đính kèm chứng từ thành công!");
-      };
-    };
-    reader.readAsDataURL(file);
+    Promise.all(readers).then((newImages) => {
+      setFormData(prev => ({
+        ...prev,
+        approvalImages: [...(prev.approvalImages || []), ...newImages]
+      }));
+      showNotification("Đã thêm các ảnh phê duyệt thành công!");
+    });
   };
 
   const savePatient = async (e) => {
@@ -751,12 +762,32 @@ export default function App() {
       return;
     }
 
+    const currentHistory = formData.history || [];
+    let newLog = {};
+    if (currentId) {
+      newLog = {
+        timestamp: new Date().toISOString(),
+        action: "Cập nhật thông tin hồ sơ",
+        user: currentUser.name
+      };
+    } else {
+      newLog = {
+        timestamp: new Date().toISOString(),
+        action: "Tiếp đón khởi tạo hành trình",
+        user: currentUser.name
+      };
+    }
+
     const payload = {
       ...formData,
       status: formData.status || 'Waiting',
       updatedAt: new Date().toISOString(),
-      updatedBy: currentUser.name
+      updatedBy: currentUser.name,
+      history: [...currentHistory, newLog]
     };
+
+    const firstImg = payload.approvalImages && payload.approvalImages.length > 0 ? payload.approvalImages[0] : '';
+    payload.approvalImage = firstImg;
 
     try {
       if (isFirebaseConnected && db) {
@@ -803,6 +834,7 @@ export default function App() {
 
   const initiateEdit = (patient) => {
     setCurrentId(patient.id);
+    setFormRightTab('billing');
     setFormData({
       name: patient.name || '',
       tier: patient.tier || 'VIP',
@@ -811,6 +843,7 @@ export default function App() {
       pid: patient.pid || '',
       date: patient.date || new Date().toISOString().split('T')[0],
       specialties: patient.specialties || [],
+      site: patient.site || 'BV Tâm Anh - Tân Sơn Hòa',
       ngoaiTru: patient.ngoaiTru || 0,
       capCuu: patient.capCuu || 0,
       noiTru: patient.noiTru || 0,
@@ -822,8 +855,9 @@ export default function App() {
       discountRate: patient.discountRate || 0,
       approvedDiscountAmount: patient.approvedDiscountAmount || 0,
       totalAmount: patient.totalAmount || 0,
-      approvalImage: patient.approvalImage || '',
-      status: patient.status || 'Waiting'
+      approvalImages: patient.approvalImages || (patient.approvalImage ? [patient.approvalImage] : []),
+      status: patient.status || 'Waiting',
+      history: patient.history || []
     });
     setActiveTab('register');
   };
@@ -844,13 +878,23 @@ export default function App() {
       }
     }
 
+    const statusLabel = workflowStatuses.find(s => s.id === newStatus)?.label || newStatus;
+    const currentHistory = patient.history || [];
+    const newLog = {
+      timestamp: new Date().toISOString(),
+      action: "Chuyển trạng thái hành trình sang: " + statusLabel,
+      user: currentUser.name
+    };
+    const updatedHistory = [...currentHistory, newLog];
+
     try {
       if (isFirebaseConnected && db) {
         const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'patients', patientId);
         await updateDoc(docRef, {
           status: newStatus,
           updatedAt: new Date().toISOString(),
-          updatedBy: currentUser.name
+          updatedBy: currentUser.name,
+          history: updatedHistory
         });
       } else {
         const updatedList = patients.map(p => {
@@ -859,7 +903,8 @@ export default function App() {
               ...p, 
               status: newStatus, 
               updatedAt: new Date().toISOString(), 
-              updatedBy: currentUser.name 
+              updatedBy: currentUser.name,
+              history: updatedHistory
             };
           }
           return p;
@@ -1011,10 +1056,11 @@ export default function App() {
       const matchSpecialty = !filterSpecialty || p.specialties?.includes(filterSpecialty);
       const matchTier = !filterTier || p.tier === filterTier;
       const matchDate = !filterDate || p.date === filterDate;
+      const matchSite = !filterSite || p.site === filterSite;
 
-      return matchSearch && matchSpecialty && matchTier && matchDate;
+      return matchSearch && matchSpecialty && matchTier && matchDate && matchSite;
     });
-  }, [patients, searchTerm, filterSpecialty, filterTier, filterDate]);
+  }, [patients, searchTerm, filterSpecialty, filterTier, filterDate, filterSite]);
 
   const metrics = useMemo(() => {
     let totalPatients = filteredPatients.length;
@@ -1032,9 +1078,11 @@ export default function App() {
     return patients.filter(p => {
       const isToday = p.date === today;
       const isNotCompleted = p.status !== 'Completed';
-      return isToday || isNotCompleted;
+      const matchDate = !filterDate ? (isToday || isNotCompleted) : p.date === filterDate;
+      const matchSite = !filterSite || p.site === filterSite;
+      return matchDate && matchSite;
     });
-  }, [patients]);
+  }, [patients, filterDate, filterSite]);
 
   const unreadCount = useMemo(() => {
     return notifications.filter(n => !n.read).length;
@@ -1126,23 +1174,50 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
       
-      {lightboxImage && (
+      {lightboxImages.length > 0 && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 animate-fadeIn">
           <div className="absolute top-4 right-4 z-50 flex gap-2">
             <button 
-              onClick={() => setLightboxImage(null)}
+              onClick={() => setLightboxImages([])}
               className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center">
+          <div className="relative max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center">
+            {lightboxImages.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxIndex(prev => (prev === 0 ? lightboxImages.length - 1 : prev - 1));
+                }}
+                className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition z-10"
+              >
+                <ChevronDown className="w-6 h-6 rotate-90" />
+              </button>
+            )}
+            
             <img 
-              src={lightboxImage} 
+              src={lightboxImages[lightboxIndex]} 
               alt="Chứng từ văn bản phê duyệt" 
               className="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-scaleIn"
             />
+
+            {lightboxImages.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxIndex(prev => (prev === lightboxImages.length - 1 ? 0 : prev + 1));
+                }}
+                className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition z-10"
+              >
+                <ChevronDown className="w-6 h-6 -rotate-90" />
+              </button>
+            )}
           </div>
+          <p className="text-white/60 text-xs font-semibold mt-4">
+            Ảnh {lightboxIndex + 1} / {lightboxImages.length}
+          </p>
         </div>
       )}
 
@@ -1318,7 +1393,7 @@ export default function App() {
               </button>
 
               <button 
-                onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+                onClick={() => { setActiveTab('monitoring'); }}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                   activeTab === 'monitoring' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
                 }`}
@@ -1437,7 +1512,7 @@ export default function App() {
 
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
         <button 
-          onClick={() => { resetForm(); setActiveTab('dashboard'); }}
+          onClick={() => { setActiveTab('dashboard'); }}
           className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
         >
           <LayoutDashboard className="w-5 h-5" />
@@ -1573,8 +1648,8 @@ export default function App() {
               </div>
             )}
 
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn">
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
                   <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
                     <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
@@ -1582,12 +1657,39 @@ export default function App() {
                   </h3>
                   <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng.</p>
                 </div>
-                <div className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-black rounded-lg">
-                  Tổng lượt khám: {kanbanPatients.length}
+                
+                <div className="flex flex-wrap gap-2 items-center w-full lg:w-auto">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Lọc nhanh:</span>
+                  <select 
+                    value={filterSite}
+                    onChange={(e) => setFilterSite(e.target.value)}
+                    className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white cursor-pointer"
+                  >
+                    <option value="">Tất cả các Site</option>
+                    {sites.map(s => (
+                      <option key={s.id} value={s.label}>{s.label}</option>
+                    ))}
+                  </select>
+                  
+                  <input 
+                    type="date"
+                    value={filterDate}
+                    onChange={(e) => setFilterDate(e.target.value)}
+                    className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white cursor-pointer"
+                  />
+
+                  {(filterSite || filterDate) && (
+                    <button 
+                      onClick={() => { setFilterSite(''); setFilterDate(''); }}
+                      className="px-2.5 py-1 text-rose-500 hover:bg-rose-50 rounded-xl text-[11px] font-black transition"
+                    >
+                      Xóa bộ lọc
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4 overflow-x-auto pb-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-4 overflow-x-auto pb-4">
                 {workflowStatuses.map(col => {
                   const colPatients = kanbanPatients.filter(p => (p.status || 'Waiting') === col.id);
 
@@ -1607,56 +1709,40 @@ export default function App() {
                       </div>
 
                       <div className="flex-1 space-y-3 overflow-y-auto max-h-[350px]">
-                        {colPatients.map(p => (
-                          <div 
-                            key={p.id}
-                            className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition duration-150 space-y-2.5 relative group"
-                          >
-                            <div className="flex justify-between items-start gap-1">
-                              <span className="text-[8px] text-indigo-600 font-mono font-black truncate">PID: {p.pid}</span>
-                              <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
-                                p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                              }`}>
-                                {p.tier}
-                              </span>
-                            </div>
-
-                            <div className="font-extrabold text-[11px] text-slate-800 leading-tight truncate" title={p.name}>
-                              {p.name}
-                            </div>
-
-                            <div className="flex flex-wrap gap-0.5">
-                              {p.specialties?.slice(0, 2).map((spec, i) => (
-                                <span key={i} className="text-[8px] bg-slate-50 text-slate-555 border border-slate-200 px-1 py-0.2 rounded font-semibold truncate max-w-[80px]">
-                                  {spec}
+                        {colPatients.map(p => {
+                          const patientSite = sites.find(s => s.label === p.site) || sites[0];
+                          return (
+                            <div 
+                              key={p.id}
+                              className={`bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition duration-150 space-y-2.5 relative group ${patientSite.marker}`}
+                            >
+                              <div className="flex justify-between items-start gap-1">
+                                <span className="text-[8px] text-indigo-600 font-mono font-black truncate">PID: {p.pid}</span>
+                                <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
+                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                                }`}>
+                                  {p.tier}
                                 </span>
-                              ))}
-                              {p.specialties?.length > 2 && (
-                                <span className="text-[8px] text-slate-400 font-bold px-1">+{p.specialties.length - 2}</span>
-                              )}
-                            </div>
+                              </div>
 
-                            <div className="space-y-1">
-                              <label className="text-[8px] text-slate-400 font-bold block uppercase">Chuyển trạng thái:</label>
-                              <select
-                                value={p.status || 'Waiting'}
-                                onChange={(e) => handleUpdateStatus(p.id, e.target.value)}
-                                className="w-full px-1.5 py-1 text-[9px] font-black border border-slate-200 rounded-md bg-white text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-indigo-500 cursor-pointer"
-                              >
-                                {workflowStatuses.map(st => (
-                                  <option key={st.id} value={st.id}>{st.label}</option>
-                                ))}
-                              </select>
-                            </div>
+                              <div className="font-extrabold text-[11px] text-slate-800 leading-tight truncate" title={p.name}>
+                                {p.name}
+                              </div>
 
-                            <div className="flex flex-col gap-0.5 text-[8px] text-slate-400 border-t border-slate-200 pt-1.5 font-semibold">
-                              <span className="truncate">NV cập nhật: {p.updatedBy || 'Lễ tân'}</span>
-                              <span className="flex-shrink-0 text-slate-300 font-mono">
-                                {p.updatedAt ? new Date(p.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date(p.updatedAt).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'}) : '---'}
-                              </span>
+                              <div className="space-y-1">
+                                <select
+                                  value={p.status || 'Waiting'}
+                                  onChange={(e) => handleUpdateStatus(p.id, e.target.value)}
+                                  className="w-full px-1.5 py-1 text-[9px] font-black border border-slate-200 rounded-md bg-white text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                                >
+                                  {workflowStatuses.map(st => (
+                                    <option key={st.id} value={st.id}>{st.label}</option>
+                                  ))}
+                                </select>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
 
                         {colPatients.length === 0 && (
                           <div className="text-center py-8 text-slate-300 text-[10px] font-bold border-2 border-dashed border-slate-200 rounded-xl">
@@ -1815,6 +1901,24 @@ export default function App() {
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-600 block">Site thăm khám</label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        {sites.map(s => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => handleInputChange('site', s.label)}
+                            className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center ${
+                              formData.site === s.label ? `${s.bg} border-slate-400 font-black` : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                            }`}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-600 block">Trạng Thái (Vị Trí Kanban Ban Đầu)</label>
                       <select
                         value={formData.status}
@@ -1859,7 +1963,7 @@ export default function App() {
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-600 block">Ghi chú</label>
                       <textarea 
-                        rows="2"
+                        rows="5"
                         placeholder="Mô tả ghi chú nếu có..."
                         value={formData.notes}
                         onChange={(e) => handleInputChange('notes', e.target.value)}
@@ -2008,95 +2112,143 @@ export default function App() {
 
               <div className="space-y-6">
                 
-                <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800">
-                  <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
-                  
-                  <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
-                    <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
-                    Bảng tổng hợp chi phí
-                  </h3>
-
-                  <div className="space-y-1.5 pt-2 relative z-10">
-                    <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
-                    <div className="relative">
-                      <input 
-                        type="text" 
-                        value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
-                        onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
-                        placeholder="0"
-                        className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-500 font-mono"
-                      />
-                      <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">VNĐ</span>
-                    </div>
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                  <div className="flex border-b border-slate-100 pb-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormRightTab('billing')}
+                      className={`flex-1 py-2 text-xs font-black text-center transition border-b-2 ${
+                        formRightTab === 'billing' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      Bảng tổng hợp
+                    </button>
+                    {currentId && (
+                      <button
+                        type="button"
+                        onClick={() => setFormRightTab('timeline')}
+                        className={`flex-1 py-2 text-xs font-black text-center transition border-b-2 ${
+                          formRightTab === 'timeline' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
+                        }`}
+                      >
+                        Lịch sử Timeline
+                      </button>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3 relative z-10">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
-                        Duyệt giảm (%) {userRole === 'nhanvien' && '🔒'}
-                      </label>
-                      <div className="relative">
-                        <input 
-                          type="number" 
-                          min="0"
-                          max="100"
-                          value={formData.discountRate || ''}
-                          disabled={userRole === 'nhanvien'} 
-                          onChange={(e) => handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                          placeholder="0"
-                          className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-500 ${
-                            userRole === 'nhanvien'
-                              ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
-                              : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
-                          }`}
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">%</span>
+                  {formRightTab === 'billing' ? (
+                    <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800 animate-fadeIn">
+                      <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
+                      
+                      <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
+                        <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
+                        Biên lai chi phí
+                      </h3>
+
+                      <div className="space-y-1.5 pt-2 relative z-10">
+                        <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
+                            onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-500 font-mono"
+                          />
+                          <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">VNĐ</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 relative z-10">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
+                            Duyệt giảm (%) {userRole === 'nhanvien' && '🔒'}
+                          </label>
+                          <div className="relative">
+                            <input 
+                              type="number" 
+                              min="0"
+                              max="100"
+                              value={formData.discountRate || ''}
+                              disabled={userRole === 'nhanvien'} 
+                              onChange={(e) => handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                              placeholder="0"
+                              className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-500 ${
+                                userRole === 'nhanvien'
+                                  ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
+                                  : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
+                              }`}
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
+                        
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Tổng phí tự động:</span>
+                          <div className="flex items-center gap-1">
+                            <input 
+                              type="text"
+                              value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
+                              onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
+                              className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
+                            />
+                            <span>đ</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-rose-400">-</span>
+                            <input 
+                              type="text"
+                              value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
+                              onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
+                              className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
+                            />
+                            <span className="text-rose-400">đ</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
+                          <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
+                        </div>
+
+                        <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
+                          <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
+                          <span className="text-lg font-black text-emerald-400 font-mono">
+                            {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
+                          </span>
+                        </div>
+
                       </div>
                     </div>
-                  </div>
-
-                  <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
-                    
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">Tổng phí tự động:</span>
-                      <div className="flex items-center gap-1">
-                        <input 
-                          type="text"
-                          value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
-                          onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
-                          className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
-                        />
-                        <span>đ</span>
-                      </div>
+                  ) : (
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-h-[350px] overflow-y-auto pr-1 animate-fadeIn">
+                      {(!formData.history || formData.history.length === 0) ? (
+                        <p className="text-xs text-slate-400 font-bold text-center py-6">Chưa có hoạt động nào được ghi nhận.</p>
+                      ) : (
+                        <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
+                          {formData.history.map((log, index) => (
+                            <div key={index} className="relative">
+                              <span className="absolute -left-[22px] top-1 bg-indigo-600 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
+                              <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
+                              <div className="text-[9px] text-slate-400 mt-1 flex justify-between font-bold">
+                                <span>Bởi: {log.user}</span>
+                                <span className="font-mono">
+                                  {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'})}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-rose-400">-</span>
-                        <input 
-                          type="text"
-                          value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
-                          onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
-                          className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
-                        />
-                        <span className="text-rose-400">đ</span>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
-                      <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
-                    </div>
-
-                    <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
-                      <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
-                      <span className="text-lg font-black text-emerald-400 font-mono">
-                        {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
-                      </span>
-                    </div>
-
-                  </div>
+                  )}
                 </div>
 
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
@@ -2106,25 +2258,29 @@ export default function App() {
                   </h3>
 
                   <div className="space-y-4">
-                    {formData.approvalImage ? (
-                      <div className="relative rounded-2xl overflow-hidden border border-slate-200">
-                        <img src={formData.approvalImage} alt="Công văn" className="w-full h-48 object-cover animate-fadeIn" />
-                        <button 
-                          type="button"
-                          onClick={() => handleInputChange('approvalImage', '')}
-                          className="absolute right-2 top-2 p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full transition shadow-md"
-                          title="Gỡ bỏ ảnh"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="border-2 border-dashed border-slate-200 rounded-3xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition duration-200">
-                        <Upload className="w-8 h-8 text-slate-400" />
-                        <span className="text-xs font-bold text-slate-700 text-center">Bấm để tải ảnh</span>
-                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    <div className="grid grid-cols-2 gap-2">
+                      {formData.approvalImages?.map((img, index) => (
+                        <div key={index} className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-50 animate-fadeIn">
+                          <img src={img} alt="Công văn" className="w-full h-full object-cover" />
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const updated = formData.approvalImages.filter((_, i) => i !== index);
+                              handleInputChange('approvalImages', updated);
+                            }}
+                            className="absolute right-1.5 top-1.5 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full transition shadow-md"
+                            title="Gỡ bỏ"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      <label className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition duration-200 aspect-video">
+                        <Upload className="w-5 h-5 text-slate-400" />
+                        <span className="text-[10px] font-bold text-slate-700">Tải thêm ảnh</span>
+                        <input type="file" accept="image/*" multiple onChange={handleMultipleImagesUpload} className="hidden" />
                       </label>
-                    )}
+                    </div>
                   </div>
                 </div>
 
@@ -2169,7 +2325,7 @@ export default function App() {
                     onChange={(e) => setFilterTier(e.target.value)}
                     className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
                   >
-                    <option value="">Tất cả</option>
+                    <option value="">Tất cả hạng</option>
                     <option value="VIP">VIP</option>
                     <option value="VVIP">VVIP</option>
                   </select>
@@ -2185,6 +2341,17 @@ export default function App() {
                     ))}
                   </select>
 
+                  <select 
+                    value={filterSite}
+                    onChange={(e) => setFilterSite(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                  >
+                    <option value="">Tất cả Site</option>
+                    {sites.map(s => (
+                      <option key={s.id} value={s.label}>{s.label}</option>
+                    ))}
+                  </select>
+
                   <input 
                     type="date"
                     value={filterDate}
@@ -2192,9 +2359,9 @@ export default function App() {
                     className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
                   />
 
-                  {(searchTerm || filterTier || filterSpecialty || filterDate) && (
+                  {(searchTerm || filterTier || filterSpecialty || filterDate || filterSite) && (
                     <button 
-                      onClick={() => { setSearchTerm(''); setFilterTier(''); setFilterSpecialty(''); setFilterDate(''); }}
+                      onClick={() => { setSearchTerm(''); setFilterTier(''); setFilterSpecialty(''); setFilterDate(''); setFilterSite(''); }}
                       className="px-3 py-2 text-rose-500 hover:bg-rose-50 rounded-xl text-xs font-bold transition"
                     >
                       Xóa lọc
@@ -2228,7 +2395,7 @@ export default function App() {
                         <tr className="bg-slate-50 border-b border-slate-200 text-[10px] text-slate-400 font-black uppercase tracking-wider">
                           <th className="py-4 px-5">PID / Khách Hàng</th>
                           <th className="py-4 px-3">Phân hạng</th>
-                          <th className="py-4 px-3">Ngày Khám</th>
+                          <th className="py-4 px-3">Ngày Khám / Site</th>
                           <th className="py-4 px-3">Chuyên Khoa</th>
                           <th className="py-4 px-3">HĐQT Phê Duyệt</th>
                           <th className="py-4 px-3 text-right">Tổng Chi Phí</th>
@@ -2240,8 +2407,9 @@ export default function App() {
                       <tbody className="divide-y divide-slate-200 text-xs">
                         {filteredPatients.map((p) => {
                           const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
+                          const pSite = sites.find(s => s.label === p.site) || sites[0];
                           return (
-                            <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150">
+                            <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 animate-fadeIn">
                               <td className="py-4 px-5">
                                 <div className="font-extrabold text-slate-955 text-sm">{p.name}</div>
                                 <div className="text-[10px] text-indigo-600 font-mono font-black mt-0.5">PID: {p.pid}</div>
@@ -2254,8 +2422,11 @@ export default function App() {
                                   {p.tier}
                                 </span>
                               </td>
-                              <td className="py-4 px-3 text-slate-500 font-bold">
-                                {p.date ? new Date(p.date).toLocaleDateString('vi-VN') : 'Trong ngày'}
+                              <td className="py-4 px-3">
+                                <div className="text-slate-500 font-bold">{p.date ? new Date(p.date).toLocaleDateString('vi-VN') : 'Trong ngày'}</div>
+                                <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1 ${pSite.bg}`}>
+                                  {pSite.label}
+                                </div>
                               </td>
                               <td className="py-4 px-3">
                                 <div className="flex flex-wrap gap-1 max-w-[180px]">
@@ -2282,9 +2453,13 @@ export default function App() {
                               </td>
                               <td className="py-4 px-5 text-right whitespace-nowrap">
                                 <div className="flex justify-end gap-1.5">
-                                  {p.approvalImage && (
+                                  {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
                                     <button 
-                                      onClick={() => setLightboxImage(p.approvalImage)}
+                                      onClick={() => {
+                                        const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
+                                        setLightboxImages(imgs);
+                                        setLightboxIndex(0);
+                                      }}
                                       className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl transition" 
                                       title="Ảnh duyệt"
                                     >
@@ -2343,6 +2518,7 @@ export default function App() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
                   {filteredPatients.map((p) => {
                     const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
+                    const pSite = sites.find(s => s.label === p.site) || sites[0];
                     return (
                       <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                         <div className="flex justify-between items-start">
@@ -2353,6 +2529,9 @@ export default function App() {
                               <Calendar className="w-3.5 h-3.5" />
                               Khám ngày: {p.date ? new Date(p.date).toLocaleDateString('vi-VN') : 'Trong ngày'}
                             </p>
+                            <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1.5 ${pSite.bg}`}>
+                              {pSite.label}
+                            </span>
                           </div>
                           <span className={`inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[9px] font-black ${
                             p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
@@ -2390,10 +2569,14 @@ export default function App() {
                         </div>
 
                         <div className="flex justify-end gap-2 pt-1">
-                          {p.approvalImage && (
+                          {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
                             <button 
                               type="button"
-                              onClick={() => setLightboxImage(p.approvalImage)}
+                              onClick={() => {
+                                const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
+                                setLightboxImages(imgs);
+                                setLightboxIndex(0);
+                              }}
                               className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
                             >
                               <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
@@ -2472,7 +2655,7 @@ export default function App() {
                     { key: 'clsCdha', label: 'CLS/CDHA' },
                     { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
                   ].map((field) => (
-                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-150 hover:bg-slate-50 cursor-pointer transition">
+                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition">
                       <input 
                         type="checkbox"
                         checked={systemSettings.totalFormulaFields[field.key] || false}
@@ -2679,7 +2862,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.9.2</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
