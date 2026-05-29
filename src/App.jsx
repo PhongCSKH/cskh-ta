@@ -1267,9 +1267,9 @@ export default function App() {
                     <Smartphone className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-black text-slate-900 uppercase">Chưa kích hoạt cảnh báo ngầm thiết bị</h4>
+                    <h4 className="text-xs font-black text-slate-900 uppercase">Chưa kích hoạt thông báo thiết bị</h4>
                     <p className="text-[11px] text-slate-500 mt-0.5 font-semibold leading-relaxed">
-                      Để nhận thông báo báo cáo ca VVIP và duyệt chi phí ngay cả khi đóng ứng dụng hoặc khóa màn hình iPhone, bạn cần bấm kích hoạt dưới đây.
+                      Bạn cần bấm kích hoạt dưới đây.
                     </p>
                   </div>
                 </div>
@@ -1282,12 +1282,7 @@ export default function App() {
               </div>
             )}
 
-            {(userRole === 'admin' || userRole === 'lanhdao') && iosNotificationStatus === 'granted' && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-center gap-3 text-xs text-emerald-800 font-bold shadow-2xs">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span>Hệ thống thông báo đẩy thông minh trên iPhone đã sẵn sàng hoạt động ngầm.</span>
-              </div>
-            )}
+            {}
 
             <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl shadow-slate-100">
               <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20"></div>
