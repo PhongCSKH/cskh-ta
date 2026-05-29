@@ -162,13 +162,13 @@ const defaultSystemSettings = {
 };
 
 const workflowStatuses = [
-  { id: 'Waiting', label: 'Chờ Tiếp Đón', color: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-400' },
-  { id: 'Received', label: 'Đã Tiếp Đón', color: 'bg-indigo-50 text-indigo-700 border-indigo-200', dot: 'bg-indigo-500' },
-  { id: 'Examining', label: 'Đang Khám', color: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
-  { id: 'Testing', label: 'Đang Làm CLS/CĐHA', color: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
-  { id: 'Reviewing', label: 'Chờ Kết Luận', color: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
-  { id: 'Pharmacy', label: 'Đang Chờ Thuốc/Tiêm Ngừa', color: 'bg-yellow-50 text-yellow-850 border-yellow-200', dot: 'bg-yellow-500' },
-  { id: 'Completed', label: 'Đã Hoàn Tất', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' }
+  { id: 'Waiting', label: 'Chờ Tiếp Đón', color: 'bg-slate-100 text-slate-700 border-slate-250', dot: 'bg-slate-400' },
+  { id: 'Received', label: 'Đã Tiếp Đón', color: 'bg-indigo-50 text-indigo-700 border-indigo-200/80', dot: 'bg-indigo-500' },
+  { id: 'Examining', label: 'Đang Khám', color: 'bg-blue-50 text-blue-700 border-blue-200/80', dot: 'bg-blue-500' },
+  { id: 'Testing', label: 'Đang Làm CLS/CĐHA', color: 'bg-amber-50 text-amber-700 border-amber-200/80', dot: 'bg-amber-500' },
+  { id: 'Reviewing', label: 'Chờ Kết Luận', color: 'bg-purple-50 text-purple-700 border-purple-200/80', dot: 'bg-purple-500' },
+  { id: 'Pharmacy', label: 'Đang Chờ Thuốc/Tiêm Ngừa', color: 'bg-yellow-50 text-yellow-850 border-yellow-200/80', dot: 'bg-yellow-500' },
+  { id: 'Completed', label: 'Đã Hoàn Tất', color: 'bg-emerald-50 text-emerald-700 border-emerald-200/80', dot: 'bg-emerald-500' }
 ];
 
 export default function App() {
@@ -918,9 +918,9 @@ export default function App() {
         <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/5 rounded-full filter blur-3xl -translate-x-12 -translate-y-12"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full filter blur-3xl translate-x-12 translate-y-12"></div>
 
-        <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-100 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
+        <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-200 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
           <div className="text-center space-y-3">
-            <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2.5 shadow-sm border border-slate-100 mx-auto">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2.5 shadow-sm border border-slate-200 mx-auto">
               <img 
                 src="https://iili.io/F66acRs.png" 
                 alt="Hospital Logo" 
@@ -1012,7 +1012,7 @@ export default function App() {
 
       {isScanning && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 border border-slate-100 shadow-2xl animate-scaleIn">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 border border-slate-200 shadow-2xl animate-scaleIn">
             <div className="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto relative overflow-hidden">
               <Scan className="w-8 h-8 animate-pulse" />
               <div className="absolute left-0 right-0 h-0.5 bg-red-500 top-1/2 animate-bounce"></div>
@@ -1036,7 +1036,7 @@ export default function App() {
 
       {confirmModal.show && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center gap-2.5 text-rose-600">
               <ShieldAlert className="w-5 h-5 flex-shrink-0 text-rose-500" />
               <h3 className="text-base font-extrabold text-slate-950">{confirmModal.title || "Xác nhận tác vụ"}</h3>
@@ -1060,13 +1060,19 @@ export default function App() {
         </div>
       )}
 
-      {}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-xs">
+      {notification && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-xl transition-all transform duration-300 translate-y-0 bg-slate-900 text-white">
+          <Check className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+          <span className="font-bold text-xs">{notification.message}</span>
+        </div>
+      )}
+
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-slate-100 bg-white p-1">
+              <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1">
                 <img 
                   src="https://iili.io/F66acRs.png" 
                   alt="Hospital Logo" 
@@ -1125,15 +1131,15 @@ export default function App() {
             </nav>
 
             <div className="flex items-center gap-3 relative" ref={notificationCenterRef}>
-              <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold">
+              <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold">
                 <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
                 {isFirebaseConnected ? 'Live' : 'Offline'}
               </div>
 
               <button 
                 onClick={() => setShowNotificationCenter(!showNotificationCenter)}
-                className={`p-2 rounded-xl transition-all relative ${
-                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-100'
+                className={`p-2 rounded-xl transition-all relative border border-slate-200 ${
+                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-500 hover:bg-slate-100'
                 }`}
                 title="Trung tâm thông báo"
               >
@@ -1150,8 +1156,8 @@ export default function App() {
               </button>
 
               {showNotificationCenter && (
-                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-100 rounded-3xl shadow-2xl z-50 p-4 space-y-3 animate-scaleIn">
-                  <div className="flex justify-between items-center border-b border-slate-50 pb-2">
+                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 p-4 space-y-3 animate-scaleIn">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                     <div className="flex items-center gap-1.5">
                       <BellRing className="w-4 h-4 text-indigo-600" />
                       <h4 className="text-xs font-black text-slate-900">Trung tâm thông báo</h4>
@@ -1183,7 +1189,7 @@ export default function App() {
                         <div 
                           key={n.id}
                           className={`p-3 rounded-2xl border text-xs transition flex gap-2 items-start ${
-                            n.read ? 'border-slate-50 bg-slate-50/50' : 'border-indigo-50 bg-indigo-50/30'
+                            n.read ? 'border-slate-200 bg-slate-50/50' : 'border-indigo-100 bg-indigo-50/30'
                           }`}
                         >
                           <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
@@ -1210,7 +1216,7 @@ export default function App() {
               </div>
               <button 
                 onClick={handleLogout}
-                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl border border-slate-200 transition-all"
                 title="Đăng xuất"
               >
                 <LogOut className="w-5 h-5" />
@@ -1221,7 +1227,7 @@ export default function App() {
         </div>
       </header>
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-100 flex justify-around py-3 shadow-xl rounded-t-3xl">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
         <button 
           onClick={() => { setActiveTab('dashboard'); }}
           className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
@@ -1256,14 +1262,13 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
-        {/* ========================== GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN ========================== */}
         {activeTab === 'dashboard' && (
           <div className="space-y-8 animate-fadeIn">
             
             {(userRole === 'admin' || userRole === 'lanhdao') && iosNotificationStatus !== 'granted' && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-2xs">
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-sm">
                 <div className="flex gap-3 items-start">
-                  <div className="p-2 bg-amber-100 text-amber-800 rounded-xl mt-0.5">
+                  <div className="p-2 bg-amber-100 text-amber-800 rounded-xl mt-0.5 border border-amber-200">
                     <Smartphone className="w-5 h-5" />
                   </div>
                   <div>
@@ -1282,9 +1287,7 @@ export default function App() {
               </div>
             )}
 
-            {}
-
-            <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl shadow-slate-100">
+            <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl shadow-slate-100 border border-slate-700">
               <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20"></div>
               <div className="relative z-10 space-y-4 max-w-2xl">
                 <span className="px-3 py-1 bg-amber-400 text-slate-950 rounded-full text-[10px] font-black uppercase tracking-wider">
@@ -1307,7 +1310,6 @@ export default function App() {
               </div>
             </div>
 
-            {}
             {(userRole === 'admin' || userRole === 'lanhdao') && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1315,14 +1317,14 @@ export default function App() {
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
                     Những gì của ngày hôm nay
                   </h3>
-                  <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full font-extrabold">
+                  <span className="text-[10px] bg-indigo-50 border border-indigo-200 text-indigo-700 px-2.5 py-1 rounded-full font-extrabold">
                     {isFirebaseConnected ? 'Live' : 'Offline'}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-xs flex items-center gap-4 hover:border-slate-200 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-blue-50 text-blue-600">
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
+                    <div className="p-3.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
                       <Users className="w-6 h-6" />
                     </div>
                     <div>
@@ -1334,8 +1336,8 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-xs flex items-center gap-4 hover:border-slate-200 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-indigo-50 text-indigo-600">
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
+                    <div className="p-3.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
                       <Activity className="w-6 h-6" />
                     </div>
                     <div>
@@ -1347,8 +1349,8 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-xs flex items-center gap-4 hover:border-slate-200 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600">
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
@@ -1363,8 +1365,7 @@ export default function App() {
               </div>
             )}
 
-            {}
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
                   <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
@@ -1373,7 +1374,7 @@ export default function App() {
                   </h3>
                   <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng.</p>
                 </div>
-                <div className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-[10px] font-black rounded-lg">
+                <div className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-black rounded-lg">
                   Tổng lượt khám: {kanbanPatients.length}
                 </div>
               </div>
@@ -1385,14 +1386,14 @@ export default function App() {
                   return (
                     <div 
                       key={col.id} 
-                      className="bg-slate-50/60 rounded-2xl p-3 border border-slate-100 flex flex-col min-w-[150px] min-h-[350px]"
+                      className="bg-slate-50/60 rounded-2xl p-3 border border-slate-200 flex flex-col min-w-[150px] min-h-[350px]"
                     >
-                      <div className="flex justify-between items-center pb-3 border-b border-slate-200/50 mb-3">
+                      <div className="flex justify-between items-center pb-3 border-b border-slate-200 mb-3">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className={`w-2 h-2 rounded-full ${col.dot}`}></span>
                           <span className="text-[10px] font-black text-slate-700 truncate">{col.label}</span>
                         </div>
-                        <span className="text-[10px] font-black bg-white px-2 py-0.5 rounded-md border border-slate-100 text-slate-500">
+                        <span className="text-[10px] font-black bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-550">
                           {colPatients.length}
                         </span>
                       </div>
@@ -1401,7 +1402,7 @@ export default function App() {
                         {colPatients.map(p => (
                           <div 
                             key={p.id}
-                            className="bg-white p-3 rounded-xl border border-slate-150/80 shadow-2xs hover:shadow-xs transition duration-150 space-y-2.5 relative group"
+                            className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition duration-150 space-y-2.5 relative group"
                           >
                             <div className="flex justify-between items-start gap-1">
                               <span className="text-[8px] text-indigo-600 font-mono font-black truncate">PID: {p.pid}</span>
@@ -1418,7 +1419,7 @@ export default function App() {
 
                             <div className="flex flex-wrap gap-0.5">
                               {p.specialties?.slice(0, 2).map((spec, i) => (
-                                <span key={i} className="text-[8px] bg-slate-50 text-slate-500 px-1 py-0.2 rounded font-semibold truncate max-w-[80px]">
+                                <span key={i} className="text-[8px] bg-slate-50 text-slate-550 border border-slate-200 px-1 py-0.2 rounded font-semibold truncate max-w-[80px]">
                                   {spec}
                                 </span>
                               ))}
@@ -1440,7 +1441,7 @@ export default function App() {
                               </select>
                             </div>
 
-                            <div className="flex flex-col gap-0.5 text-[8px] text-slate-400 border-t border-slate-100 pt-1.5 font-semibold">
+                            <div className="flex flex-col gap-0.5 text-[8px] text-slate-400 border-t border-slate-200 pt-1.5 font-semibold">
                               <span className="truncate">NV cập nhật: {p.updatedBy || 'Lễ tân'}</span>
                               <span className="flex-shrink-0 text-slate-300">
                                 {p.updatedAt ? new Date(p.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date(p.updatedAt).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'}) : '---'}
@@ -1450,7 +1451,7 @@ export default function App() {
                         ))}
 
                         {colPatients.length === 0 && (
-                          <div className="text-center py-8 text-slate-300 text-[10px] font-bold border-2 border-dashed border-slate-100 rounded-xl">
+                          <div className="text-center py-8 text-slate-300 text-[10px] font-bold border-2 border-dashed border-slate-200 rounded-xl">
                             Trống
                           </div>
                         )}
@@ -1462,7 +1463,7 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-3">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                 <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                   <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo dõi hồ sơ
                 </h4>
@@ -1478,7 +1479,7 @@ export default function App() {
               </div>
 
               {(userRole === 'admin' || userRole === 'lanhdao') && (
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-3">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                   <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                     <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống
                   </h4>
@@ -1498,12 +1499,10 @@ export default function App() {
           </div>
         )}
 
-        {/* ========================== GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI ========================== */}
-        {}
         {activeTab === 'register' && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
-            <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-150 shadow-md">
+            <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-md">
               <div>
                 <h2 className="text-base font-black text-slate-950 flex items-center gap-1.5">
                   {currentId ? "Cập Nhật Tiến Độ" : "Tạo lượt VIP/VVIP Mới"}
@@ -1530,8 +1529,8 @@ export default function App() {
               
               <div className="lg:col-span-2 space-y-6">
                 
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-5">
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-50 pb-3 flex items-center gap-2">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
                     Thông Tin Hành Chính
                   </h3>
@@ -1659,7 +1658,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
                     Chuyên khoa thăm khám
@@ -1674,7 +1673,7 @@ export default function App() {
                           type="button"
                           onClick={() => toggleSpecialtySelection(spec)}
                           className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
-                            isSelected ? 'bg-slate-950 border-slate-950 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                            isSelected ? 'bg-slate-950 border-slate-950 text-white shadow-md shadow-slate-200' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                           }`}
                         >
                           {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
@@ -1685,8 +1684,8 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-5">
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-50 pb-3 flex items-center gap-2">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
                     Chi Phí Điều Trị & Lâm Sàng Thực Tế
                   </h3>
@@ -1796,10 +1795,9 @@ export default function App() {
 
               </div>
 
-              {}
               <div className="space-y-6">
                 
-                <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl space-y-5 relative overflow-hidden">
+                <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800">
                   <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
                   
                   <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
@@ -1877,7 +1875,7 @@ export default function App() {
 
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
-                      <span className="font-extrabold text-indigo-400">-{formatCurrency(formData.insuranceAdvance)}</span>
+                      <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
                     </div>
 
                     <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
@@ -1890,7 +1888,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
                     Ảnh Phê Duyệt Gửi Kèm
@@ -1910,7 +1908,7 @@ export default function App() {
                         </button>
                       </div>
                     ) : (
-                      <label className="border-2 border-dashed border-slate-200 rounded-3xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition duration-200">
+                      <label className="border-2 border-dashed border-slate-200 rounded-3xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition duration-200">
                         <Upload className="w-8 h-8 text-slate-400" />
                         <span className="text-xs font-bold text-slate-700 text-center">Bấm để tải ảnh</span>
                         <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
@@ -1924,12 +1922,10 @@ export default function App() {
           </form>
         )}
 
-        {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ ========================== */}
-        {}
         {activeTab === 'monitoring' && (
           <div className="space-y-6 animate-fadeIn">
             
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h2 className="text-lg font-black text-slate-950 flex items-center gap-2">
                   <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo Dõi Hồ Sơ Khách Hàng VIP-VVIP
@@ -1937,13 +1933,13 @@ export default function App() {
               </div>
               <button 
                 onClick={() => { resetForm(); setActiveTab('register'); }}
-                className="px-4 py-2.5 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-xs font-black flex items-center gap-1.5 transition transform active:scale-95"
+                className="px-4 py-2.5 bg-slate-900 text-white hover:bg-slate-850 rounded-xl text-xs font-black flex items-center gap-1.5 border border-slate-900 transition transform active:scale-95"
               >
                 <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ mới
               </button>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex flex-col md:flex-row gap-3">
                 <div className="flex-1 relative">
                   <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-400" />
@@ -1998,13 +1994,13 @@ export default function App() {
             </div>
 
             {isLoading ? (
-              <div className="bg-white p-16 rounded-3xl border border-slate-100 flex flex-col items-center justify-center gap-3">
+              <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
                 <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
                 <p className="text-slate-400 font-semibold text-xs">Đang cập nhật...</p>
               </div>
             ) : filteredPatients.length === 0 ? (
-              <div className="bg-white p-16 rounded-3xl border border-slate-100 text-center space-y-4 shadow-xs">
-                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-400">
+              <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
+                <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto text-slate-400">
                   <ClipboardList className="w-8 h-8" />
                 </div>
                 <div>
@@ -2014,11 +2010,11 @@ export default function App() {
               </div>
             ) : (
               <>
-                <div className="hidden lg:block bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-xs">
+                <div className="hidden lg:block bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50/75 border-b border-slate-100 text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                        <tr className="bg-slate-50 border-b border-slate-200 text-[10px] text-slate-400 font-black uppercase tracking-wider">
                           <th className="py-4 px-5">PID / Khách Hàng</th>
                           <th className="py-4 px-3">Phân hạng</th>
                           <th className="py-4 px-3">Ngày Khám</th>
@@ -2030,18 +2026,18 @@ export default function App() {
                           <th className="py-4 px-5 text-right">Tác vụ</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 text-xs">
+                      <tbody className="divide-y divide-slate-200 text-xs">
                         {filteredPatients.map((p) => {
                           const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
                           return (
-                            <tr key={p.id} className="hover:bg-[#f8fafc]/50 transition duration-150">
+                            <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150">
                               <td className="py-4 px-5">
                                 <div className="font-extrabold text-slate-950 text-sm">{p.name}</div>
                                 <div className="text-[10px] text-indigo-600 font-mono font-black mt-0.5">PID: {p.pid}</div>
                               </td>
                               <td className="py-4 px-3">
                                 <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${
-                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700'
+                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
                                 }`}>
                                   <Sparkles className="w-3 h-3" />
                                   {p.tier}
@@ -2053,7 +2049,7 @@ export default function App() {
                               <td className="py-4 px-3">
                                 <div className="flex flex-wrap gap-1 max-w-[180px]">
                                   {p.specialties?.map((s, idx) => (
-                                    <span key={idx} className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">
+                                    <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded font-bold">
                                       {s}
                                     </span>
                                   ))}
@@ -2078,13 +2074,13 @@ export default function App() {
                                   {p.approvalImage && (
                                     <button 
                                       onClick={() => setLightboxImage(p.approvalImage)}
-                                      className="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-100 rounded-xl transition" 
+                                      className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl transition" 
                                       title="Ảnh duyệt"
                                     >
                                       <ImageIcon className="w-4 h-4" />
                                     </button>
                                   )}
-                                  <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-950 hover:text-white rounded-xl transition" title="Sửa">
+                                  <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-950 hover:text-white rounded-xl transition" title="Sửa">
                                     <Edit3 className="w-4 h-4" />
                                   </button>
                                   
@@ -2113,7 +2109,7 @@ export default function App() {
                                           }
                                         });
                                       }} 
-                                      className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" 
+                                      className="p-1.5 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" 
                                       title="Xóa"
                                     >
                                       <Trash2 className="w-4 h-4" />
@@ -2137,7 +2133,7 @@ export default function App() {
                   {filteredPatients.map((p) => {
                     const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
                     return (
-                      <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+                      <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                         <div className="flex justify-between items-start">
                           <div>
                             <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
@@ -2156,18 +2152,18 @@ export default function App() {
 
                         <div className="flex flex-wrap gap-1">
                           {p.specialties?.map((s, idx) => (
-                            <span key={idx} className="text-[9px] bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded font-bold">
+                            <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-2.5 py-0.5 rounded font-bold">
                               {s}
                             </span>
                           ))}
                         </div>
 
-                        <div className="bg-slate-50 p-3 rounded-2xl text-[11px] space-y-1 text-slate-600">
+                        <div className="bg-slate-50 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-600">
                           <div>Phê duyệt: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
-                          {p.notes && <div className="text-slate-500 italic">"{p.notes}"</div>}
+                          {p.notes && <div className="text-slate-550 italic">"{p.notes}"</div>}
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-100 py-3 text-center">
+                        <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
                           <div>
                             <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
                             <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
@@ -2186,12 +2182,12 @@ export default function App() {
                           {p.approvalImage && (
                             <button 
                               onClick={() => setLightboxImage(p.approvalImage)}
-                              className="px-3 py-1.5 bg-slate-50 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1"
+                              className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1"
                             >
                               <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
                             </button>
                           )}
-                          <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1">
+                          <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1">
                             <Edit3 className="w-3.5 h-3.5" /> Sửa
                           </button>
                           
@@ -2220,7 +2216,7 @@ export default function App() {
                                   }
                                 });
                               }}
-                              className="px-3 py-1.5 bg-rose-50 text-rose-600 text-[10px] rounded-xl font-bold flex items-center gap-1"
+                              className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 text-[10px] rounded-xl font-bold flex items-center gap-1"
                             >
                               <Trash2 className="w-3.5 h-3.5" /> Xóa
                             </button>
@@ -2235,18 +2231,16 @@ export default function App() {
           </div>
         )}
 
-        {/* ========================== GIAO DIỆN 4: CẤU HÌNH HỆ THỐNG ========================== */}
-        {}
         {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao') && (
           <div className="space-y-6 animate-fadeIn">
             
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
               <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-              <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
                 <div>
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
@@ -2265,7 +2259,7 @@ export default function App() {
                     { key: 'clsCdha', label: 'CLS/CDHA' },
                     { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
                   ].map((field) => (
-                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-50 hover:bg-slate-50 cursor-pointer transition">
+                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 hover:bg-slate-50 cursor-pointer transition">
                       <input 
                         type="checkbox"
                         checked={systemSettings.totalFormulaFields[field.key] || false}
@@ -2277,7 +2271,7 @@ export default function App() {
                   ))}
                 </div>
 
-                <div className="border-t border-slate-100 pt-6 space-y-4">
+                <div className="border-t border-slate-150 pt-6 space-y-4">
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                       <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
@@ -2326,10 +2320,9 @@ export default function App() {
 
               </div>
 
-              {}
               <div className="space-y-6">
                 
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
                     Quản Lý Danh Mục Chuyên Khoa
@@ -2346,7 +2339,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleAddSpecialty}
-                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition flex items-center gap-1"
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 border border-slate-900 transition flex items-center gap-1"
                     >
                       <Plus className="w-4 h-4" /> Thêm
                     </button>
@@ -2354,7 +2347,7 @@ export default function App() {
 
                   <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
                     {systemSettings.specialties.map((spec, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-50 bg-slate-50/50 hover:bg-slate-50 transition">
+                      <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition">
                         <span className="text-xs font-bold text-slate-700">{spec}</span>
                         <button
                           type="button"
@@ -2368,7 +2361,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-6">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                       <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -2377,7 +2370,7 @@ export default function App() {
                   </div>
 
                   {userRole === 'admin' ? (
-                    <form onSubmit={handleCreateStaff} className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <form onSubmit={handleCreateStaff} className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                       <div className="grid grid-cols-2 gap-2">
                         <input 
                           type="text" 
@@ -2428,7 +2421,7 @@ export default function App() {
                       </div>
                       <button 
                         type="submit"
-                        className="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition flex items-center justify-center gap-1"
+                        className="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 border border-slate-900 transition flex items-center justify-center gap-1"
                       >
                         <UserPlus className="w-4 h-4" /> Đăng ký tài khoản nhân viên
                       </button>
@@ -2437,7 +2430,7 @@ export default function App() {
 
                   <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
                     {staffList.map((staff) => (
-                      <div key={staff.uid} className="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-slate-50/50">
+                      <div key={staff.uid} className="flex justify-between items-center p-3 rounded-2xl border border-slate-200 bg-slate-50/50">
                         <div>
                           <div className="text-xs font-bold text-slate-800">{staff.name}</div>
                           <div className="text-[9px] text-slate-400">{staff.email} | {staff.title}</div>
@@ -2450,7 +2443,7 @@ export default function App() {
                             <button
                               type="button"
                               onClick={() => handleDeleteStaff(staff.uid)}
-                              className="p-1 text-slate-400 hover:text-red-500 rounded"
+                              className="p-1 border border-slate-200 text-slate-400 hover:text-red-500 rounded transition"
                               title="Xóa"
                             >
                               <X className="w-4 h-4" />
@@ -2470,10 +2463,9 @@ export default function App() {
 
       </main>
 
-      {}
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.4</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.6</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
