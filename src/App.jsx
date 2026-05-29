@@ -196,7 +196,7 @@ export default function App() {
   const [scannerError, setScannerError] = useState('');
   const html5QrCodeRef = useRef(null);
 
-  const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'nhanvien', pass: 'CSKH@abc456', title: '' });
+  const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'nhanvien', uid: '', title: '' });
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSpecialty, setFilterSpecialty] = useState('');
@@ -381,11 +381,10 @@ export default function App() {
               stopScanner();
             },
             (errorMessage) => {
-              // silent
             }
           );
         } catch (err) {
-          console.error("Camera error:", err);
+          console.error(err);
           setScannerError("Không thể truy cập camera. Vui lòng cấp quyền camera trong cài đặt trình duyệt.");
         }
       };
@@ -502,6 +501,7 @@ export default function App() {
     if (isFirebaseConnected && db) {
       const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
       const settingsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
+      const usersCol = collection(db, 'artifacts', appId, 'public', 'data', 'users');
 
       const unsubscribeSettings = onSnapshot(settingsDocRef, (docSnap) => {
         if (docSnap.exists()) {
@@ -509,6 +509,14 @@ export default function App() {
         } else {
           setDoc(settingsDocRef, systemSettings).catch(e => console.warn(e));
         }
+      }, (err) => console.error(err));
+
+      const unsubscribeUsers = onSnapshot(usersCol, (snapshot) => {
+        const list = [];
+        snapshot.forEach((docSnap) => {
+          list.push({ uid: docSnap.id, ...docSnap.data() });
+        });
+        setStaffList(list);
       }, (err) => console.error(err));
 
       const unsubscribePatients = onSnapshot(patientsCol, (snapshot) => {
@@ -551,7 +559,7 @@ export default function App() {
         setPatients(list);
         setIsLoading(false);
       }, (error) => {
-        console.warn("Firestore permissions denied. Automatically falling back to secure LocalStorage.", error);
+        console.warn(error);
         const savedPatients = localStorage.getItem('local_patients');
         if (savedPatients) {
           setPatients(JSON.parse(savedPatients));
@@ -561,6 +569,7 @@ export default function App() {
 
       return () => {
         unsubscribeSettings();
+        unsubscribeUsers();
         unsubscribePatients();
       };
     } else {
@@ -749,7 +758,7 @@ export default function App() {
       resetForm();
       setActiveTab('monitoring');
     } catch (err) {
-      console.warn("Cloud write failed, saving to local storage as fallback.", err);
+      console.warn(err);
       let updatedList = [...patients];
       if (currentId) {
         updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
@@ -840,68 +849,72 @@ export default function App() {
     }
   };
 
-  const resetForm = () => {
-    setCurrentId(null);
-    setFormData({
-      name: '',
-      tier: 'VIP',
-      boardApproval: '',
-      notes: '',
-      pid: '',
-      date: new Date().toISOString().split('T')[0],
-      specialties: [],
-      ngoaiTru: 0,
-      capCuu: 0,
-      noiTru: 0,
-      ngoaiVien: 0,
-      phiKham: 0,
-      clsCdha: 0,
-      thuocVacxin: 0,
-      insuranceAdvance: 0,
-      discountRate: 0,
-      approvedDiscountAmount: 0,
-      totalAmount: 0,
-      approvalImage: '',
-      status: 'Waiting'
-    });
-  };
-
-  const handleCreateStaff = (e) => {
+  const handleCreateStaff = async (e) => {
     e.preventDefault();
     if (userRole !== 'admin') {
       showNotification("Chỉ IT Admin mới được phép thao tác!", "error");
       return;
     }
-    if (!newStaff.name.trim() || !newStaff.email.trim() || !newStaff.pass.trim()) {
+    if (!newStaff.name.trim() || !newStaff.email.trim() || !newStaff.uid.trim()) {
       showNotification("Vui lòng điền đầy đủ thông tin!", "error");
       return;
     }
 
     const created = {
-      uid: "staff_" + Date.now(),
-      name: newStaff.name,
-      email: newStaff.email,
+      uid: newStaff.uid.trim(),
+      name: newStaff.name.trim(),
+      email: newStaff.email.trim(),
       role: newStaff.role,
-      pass: newStaff.pass,
-      title: newStaff.title || 'Nhân viên chuyên ban'
+      title: newStaff.title.trim() || 'Nhân viên chuyên ban'
     };
 
-    const updatedList = [...staffList, created];
-    setStaffList(updatedList);
-    localStorage.setItem('crm_staff_accounts', JSON.stringify(updatedList));
-    showNotification(`Đã tạo tài khoản thành công!`);
-    setNewStaff({ name: '', email: '', role: 'nhanvien', pass: 'CSKH@abc456', title: '' });
+    if (isFirebaseConnected && db) {
+      try {
+        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', created.uid);
+        await setDoc(userDocRef, created);
+        showNotification("Đã đăng ký và đẩy phân quyền lên Firebase Cloud!");
+      } catch (err) {
+        console.error(err);
+        showNotification("Lỗi đồng bộ phân quyền lên Firebase Cloud!", "error");
+      }
+    } else {
+      const updatedList = [...staffList, created];
+      setStaffList(updatedList);
+      localStorage.setItem('crm_staff_accounts', JSON.stringify(updatedList));
+      showNotification("Đã lưu tài khoản nhân viên cục bộ!");
+    }
+
+    setNewStaff({ name: '', email: '', role: 'nhanvien', uid: '', title: '' });
   };
 
   const handleDeleteStaff = (uid) => {
     if (uid === currentUser.uid || uid === "acc_admin") {
-      showNotification("Không thể tự xóa tài khoản đang hoạt động!", "error");
+      showNotification("Không thể tự xóa tài khoản chính đang hoạt động!", "error");
       return;
     }
-    const updated = staffList.filter(s => s.uid !== uid);
-    setStaffList(updated);
-    localStorage.setItem('crm_staff_accounts', JSON.stringify(updated));
-    showNotification("Đã thu hồi tài khoản thành công.");
+
+    setConfirmModal({
+      show: true,
+      title: "Xác nhận gỡ bỏ tài khoản",
+      message: "Bạn có chắc chắn muốn xóa vĩnh viễn quyền truy cập của tài khoản này khỏi hệ thống database không?",
+      action: async () => {
+        try {
+          if (isFirebaseConnected && db) {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', uid));
+            showNotification("Đã xóa quyền tài khoản khỏi Firebase Cloud!");
+          } else {
+            const updated = staffList.filter(s => s.uid !== uid);
+            setStaffList(updated);
+            localStorage.setItem('crm_staff_accounts', JSON.stringify(updated));
+            showNotification("Đã xóa quyền tài khoản cục bộ!");
+          }
+        } catch (err) {
+          console.error(err);
+          showNotification("Gặp sự cố khi gỡ bỏ tài khoản!", "error");
+        }
+        setConfirmModal({ show: false, action: null, message: '', title: '' });
+      }
+    });
   };
 
   const saveSettingsOnDb = async (newSettings) => {
@@ -1208,7 +1221,7 @@ export default function App() {
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center gap-2.5 text-rose-600">
               <ShieldAlert className="w-5 h-5 flex-shrink-0 text-rose-500" />
-              <h3 className="text-base font-extrabold text-slate-950">{confirmModal.title || "Xác nhận tác vụ"}</h3>
+              <h3 className="text-base font-extrabold text-slate-955">{confirmModal.title || "Xác nhận tác vụ"}</h3>
             </div>
             <p className="text-sm text-slate-500 leading-relaxed font-medium">{confirmModal.message}</p>
             <div className="flex justify-end gap-2 pt-2">
@@ -1441,9 +1454,9 @@ export default function App() {
                     <Smartphone className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-black text-slate-900 uppercase">Chưa kích hoạt thông báo cho thiết bị</h4>
+                    <h4 className="text-xs font-black text-slate-900 uppercase">Chưa kích hoạt cảnh báo ngầm thiết bị</h4>
                     <p className="text-[11px] text-slate-500 mt-0.5 font-semibold leading-relaxed">
-                      Bạn cần bấm kích hoạt dưới đây.
+                      Để nhận thông báo báo cáo ca VVIP và duyệt chi phí ngay cả khi đóng ứng dụng hoặc khóa màn hình iPhone, bạn cần bấm kích hoạt dưới đây.
                     </p>
                   </div>
                 </div>
@@ -1519,7 +1532,7 @@ export default function App() {
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-100">
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
@@ -1576,7 +1589,7 @@ export default function App() {
                             <div className="flex justify-between items-start gap-1">
                               <span className="text-[8px] text-indigo-600 font-mono font-black truncate">PID: {p.pid}</span>
                               <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
-                                p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                                p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
                               }`}>
                                 {p.tier}
                               </span>
@@ -2562,7 +2575,7 @@ export default function App() {
                           className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 gap-2">
                         <input 
                           type="email" 
                           placeholder="Email đăng nhập..." 
@@ -2572,16 +2585,16 @@ export default function App() {
                           required
                         />
                         <input 
-                          type="password" 
-                          placeholder="Mật khẩu (mặc định CSKH@abc456)" 
-                          value={newStaff.pass}
-                          onChange={(e) => setNewStaff({ ...newStaff, pass: e.target.value })}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
+                          type="text" 
+                          placeholder="Mã UID (Lấy từ Firebase Authentication)..." 
+                          value={newStaff.uid}
+                          onChange={(e) => setNewStaff({ ...newStaff, uid: e.target.value })}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-mono font-bold"
                           required
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-500 block uppercase tracking-wider">Chọn Vai Trò (Role)</label>
+                        <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Vai trò phân quyền</label>
                         <select 
                           value={newStaff.role}
                           onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
@@ -2607,7 +2620,8 @@ export default function App() {
                       <div key={staff.uid} className="flex justify-between items-center p-3 rounded-2xl border border-slate-200 bg-slate-50/50">
                         <div>
                           <div className="text-xs font-bold text-slate-800">{staff.name}</div>
-                          <div className="text-[9px] text-slate-400">{staff.email} | {staff.title}</div>
+                          <div className="text-[9px] text-slate-400 font-mono">{staff.email}</div>
+                          <div className="text-[9px] text-slate-400 italic">UID: {staff.uid} | {staff.title}</div>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-[9px] font-black px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-sm uppercase">
@@ -2639,7 +2653,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.8</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v2.9</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
