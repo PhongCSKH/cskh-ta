@@ -231,6 +231,7 @@ export default function App() {
     date: new Date().toISOString().split('T')[0],
     specialties: [],
     site: 'BV Tâm Anh - Tân Sơn Hòa',
+    examinationArea: 'Khu VIP',
     ngoaiTru: true,
     capCuu: false,
     noiTru: false,
@@ -389,6 +390,7 @@ export default function App() {
       date: new Date().toISOString().split('T')[0],
       specialties: [],
       site: 'BV Tâm Anh - Tân Sơn Hòa',
+      examinationArea: 'Khu VIP',
       ngoaiTru: true,
       capCuu: false,
       noiTru: false,
@@ -415,6 +417,64 @@ export default function App() {
     setUserRole('nhanvien');
     localStorage.removeItem('crm_current_user');
     showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
+  };
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (!loginEmail.trim() || !loginPassword.trim()) {
+      setAuthError("Email và mật khẩu không được bỏ trống.");
+      return;
+    }
+
+    const localAccount = staffList.find(
+      (acc) => acc.email.toLowerCase() === loginEmail.trim().toLowerCase()
+    );
+
+    if (isFirebaseConnected && auth) {
+      signInWithEmailAndPassword(auth, loginEmail.trim(), loginPassword)
+        .then(async (userCredential) => {
+          const user = userCredential.user;
+          const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          let userData = {
+            uid: user.uid,
+            email: user.email,
+            role: 'nhanvien',
+            name: user.email.split('@')[0],
+            title: 'Nhân viên chuyên ban'
+          };
+          if (userDoc.exists()) {
+            userData = userDoc.data();
+          }
+          setCurrentUser(userData);
+          setUserRole(userData.role);
+          localStorage.setItem('crm_current_user', JSON.stringify(userData));
+          setAuthError('');
+          showNotification(`Đăng nhập thành công! Chào ${userData.name}`);
+        })
+        .catch((error) => {
+          if (localAccount && localAccount.pass === loginPassword) {
+            setCurrentUser(localAccount);
+            setUserRole(localAccount.role);
+            localStorage.setItem('crm_current_user', JSON.stringify(localAccount));
+            setAuthError('');
+            showNotification(`Đăng nhập (Chế độ Dự Phòng): Chào ${localAccount.name}`);
+            return;
+          }
+          console.error(error);
+          setAuthError("Sai thông tin tài khoản hoặc mật khẩu.");
+        });
+    } else {
+      if (localAccount && localAccount.pass === loginPassword) {
+        setCurrentUser(localAccount);
+        setUserRole(localAccount.role);
+        localStorage.setItem('crm_current_user', JSON.stringify(localAccount));
+        setAuthError('');
+        showNotification(`Đăng nhập ngoại tuyến thành công: Chào ${localAccount.name}`);
+      } else {
+        setAuthError("Sai thông tin tài khoản hoặc hệ thống offline.");
+      }
+    }
   };
 
   useEffect(() => {
@@ -676,6 +736,9 @@ export default function App() {
   }, [currentUser, isFirebaseConnected]);
 
   const calculatedSums = useMemo(() => {
+    if (formData.tier === 'VIP') {
+      return { totalAmount: 0, approvedDiscountAmount: 0 };
+    }
     const formulas = systemSettings.totalFormulaFields;
     let total = 0;
     
@@ -792,13 +855,26 @@ export default function App() {
       };
     }
 
-    const payload = {
+    let payload = {
       ...formData,
       status: formData.status || 'Waiting',
       updatedAt: new Date().toISOString(),
       updatedBy: currentUser.name,
       history: [...currentHistory, newLog]
     };
+
+    if (formData.tier === 'VIP') {
+      payload = {
+        ...payload,
+        phiKham: 0,
+        clsCdha: 0,
+        thuocVacxin: 0,
+        insuranceAdvance: 0,
+        discountRate: 0,
+        approvedDiscountAmount: 0,
+        totalAmount: 0
+      };
+    }
 
     const firstImg = payload.approvalImages && payload.approvalImages.length > 0 ? payload.approvalImages[0] : '';
     payload.approvalImage = firstImg;
@@ -852,7 +928,7 @@ export default function App() {
 
   const initiateEdit = (patient) => {
     setCurrentId(patient.id);
-    setFormRightTab('billing');
+    setFormRightTab(patient.tier === 'VIP' ? 'timeline' : 'billing');
     let initTreatmentType = 'Ngoại trú';
     if (patient.capCuu) initTreatmentType = 'Cấp cứu/Daycare';
     else if (patient.noiTru) initTreatmentType = 'Nội trú/ICU';
@@ -868,6 +944,7 @@ export default function App() {
       date: patient.date || new Date().toISOString().split('T')[0],
       specialties: patient.specialties || [],
       site: patient.site || 'BV Tâm Anh - Tân Sơn Hòa',
+      examinationArea: patient.examinationArea || 'Khu VIP',
       ngoaiTru: patient.ngoaiTru !== undefined ? patient.ngoaiTru : (initTreatmentType === 'Ngoại trú'),
       capCuu: patient.capCuu !== undefined ? patient.capCuu : (initTreatmentType === 'Cấp cứu/Daycare'),
       noiTru: patient.noiTru !== undefined ? patient.noiTru : (initTreatmentType === 'Nội trú/ICU'),
@@ -1652,7 +1729,7 @@ export default function App() {
                       <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Tổng chi phí</span>
                       <span className="text-xl font-black text-slate-900">{formatCurrency(metrics.totalRevenue)}</span>
                       <span className="text-[11px] text-slate-500 block">
-                        Tổng chi phí sử dụng
+                        Tổng chi phí sử dụng (VVIP)
                       </span>
                     </div>
                   </div>
@@ -1762,11 +1839,18 @@ export default function App() {
                             >
                               <div className="flex justify-between items-start gap-1">
                                 <span className="text-[8px] text-slate-500 font-mono font-black truncate">PID: {p.pid}</span>
-                                <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
-                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
-                                }`}>
-                                  {p.tier}
-                                </span>
+                                <div className="flex gap-1">
+                                  <span className={`px-1 py-0.5 rounded-xs text-[7px] font-bold uppercase ${
+                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-100 text-indigo-800' : 'bg-teal-100 text-teal-800'
+                                  }`}>
+                                    {p.examinationArea === 'Khu VIP' ? 'VIP' : 'TC'}
+                                  </span>
+                                  <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
+                                    p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                                  }`}>
+                                    {p.tier}
+                                  </span>
+                                </div>
                               </div>
 
                               <div className="font-extrabold text-[11px] text-slate-800 leading-tight truncate" title={p.name}>
@@ -1838,7 +1922,7 @@ export default function App() {
             <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-md">
               <div>
                 <h2 className="text-base font-black text-slate-955 flex items-center gap-1.5">
-                  {currentId ? "Cập Nhật Tiến Độ" : "Tạo lượt VIP/VVIP Mới"}
+                  {currentId ? "Cập Nhật Tiến Độ" : "Tạo lượt Tiếp Đón VIP/VVIP"}
                 </h2>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -1905,26 +1989,34 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-600 block">Phân Hạng Tiếp Đón</label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-3">
                         <button
                           type="button"
-                          onClick={() => handleInputChange('tier', 'VIP')}
-                          className={`py-2 px-4 rounded-xl text-xs font-bold border transition ${
-                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700 font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          onClick={() => {
+                            handleInputChange('tier', 'VIP');
+                            setFormRightTab('timeline');
+                          }}
+                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-between h-20 ${
+                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
-                          Hạng VIP
+                          <span className="font-black text-sm">VIP</span>
+                          <span className="text-[9px] font-semibold text-slate-400 leading-tight">Take care nhanh, không chiết khấu</span>
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleInputChange('tier', 'VVIP')}
-                          className={`py-2 px-4 rounded-xl text-xs font-bold border transition ${
-                            formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-200 text-amber-700 font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          onClick={() => {
+                            handleInputChange('tier', 'VVIP');
+                            setFormRightTab('billing');
+                          }}
+                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-between h-20 ${
+                            formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
-                          Hạng VVIP
+                          <span className="font-black text-sm text-amber-600">VVIP</span>
+                          <span className="text-[9px] font-semibold text-slate-400 leading-tight">Chăm sóc đặc biệt & duyệt giảm chi phí</span>
                         </button>
                       </div>
                     </div>
@@ -1948,7 +2040,7 @@ export default function App() {
                             type="button"
                             onClick={() => handleInputChange('site', s.label)}
                             className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center ${
-                              formData.site === s.label ? `${s.bg} border-slate-400 font-black` : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                              formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-55/50'
                             }`}
                           >
                             {s.label}
@@ -1957,8 +2049,33 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* BỔ SUNG TRƯỜNG KHU VỰC KHÁM */}
+                    <div className="space-y-1.5 md:col-span-2 animate-fadeIn">
+                      <label className="text-xs font-bold text-slate-600 block">Khu Vực Khám</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange('examinationArea', 'Khu Tiêu Chuẩn')}
+                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center ${
+                            formData.examinationArea === 'Khu Tiêu Chuẩn' ? 'bg-teal-50 border-teal-500 text-teal-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          Khu Tiêu Chuẩn
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange('examinationArea', 'Khu VIP')}
+                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center ${
+                            formData.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          Khu VIP (Ưu tiên)
+                        </button>
+                      </div>
+                    </div>
+
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">Trạng Thái (Vị Trí Kanban Ban Đầu)</label>
+                      <label className="text-xs font-bold text-slate-600 block">Trạng Thế (Vị Trí Kanban Ban Đầu)</label>
                       <select
                         value={formData.status}
                         onChange={(e) => handleInputChange('status', e.target.value)}
@@ -1971,7 +2088,7 @@ export default function App() {
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">HĐQT Phê Duyệt</label>
+                      <label className="text-xs font-bold text-slate-600 block">HĐQT Phê Duyệt/Chỉ đạo</label>
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-1.5">
                           {["Sếp Dũng", "Sếp Hoa", "Sếp Nga", "Sếp Thông"].map((boss) => (
@@ -1991,7 +2108,7 @@ export default function App() {
                         </div>
                         <input 
                           type="text" 
-                          placeholder="Thành viên hội đồng quản trị duyệt..."
+                          placeholder="Thành viên hội đồng quản trị chỉ đạo..."
                           value={formData.boardApproval}
                           onChange={(e) => handleInputChange('boardApproval', e.target.value)}
                           className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-semibold bg-white text-slate-800 animate-fadeIn"
@@ -2059,7 +2176,7 @@ export default function App() {
                       {formData.specialties.map((spec) => (
                         <span
                           key={spec}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold animate-scaleIn"
                         >
                           {spec}
                           <button
@@ -2075,215 +2192,263 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
-                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                    Chi Phí Điều Trị & Lâm Sàng Thực Tế
-                  </h3>
+                {/* ẨN CHI PHÍ LÂM SÀNG KHI LÀ KHÁCH VIP THƯỜNG */}
+                {formData.tier === 'VVIP' && (
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
+                      <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                      Chi Phí Điều Trị & Lâm Sàng Thực Tế
+                    </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
-                      <select
-                        value={formData.treatmentType || 'Ngoại trú'}
-                        onChange={(e) => handleTreatmentTypeChange(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800 cursor-pointer"
-                      >
-                        <option value="Ngoại trú">Ngoại trú</option>
-                        <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
-                        <option value="Nội trú/ICU">Nội trú/ICU</option>
-                        <option value="Ngoài viện">Ngoài viện</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
-                          onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
+                        <select
+                          value={formData.treatmentType || 'Ngoại trú'}
+                          onChange={(e) => handleTreatmentTypeChange(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800 cursor-pointer"
+                        >
+                          <option value="Ngoại trú">Ngoại trú</option>
+                          <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
+                          <option value="Nội trú/ICU">Nội trú/ICU</option>
+                          <option value="Ngoài viện">Ngoài viện</option>
+                        </select>
                       </div>
-                    </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
-                          onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
+                            onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
+                          />
+                          <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-655 block">Thuốc/vacxin</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
-                          onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
+                            onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
+                          />
+                          <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                        </div>
                       </div>
-                    </div>
 
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-xs font-bold text-slate-655 block">Thuốc/vacxin</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
+                            onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
+                          />
+                          <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                        </div>
+                      </div>
+
+                    </div>
                   </div>
-                </div>
+                )}
 
               </div>
 
               <div className="space-y-6">
                 
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                  <div className="flex border-b border-slate-100 pb-2">
-                    <button
-                      type="button"
-                      onClick={() => setFormRightTab('billing')}
-                      className={`flex-1 py-2 text-xs font-black text-center transition border-b-2 ${
-                        formRightTab === 'billing' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
-                      }`}
-                    >
-                      Bảng tổng hợp
-                    </button>
-                    {currentId && (
+                {/* ĐIỀU CHỈNH GIAO DIỆN BIÊN LAI - CHỈ HIỂN THỊ CHO VVIP */}
+                {formData.tier === 'VVIP' ? (
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
+                    <div className="flex border-b border-slate-100 pb-2">
                       <button
                         type="button"
-                        onClick={() => setFormRightTab('timeline')}
+                        onClick={() => setFormRightTab('billing')}
                         className={`flex-1 py-2 text-xs font-black text-center transition border-b-2 ${
-                          formRightTab === 'timeline' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
+                          formRightTab === 'billing' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
                         }`}
                       >
-                        Lịch sử Timeline
+                        Bảng tổng hợp
                       </button>
-                    )}
-                  </div>
-
-                  {formRightTab === 'billing' ? (
-                    <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800 animate-fadeIn">
-                      <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
-                      
-                      <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
-                        <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
-                        Biên lai chi phí
-                      </h3>
-
-                      <div className="space-y-1.5 pt-2 relative z-10">
-                        <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
-                        <div className="relative">
-                          <input 
-                            type="text" 
-                            value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
-                            onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
-                            placeholder="0"
-                            className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-500 font-mono"
-                          />
-                          <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">VNĐ</span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3 relative z-10">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
-                            Duyệt giảm (%) {userRole === 'nhanvien' && '🔒'}
-                          </label>
-                          <div className="relative">
-                            <input 
-                              type="number" 
-                              min="0"
-                              max="100"
-                              value={formData.discountRate || ''}
-                              disabled={userRole === 'nhanvien'} 
-                              onChange={(e) => handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                              placeholder="0"
-                              className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-500 ${
-                                userRole === 'nhanvien'
-                                  ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
-                                  : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
-                              }`}
-                            />
-                            <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">%</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
-                        
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Tổng phí tự động:</span>
-                          <div className="flex items-center gap-1">
-                            <input 
-                              type="text"
-                              value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
-                              onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
-                              className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
-                            />
-                            <span>đ</span>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
-                          <div className="flex items-center gap-1">
-                            <span className="text-rose-400">-</span>
-                            <input 
-                              type="text"
-                              value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
-                              onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
-                              className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
-                            />
-                            <span className="text-rose-400">đ</span>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
-                          <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
-                        </div>
-
-                        <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
-                          <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
-                          <span className="text-lg font-black text-emerald-400 font-mono">
-                            {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
-                          </span>
-                        </div>
-
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-h-[350px] overflow-y-auto pr-1 animate-fadeIn">
-                      {(!formData.history || formData.history.length === 0) ? (
-                        <p className="text-xs text-slate-400 font-bold text-center py-6">Chưa có hoạt động nào được ghi nhận.</p>
-                      ) : (
-                        <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
-                          {formData.history.map((log, index) => (
-                            <div key={index} className="relative">
-                              <span className="absolute -left-[22px] top-1 bg-indigo-600 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
-                              <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
-                              <div className="text-[9px] text-slate-400 mt-1 flex justify-between font-bold">
-                                <span>Bởi: {log.user}</span>
-                                <span className="font-mono">
-                                  {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'})}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                      {currentId && (
+                        <button
+                          type="button"
+                          onClick={() => setFormRightTab('timeline')}
+                          className={`flex-1 py-2 text-xs font-black text-center transition border-b-2 ${
+                            formRightTab === 'timeline' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
+                          }`}
+                        >
+                          Lịch sử Timeline
+                        </button>
                       )}
                     </div>
-                  )}
-                </div>
+
+                    {formRightTab === 'billing' ? (
+                      <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800 animate-fadeIn">
+                        <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
+                        
+                        <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
+                          <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
+                          Biên lai chi phí
+                        </h3>
+
+                        <div className="space-y-1.5 pt-2 relative z-10">
+                          <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
+                              onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
+                              placeholder="0"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-500 font-mono"
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">VNĐ</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 relative z-10">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
+                              Duyệt giảm (%) {userRole === 'nhanvien' && '🔒'}
+                            </label>
+                            <div className="relative">
+                              <input 
+                                type="number" 
+                                min="0"
+                                max="100"
+                                value={formData.discountRate || ''}
+                                disabled={userRole === 'nhanvien'} 
+                                onChange={(e) => handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                                placeholder="0"
+                                className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-500 ${
+                                  userRole === 'nhanvien'
+                                    ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
+                                    : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
+                                }`}
+                              />
+                              <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">%</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
+                          
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400">Tổng phí tự động:</span>
+                            <div className="flex items-center gap-1">
+                              <input 
+                                type="text"
+                                value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
+                                onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
+                                className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
+                              />
+                              <span>đ</span>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-rose-400">-</span>
+                              <input 
+                                type="text"
+                                value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
+                                onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
+                                className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
+                              />
+                              <span className="text-rose-400">đ</span>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
+                            <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
+                          </div>
+
+                          <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
+                            <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
+                            <span className="text-lg font-black text-emerald-400 font-mono">
+                              {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
+                            </span>
+                          </div>
+
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-h-[350px] overflow-y-auto pr-1 animate-fadeIn">
+                        {(!formData.history || formData.history.length === 0) ? (
+                          <p className="text-xs text-slate-400 font-bold text-center py-6">Chưa có hoạt động nào được ghi nhận.</p>
+                        ) : (
+                          <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
+                            {formData.history.map((log, index) => (
+                              <div key={index} className="relative">
+                                <span className="absolute -left-[22px] top-1 bg-indigo-600 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
+                                <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
+                                <div className="text-[9px] text-slate-400 mt-1 flex justify-between font-bold">
+                                  <span>Bởi: {log.user}</span>
+                                  <span className="font-mono">
+                                    {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'})}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* GIAO DIỆN PHỤ TRỢ CHO KHÁCH VIP THƯỜNG */
+                  <div className="space-y-4 animate-fadeIn">
+                    <div className="bg-slate-900 text-white p-5 rounded-3xl border border-slate-850 shadow-xl relative overflow-hidden space-y-3.5">
+                      <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-55/10 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
+                      <h3 className="text-[11px] font-black text-indigo-350 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
+                        <Sparkles className="w-4.5 h-4.5 text-indigo-405 animate-pulse" />
+                        Chăm sóc nhanh VIP
+                      </h3>
+                      <div className="text-xs space-y-2.5 text-slate-300 font-semibold relative z-10 leading-relaxed">
+                        <p>✓ Chăm sóc ưu tiên đặc biệt tại <strong>{formData.examinationArea}</strong>.</p>
+                        <p>✓ Không thiết lập duyệt chiết khấu/miễn giảm tài chính.</p>
+                        <p>✓ Mọi dịch vụ phát sinh thanh toán trực tiếp tại quầy theo biểu giá hiện hành.</p>
+                        <p>✓ Đồng bộ luồng điều phối nhanh của Ban Giám Đốc.</p>
+                      </div>
+                    </div>
+
+                    {currentId && (
+                      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                        <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-indigo-650" />
+                          Hoạt động Timeline
+                        </h3>
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-h-[280px] overflow-y-auto pr-1">
+                          <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
+                            {formData.history?.map((log, index) => (
+                              <div key={index} className="relative">
+                                <span className="absolute -left-[22px] top-1 bg-indigo-65 text-indigo-600 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
+                                <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
+                                <div className="text-[9px] text-slate-400 mt-1 flex justify-between font-bold">
+                                  <span>Bởi: {log.user}</span>
+                                  <span className="font-mono">
+                                    {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'})}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -2429,9 +2594,9 @@ export default function App() {
                         <tr className="bg-slate-50 border-b border-slate-200 text-[10px] text-slate-400 font-black uppercase tracking-wider">
                           <th className="py-4 px-5">PID / Khách Hàng</th>
                           <th className="py-4 px-3">Phân hạng</th>
-                          <th className="py-4 px-3">Ngày Khám / Site</th>
+                          <th className="py-4 px-3">Ngày Khám / Site / Khu vực</th>
                           <th className="py-4 px-3">Chuyên Khoa</th>
-                          <th className="py-4 px-3">HĐQT Phê Duyệt</th>
+                          <th className="py-4 px-3">HĐQT Chỉ Đạo</th>
                           <th className="py-4 px-3 text-right">Tổng Chi Phí</th>
                           <th className="py-4 px-3 text-right">Duyệt Giảm</th>
                           <th className="py-4 px-3 text-right">Thực Thu</th>
@@ -2458,8 +2623,15 @@ export default function App() {
                               </td>
                               <td className="py-4 px-3">
                                 <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
-                                <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1 ${pSite.bg}`}>
-                                  {pSite.label}
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
+                                    {pSite.label}
+                                  </div>
+                                  <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
+                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
+                                  }`}>
+                                    {p.examinationArea || 'Khu VIP'}
+                                  </div>
                                 </div>
                               </td>
                               <td className="py-4 px-3">
@@ -2476,14 +2648,20 @@ export default function App() {
                                 {p.notes && <div className="text-[10px] text-slate-400 max-w-[150px] truncate" title={p.notes}>{p.notes}</div>}
                               </td>
                               <td className="py-4 px-3 text-right font-bold text-slate-900 font-mono">
-                                {formatCurrency(p.totalAmount)}
+                                {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Thanh toán quầy</span> : formatCurrency(p.totalAmount)}
                               </td>
                               <td className="py-4 px-3 text-right">
-                                <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
-                                <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
+                                {p.tier === 'VIP' ? (
+                                  <span className="text-slate-400 font-sans text-[10px]">---</span>
+                                ) : (
+                                  <>
+                                    <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
+                                    <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
+                                  </>
+                                )}
                               </td>
                               <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
-                                {formatCurrency(realCollected)}
+                                {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Hóa đơn gốc</span> : formatCurrency(realCollected)}
                               </td>
                               <td className="py-4 px-5 text-right whitespace-nowrap">
                                 <div className="flex justify-end gap-1.5">
@@ -2563,9 +2741,16 @@ export default function App() {
                               <Calendar className="w-3.5 h-3.5" />
                               Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
                             </p>
-                            <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1.5 ${pSite.bg}`}>
-                              {pSite.label}
-                            </span>
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
+                                {pSite.label}
+                              </span>
+                              <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
+                                p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
+                              }`}>
+                                {p.examinationArea || 'Khu VIP'}
+                              </span>
+                            </div>
                           </div>
                           <span className={`inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[9px] font-black ${
                             p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
@@ -2583,24 +2768,30 @@ export default function App() {
                         </div>
 
                         <div className="bg-slate-50 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-655">
-                          <div>Phê duyệt: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
+                          <div>Phê duyệt/Chỉ đạo: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
                           {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
-                          <div>
-                            <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
-                            <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
+                        {p.tier === 'VVIP' ? (
+                          <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
+                            <div>
+                              <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
+                              <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
+                            </div>
+                            <div>
+                              <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
+                              <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
+                            </div>
+                            <div>
+                              <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
+                              <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
-                            <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
+                        ) : (
+                          <div className="border-t border-b border-slate-200 py-3 text-center text-xs text-slate-500 font-bold">
+                            Chăm sóc Take care nhanh - Không duyệt giảm tài chính
                           </div>
-                          <div>
-                            <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
-                            <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
-                          </div>
-                        </div>
+                        )}
 
                         <div className="flex justify-end gap-2 pt-1">
                           {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
@@ -2896,7 +3087,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.4</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.5</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
