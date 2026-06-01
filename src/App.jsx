@@ -62,6 +62,7 @@ import {
   Smartphone
 } from 'lucide-react';
 
+/* STREAMING_CHUNK: Loading Firebase configurations... */
 const defaultFirebaseConfig = {
   apiKey: "AIzaSyBMmXRbUFvXRsUH6anb22sKlY8JlqiF7Lk",
   authDomain: "cskh-ta.firebaseapp.com",
@@ -94,6 +95,7 @@ try {
   console.warn(error);
 }
 
+/* STREAMING_CHUNK: Defining data formatting and mock data accounts... */
 const formatCurrency = (number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(number || 0);
 };
@@ -190,6 +192,7 @@ const sites = [
   { id: 'ch', label: 'BV Tâm Anh - Chánh Hưng', bg: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500', cardBg: 'bg-[#f0fdf4] border-[#bbf7d0] hover:border-[#86efac]' }
 ];
 
+/* STREAMING_CHUNK: Initializing component main function and state hooks... */
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState('nhanvien');
@@ -231,10 +234,11 @@ export default function App() {
     date: new Date().toISOString().split('T')[0],
     specialties: [],
     site: 'BV Tâm Anh - Tân Sơn Hòa',
-    ngoaiTru: false,
+    ngoaiTru: true,
     capCuu: false,
     noiTru: false,
     ngoaiVien: false,
+    treatmentType: 'Ngoại trú',
     phiKham: 0,
     clsCdha: 0,
     thuocVacxin: 0,
@@ -257,11 +261,16 @@ export default function App() {
   const isInitialMount = useRef(true);
   const notificationCenterRef = useRef(null);
 
+  const [specSearch, setSpecSearch] = useState('');
+  const [isSpecDropdownOpen, setIsSpecDropdownOpen] = useState(false);
+  const specRef = useRef(null);
+
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   };
 
+  /* STREAMING_CHUNK: Designing FCM Token registers and alerts... */
   const triggerPushAlert = (title, message, type = 'info') => {
     const id = Date.now() + Math.random().toString(36).substr(2, 9);
     const newAlert = { id, title, message, type };
@@ -372,6 +381,7 @@ export default function App() {
     }
   };
 
+  /* STREAMING_CHUNK: Preparing dropdown search and reset filters... */
   const resetForm = () => {
     setCurrentId(null);
     setFormRightTab('billing');
@@ -384,10 +394,11 @@ export default function App() {
       date: new Date().toISOString().split('T')[0],
       specialties: [],
       site: 'BV Tâm Anh - Tân Sơn Hòa',
-      ngoaiTru: false,
+      ngoaiTru: true,
       capCuu: false,
       noiTru: false,
       ngoaiVien: false,
+      treatmentType: 'Ngoại trú',
       phiKham: 0,
       clsCdha: 0,
       thuocVacxin: 0,
@@ -399,6 +410,33 @@ export default function App() {
       status: 'Waiting',
       history: []
     });
+  };
+
+  useEffect(() => {
+    function handleClickOutsideSpec(event) {
+      if (specRef.current && !specRef.current.contains(event.target)) {
+        setIsSpecDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutsideSpec);
+    return () => document.removeEventListener("mousedown", handleClickOutsideSpec);
+  }, []);
+
+  const filteredSpecialties = useMemo(() => {
+    return systemSettings.specialties.filter(s =>
+      s.toLowerCase().includes(specSearch.toLowerCase())
+    );
+  }, [systemSettings.specialties, specSearch]);
+
+  const handleTreatmentTypeChange = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      treatmentType: value,
+      ngoaiTru: value === 'Ngoại trú',
+      capCuu: value === 'Cấp cứu/Daycare',
+      noiTru: value === 'Nội trú/ICU',
+      ngoaiVien: value === 'Ngoài viện'
+    }));
   };
 
   useEffect(() => {
@@ -452,6 +490,7 @@ export default function App() {
     };
   }, [isScanning]);
 
+  /* STREAMING_CHUNK: Registering browser hooks and service workers... */
   useEffect(() => {
     checkIosPermissionStatus();
 
@@ -545,6 +584,7 @@ export default function App() {
     }
   }, []);
 
+  /* STREAMING_CHUNK: Loading and synchronizing database changes... */
   useEffect(() => {
     if (!currentUser) return;
     setIsLoading(true);
@@ -637,6 +677,10 @@ export default function App() {
     let total = 0;
     
     if (formulas.phiKham) total += Number(formData.phiKham || 0);
+    if (formulas.ngoaiTru) total += Number(formData.ngoaiTru || 0);
+    if (formulas.capCuu) total += Number(formData.capCuu || 0);
+    if (formulas.noiTru) total += Number(formData.noiTru || 0);
+    if (formulas.ngoaiVien) total += Number(formData.ngoaiVien || 0);
     if (formulas.clsCdha) total += Number(formData.clsCdha || 0);
     if (formulas.thuocVacxin) total += Number(formData.thuocVacxin || 0);
 
@@ -663,51 +707,7 @@ export default function App() {
     }
   }, [calculatedSums.totalAmount, calculatedSums.approvedDiscountAmount]);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setAuthError('');
-    if (!loginEmail || !loginPassword) {
-      setAuthError('Vui lòng điền đầy đủ email và mật khẩu.');
-      return;
-    }
-
-    if (isFirebaseConnected && auth) {
-      try {
-        await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-        showNotification("Đăng nhập thành công!");
-      } catch (err) {
-        performLocalLogin();
-      }
-    } else {
-      performLocalLogin();
-    }
-  };
-
-  const performLocalLogin = () => {
-    const account = staffList.find(
-      a => a.email.toLowerCase() === loginEmail.toLowerCase() && a.pass === loginPassword
-    );
-    if (account) {
-      setCurrentUser(account);
-      setUserRole(account.role);
-      localStorage.setItem('crm_current_user', JSON.stringify(account));
-      showNotification(`Chào mừng ${account.name} quay trở lại!`);
-      triggerPushAlert("👋 Đăng nhập thành công", `Chào mừng ${account.name} đã truy cập.`);
-    } else {
-      setAuthError('Email hoặc mật khẩu không chính xác.');
-    }
-  };
-
-  const handleLogout = () => {
-    if (isFirebaseConnected && auth) {
-      signOut(auth).catch(e => console.warn(e));
-    }
-    setCurrentUser(null);
-    setUserRole('nhanvien');
-    localStorage.removeItem('crm_current_user');
-    showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
-  };
-
+  /* STREAMING_CHUNK: Executing data registers and editing events... */
   const handleInputChange = (field, val) => {
     if (field === 'discountRate' && userRole === 'nhanvien') {
       showNotification("Tài khoản nhân viên không có quyền duyệt chiết khấu!", "error");
@@ -720,17 +720,6 @@ export default function App() {
     const cleanValue = rawValue.replace(/\D/g, '');
     const numValue = cleanValue === '' ? 0 : parseInt(cleanValue, 10);
     handleInputChange(field, numValue);
-  };
-
-  const toggleSpecialtySelection = (spec) => {
-    setFormData(prev => {
-      const exists = prev.specialties.includes(spec);
-      if (exists) {
-        return { ...prev, specialties: prev.specialties.filter(s => s !== spec) };
-      } else {
-        return { ...prev, specialties: [...prev.specialties, spec] };
-      }
-    });
   };
 
   const handleMultipleImagesUpload = (e) => {
@@ -851,6 +840,12 @@ export default function App() {
   const initiateEdit = (patient) => {
     setCurrentId(patient.id);
     setFormRightTab('billing');
+    let initTreatmentType = 'Ngoại trú';
+    if (patient.capCuu) initTreatmentType = 'Cấp cứu/Daycare';
+    else if (patient.noiTru) initTreatmentType = 'Nội trú/ICU';
+    else if (patient.ngoaiVien) initTreatmentType = 'Ngoài viện';
+    else if (patient.treatmentType) initTreatmentType = patient.treatmentType;
+
     setFormData({
       name: patient.name || '',
       tier: patient.tier || 'VIP',
@@ -860,10 +855,11 @@ export default function App() {
       date: patient.date || new Date().toISOString().split('T')[0],
       specialties: patient.specialties || [],
       site: patient.site || 'BV Tâm Anh - Tân Sơn Hòa',
-      ngoaiTru: patient.ngoaiTru || false,
-      capCuu: patient.capCuu || false,
-      noiTru: patient.noiTru || false,
-      ngoaiVien: patient.ngoaiVien || false,
+      ngoaiTru: patient.ngoaiTru !== undefined ? patient.ngoaiTru : (initTreatmentType === 'Ngoại trú'),
+      capCuu: patient.capCuu !== undefined ? patient.capCuu : (initTreatmentType === 'Cấp cứu/Daycare'),
+      noiTru: patient.noiTru !== undefined ? patient.noiTru : (initTreatmentType === 'Nội trú/ICU'),
+      ngoaiVien: patient.ngoaiVien !== undefined ? patient.ngoaiVien : (initTreatmentType === 'Ngoài viện'),
+      treatmentType: initTreatmentType,
       phiKham: patient.phiKham || 0,
       clsCdha: patient.clsCdha || 0,
       thuocVacxin: patient.thuocVacxin || 0,
@@ -1061,6 +1057,7 @@ export default function App() {
     showNotification("Phương thức tính miễn giảm đã thay đổi!");
   };
 
+  /* STREAMING_CHUNK: Filtering records and data rendering... */
   const filteredPatients = useMemo(() => {
     return patients.filter(p => {
       const matchSearch = 
@@ -1112,6 +1109,7 @@ export default function App() {
     setNotifications([]);
   };
 
+  /* STREAMING_CHUNK: Designing login and authentication screen... */
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-gradient-to-tr from-slate-100 via-indigo-50/20 to-slate-200 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-800">
@@ -1178,7 +1176,7 @@ export default function App() {
               type="submit" 
               className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
             >
-              <Lock className="w-4 h-4" /> Xác thực
+              <Lock className="w-4 h-4" /> _Xác thực
             </button>
           </form>
 
@@ -1187,6 +1185,7 @@ export default function App() {
     );
   }
 
+  /* STREAMING_CHUNK: Designing main dashboard layout... */
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
       
@@ -1974,123 +1973,133 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                {/* ========================== CHUYÊN KHOA THĂM KHÁM MULTI-SELECT + SEARCH ========================== */}
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4" ref={specRef}>
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
                     Chuyên khoa thăm khám
                   </h3>
-
-                  <div className="flex flex-wrap gap-2">
-                    {systemSettings.specialties.map((spec, idx) => {
-                      const isSelected = formData.specialties.includes(spec);
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => toggleSpecialtySelection(spec)}
-                          className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
-                            isSelected ? 'bg-slate-955 border-slate-955 text-white shadow-md shadow-slate-200' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                          }`}
-                        >
-                          {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
-                          {spec}
-                        </button>
-                      );
-                    })}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Tìm kiếm chuyên khoa..."
+                      value={specSearch}
+                      onChange={(e) => {
+                        setSpecSearch(e.target.value);
+                        setIsSpecDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsSpecDropdownOpen(true)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800"
+                    />
+                    {isSpecDropdownOpen && (
+                      <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-fadeIn">
+                        {filteredSpecialties.length === 0 ? (
+                          <div className="text-xs text-slate-400 font-bold text-center py-4">Không tìm thấy chuyên khoa phù hợp</div>
+                        ) : (
+                          filteredSpecialties.map((spec) => {
+                            const isSelected = formData.specialties.includes(spec);
+                            return (
+                              <button
+                                key={spec}
+                                type="button"
+                                onClick={() => toggleSpecialtySelection(spec)}
+                                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${
+                                  isSelected ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-700'
+                                }`}
+                              >
+                                <span>{spec}</span>
+                                {isSelected && <Check className="w-4 h-4 text-indigo-600" />}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
                   </div>
+                  {formData.specialties.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+                      {formData.specialties.map((spec) => (
+                        <span
+                          key={spec}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold animate-scaleIn"
+                        >
+                          {spec}
+                          <button
+                            type="button"
+                            onClick={() => toggleSpecialtySelection(spec)}
+                            className="p-0.5 hover:bg-slate-850 rounded-full transition"
+                          >
+                            <X className="w-3 h-3 text-slate-400 hover:text-white" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
+                {/* ========================== CHI PHÍ ĐIỀU TRỊ & LÂM SÀNG THỰC TẾ ========================== */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
                     Chi Phí Điều Trị & Lâm Sàng Thực Tế
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     
-                    <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
-                      <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị (Hộp tick chọn)</label>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
-                          <input 
-                            type="checkbox"
-                            checked={formData.ngoaiTru || false}
-                            onChange={(e) => handleInputChange('ngoaiTru', e.target.checked)}
-                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
-                          />
-                          <span className="text-xs font-bold text-slate-700">Ngoại trú</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
-                          <input 
-                            type="checkbox"
-                            checked={formData.capCuu || false}
-                            onChange={(e) => handleInputChange('capCuu', e.target.checked)}
-                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
-                          />
-                          <span className="text-xs font-bold text-slate-700">Cấp cứu/Daycare</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
-                          <input 
-                            type="checkbox"
-                            checked={formData.noiTru || false}
-                            onChange={(e) => handleInputChange('noiTru', e.target.checked)}
-                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
-                          />
-                          <span className="text-xs font-bold text-slate-700">Nội trú/ICU</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
-                          <input 
-                            type="checkbox"
-                            checked={formData.ngoaiVien || false}
-                            onChange={(e) => handleInputChange('ngoaiVien', e.target.checked)}
-                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
-                          />
-                          <span className="text-xs font-bold text-slate-700">Ngoài viện</span>
-                        </label>
+                    {/* HÌNH THỨC ĐIỀU TRỊ - SINGLE DROP DOWN */}
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
+                      <select
+                        value={formData.treatmentType || 'Ngoại trú'}
+                        onChange={(e) => handleTreatmentTypeChange(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800 cursor-pointer"
+                      >
+                        <option value="Ngoại trú">Ngoại trú</option>
+                        <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
+                        <option value="Nội trú/ICU">Nội trú/ICU</option>
+                        <option value="Ngoài viện">Ngoài viện</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
+                      <div className="relative">
+                        <input 
+                          type="text" 
+                          value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
+                          onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
+                          placeholder="0"
+                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
+                        />
+                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full md:col-span-2 lg:col-span-3">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
-                        <div className="relative">
-                          <input 
-                            type="text" 
-                            value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
-                            onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
-                            placeholder="0"
-                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
-                          />
-                          <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
-                        </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
+                      <div className="relative">
+                        <input 
+                          type="text" 
+                          value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
+                          onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
+                          placeholder="0"
+                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
+                        />
+                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
                       </div>
+                    </div>
 
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
-                        <div className="relative">
-                          <input 
-                            type="text" 
-                            value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
-                            onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
-                            placeholder="0"
-                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
-                          />
-                          <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-655 block">Thuốc/vacxin</label>
-                        <div className="relative">
-                          <input 
-                            type="text" 
-                            value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
-                            onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
-                            placeholder="0"
-                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
-                          />
-                          <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
-                        </div>
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-655 block">Thuốc/vacxin</label>
+                      <div className="relative">
+                        <input 
+                          type="text" 
+                          value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
+                          onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
+                          placeholder="0"
+                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
+                        />
+                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
                       </div>
                     </div>
 
@@ -2209,7 +2218,7 @@ export default function App() {
 
                         <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
                           <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
-                          <span className="text-lg font-black text-emerald-400 font-mono">
+                          <span className="text-lg font-black text-emerald-450 font-mono">
                             {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
                           </span>
                         </div>
@@ -2278,7 +2287,6 @@ export default function App() {
           </form>
         )}
 
-        {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ ========================== */}
         {activeTab === 'monitoring' && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -2413,7 +2421,7 @@ export default function App() {
                                 </span>
                               </td>
                               <td className="py-4 px-3">
-                                <div className="text-slate-500 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
+                                <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
                                 <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1 ${pSite.bg}`}>
                                   {pSite.label}
                                 </div>
@@ -2435,7 +2443,7 @@ export default function App() {
                                 {formatCurrency(p.totalAmount)}
                               </td>
                               <td className="py-4 px-3 text-right">
-                                <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
+                                <div className="font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</div>
                                 <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
                               </td>
                               <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
@@ -2852,7 +2860,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.3</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.4</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
