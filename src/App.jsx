@@ -61,7 +61,9 @@ import {
   Scan,
   Smartphone,
   Copy,
-  History
+  History,
+  ChevronLeft,
+  User
 } from 'lucide-react';
 
 const defaultFirebaseConfig = {
@@ -112,6 +114,8 @@ const mockStaffAccounts = [
   { uid: "acc_admin", email: "admin@vip.com", name: "Nguyễn Minh Trí", title: "IT Admin", role: "admin", pass: "CSKH@abc456" },
   { uid: "acc_lanhdao", email: "lanhdao@vip.com", name: "Trần Thế Phương", title: "Thành viên HĐQT", role: "lanhdao", pass: "CSKH@abc456" },
   { uid: "acc_quanly", email: "quanly@vip.com", name: "Lê Thu Thảo", title: "Quản Lý Chăm Sóc VIP", role: "quanly", pass: "CSKH@abc456" },
+  { uid: "acc_qlsite_tsh", email: "qlsite_tsh@vip.com", name: "Trần Tuấn Kiệt", title: "Quản Lý Site Sơn Hòa", role: "quanly_site", pass: "CSKH@abc456" },
+  { uid: "acc_qlsite_th", email: "qlsite_th@vip.com", name: "Lâm Thùy Dương", title: "Quản Lý Site Tân Hưng", role: "quanly_site", pass: "CSKH@abc456" },
   { uid: "acc_nhanvien", email: "nhanvien@vip.com", name: "Phạm Hoàng Nam", title: "Lễ Tân Phòng Khám VIP", role: "nhanvien", pass: "CSKH@abc456" }
 ];
 
@@ -176,7 +180,10 @@ const defaultSystemSettings = {
 };
 
 const workflowStatuses = [
-  { id: 'Waiting', label: 'Chờ Tiếp Đón', color: 'bg-slate-100 text-slate-700 border-slate-255', dot: 'bg-slate-400' },
+  { id: 'Scheduled', label: 'Đã lên lịch', color: 'bg-sky-50 text-sky-700 border-sky-200/80', dot: 'bg-sky-500' },
+  { id: 'Preparing', label: 'Đang chuẩn bị', color: 'bg-amber-50 text-amber-700 border-amber-200/80', dot: 'bg-amber-500' },
+  { id: 'ReceivedInfo', label: 'Đã nhận thông tin', color: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500' },
+  { id: 'Waiting', label: 'Chờ Tiếp Đón', color: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-400' },
   { id: 'Received', label: 'Đã Tiếp Đón', color: 'bg-indigo-50 text-indigo-700 border-indigo-200/80', dot: 'bg-indigo-500' },
   { id: 'Examining', label: 'Đang Khám', color: 'bg-blue-50 text-blue-700 border-blue-200/80', dot: 'bg-blue-500' },
   { id: 'Testing', label: 'Đang Làm CLS/CĐHA', color: 'bg-amber-50 text-amber-700 border-amber-200/80', dot: 'bg-amber-500' },
@@ -223,6 +230,9 @@ export default function App() {
   const [filterDate, setFilterDate] = useState('');
   const [filterSite, setFilterSite] = useState('');
 
+  const [calendarMode, setCalendarMode] = useState('list'); // 'list' | 'week' | 'month'
+  const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
+
   const [currentId, setCurrentId] = useState(null);
   const [formRightTab, setFormRightTab] = useState('billing');
   const [leftFormTab, setLeftFormTab] = useState('visitHistory');
@@ -251,6 +261,7 @@ export default function App() {
     totalAmount: 0,
     approvalImages: [],
     status: 'Waiting',
+    recipients: [], // array of assigned staff UIDs
     history: []
   });
 
@@ -273,7 +284,20 @@ export default function App() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const triggerPushAlert = (title, message, type = 'info') => {
+  const triggerPushAlert = (title, message, dataRecipients = [], type = 'info') => {
+    // If targeted recipients exist, only notify assigned staff or general managers/admins
+    const hasTargetedRecipients = Array.isArray(dataRecipients) && dataRecipients.length > 0;
+    
+    if (currentUser) {
+      const isManagerOrAdmin = ['admin', 'lanhdao', 'quanly'].includes(currentUser.role);
+      const isAssigned = hasTargetedRecipients && dataRecipients.includes(currentUser.uid);
+      
+      if (hasTargetedRecipients && !isManagerOrAdmin && !isAssigned) {
+        // Skip alert for this user since they are not assigned and not a manager/admin
+        return;
+      }
+    }
+
     const id = Date.now() + Math.random().toString(36).substr(2, 9);
     const newAlert = { id, title, message, type };
     
@@ -410,6 +434,7 @@ export default function App() {
       totalAmount: 0,
       approvalImages: [],
       status: 'Waiting',
+      recipients: [],
       history: []
     });
   };
@@ -694,7 +719,8 @@ export default function App() {
             if (change.type === "added") {
               triggerPushAlert(
                 `🆕 Tiếp nhận khách ${data.tier}`,
-                `Bệnh nhân: ${data.name} (PID: ${data.pid}) đã được tiếp đón trạng thái: ${statusLabel}.`,
+                `Bệnh nhân: ${data.name} (PID: ${data.pid}) đã được xếp trạng thái: ${statusLabel}.`,
+                data.recipients || [],
                 'info'
               );
             }
@@ -702,6 +728,7 @@ export default function App() {
               triggerPushAlert(
                 `🔄 Cập nhật hành trình`,
                 `Hồ sơ khách hàng ${data.name} (PID: ${data.pid}) vừa đổi trạng thái sang: ${statusLabel}.`,
+                data.recipients || [],
                 'success'
               );
             }
@@ -709,6 +736,7 @@ export default function App() {
               triggerPushAlert(
                 `⚠️ Gỡ bỏ hồ sơ`,
                 `Hồ sơ của một bệnh nhân VIP vừa bị gỡ khỏi hệ thống.`,
+                data.recipients || [],
                 'error'
               );
             }
@@ -864,103 +892,139 @@ export default function App() {
     });
   };
 
-  const savePatient = async (e) => {
-    e.preventDefault();
-    if (!formData.name.trim()) {
-      showNotification("Họ & Tên khách hàng không được để trống!", "error");
-      return;
-    }
-    if (!formData.pid.trim()) {
-      showNotification("Mã PID là bắt buộc!", "error");
-      return;
-    }
+  const todayStr = new Date().toISOString().split('T')[0];
 
-    const currentHistory = formData.history || [];
-    let newLog = {};
-    if (currentId) {
-      newLog = {
-        timestamp: new Date().toISOString(),
-        action: "Cập nhật thông tin hồ sơ",
-        user: currentUser.name
-      };
-    } else {
-      newLog = {
-        timestamp: new Date().toISOString(),
-        action: "Tiếp đón khởi tạo hành trình",
-        user: currentUser.name
-      };
-    }
+  const isFutureOrPreArrival = (patient) => {
+    const isPreArrivalStatus = ['Scheduled', 'Preparing', 'ReceivedInfo'].includes(patient.status);
+    const isFutureDate = patient.date > todayStr;
+    return isPreArrivalStatus || isFutureDate;
+  };
 
-    let payload = {
-      ...formData,
-      status: formData.status || 'Waiting',
-      updatedAt: new Date().toISOString(),
-      updatedBy: currentUser.name,
-      history: [...currentHistory, newLog]
+  const isUserAssignedToPatient = (patient) => {
+    if (!currentUser) return false;
+    if (Array.isArray(patient.recipients) && patient.recipients.includes(currentUser.uid)) {
+      return true;
+    }
+    return false;
+  };
+
+  const visiblePatients = useMemo(() => {
+    return patients.filter(p => {
+      // General view limit for standard staff & site managers
+      if (currentUser && ['nhanvien', 'quanly_site'].includes(currentUser.role)) {
+        if (isFutureOrPreArrival(p)) {
+          return isUserAssignedToPatient(p);
+        }
+      }
+      return true;
+    });
+  }, [patients, currentUser]);
+
+  const filteredPatients = useMemo(() => {
+    return visiblePatients.filter(p => {
+      const matchSearch = 
+        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.pid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.boardApproval?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchSpecialty = !filterSpecialty || p.specialties?.includes(filterSpecialty);
+      const matchTier = !filterTier || p.tier === filterTier;
+      const matchDate = !filterDate || p.date === filterDate;
+      const matchSite = !filterSite || p.site === filterSite;
+
+      return matchSearch && matchSpecialty && matchTier && matchDate && matchSite;
+    });
+  }, [visiblePatients, searchTerm, filterSpecialty, filterTier, filterDate, filterSite]);
+
+  const metrics = useMemo(() => {
+    let totalPatients = filteredPatients.length;
+    let vipCount = filteredPatients.filter(p => p.tier === 'VIP').length;
+    let vvipCount = filteredPatients.filter(p => p.tier === 'VVIP').length;
+    let totalRevenue = filteredPatients.reduce((sum, p) => sum + (p.totalAmount || 0), 0);
+    let totalDiscount = filteredPatients.reduce((sum, p) => sum + (p.approvedDiscountAmount || 0), 0);
+    let totalCollected = filteredPatients.reduce((sum, p) => sum + Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0)), 0);
+
+    return { totalPatients, vipCount, vvipCount, totalRevenue, totalDiscount, totalCollected };
+  }, [filteredPatients]);
+
+  const kanbanPatients = useMemo(() => {
+    return visiblePatients.filter(p => {
+      const isToday = p.date === todayStr;
+      const isNotCompleted = p.status !== 'Completed';
+      const matchDate = !filterDate ? (isToday || isNotCompleted) : p.date === filterDate;
+      const matchSite = !filterSite || p.site === filterSite;
+      return matchDate && matchSite;
+    });
+  }, [visiblePatients, filterDate, filterSite, todayStr]);
+
+  const unreadCount = useMemo(() => {
+    return notifications.filter(n => !n.read).length;
+  }, [notifications]);
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+  };
+
+  const weekDays = useMemo(() => {
+    const startOfWeek = new Date(currentCalendarDate);
+    const day = startOfWeek.getDay();
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    startOfWeek.setDate(diff);
+
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const nextDay = new Date(startOfWeek);
+      nextDay.setDate(startOfWeek.getDate() + i);
+      days.push(nextDay);
+    }
+    return days;
+  }, [currentCalendarDate]);
+
+  const monthDays = useMemo(() => {
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1; // standard Mon-Sun index
+    const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const days = [];
+    // Pad previous month days
+    for (let i = 0; i < adjustedFirstDayIndex; i++) {
+      days.push(null);
+    }
+    // Current month days
+    for (let i = 1; i <= totalDaysInMonth; i++) {
+      days.push(new Date(year, month, i));
+    }
+    return days;
+  }, [currentCalendarDate]);
+
+  const briefingStats = useMemo(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    const tomorrowPatients = visiblePatients.filter(p => p.date === tomorrowStr);
+    
+    // Next 7 days (exclusive of tomorrow)
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 8);
+    const sevenDaysStr = sevenDaysFromNow.toISOString().split('T')[0];
+
+    const nextWeekPatients = visiblePatients.filter(p => p.date > tomorrowStr && p.date <= sevenDaysStr);
+
+    return {
+      tomorrowPatients,
+      nextWeekCount: nextWeekPatients.length,
+      tomorrowDateFormatted: tomorrow.toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' })
     };
-
-    if (formData.tier === 'VIP') {
-      payload = {
-        ...payload,
-        phiKham: 0,
-        clsCdha: 0,
-        thuocVacxin: 0,
-        insuranceAdvance: 0,
-        discountRate: 0,
-        approvedDiscountAmount: 0,
-        totalAmount: 0
-      };
-    }
-
-    const firstImg = payload.approvalImages && payload.approvalImages.length > 0 ? payload.approvalImages[0] : '';
-    payload.approvalImage = firstImg;
-
-    try {
-      if (isFirebaseConnected && db) {
-        const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
-        if (currentId) {
-          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payload);
-          showNotification("Cập nhật thành công!");
-        } else {
-          await addDoc(patientsCol, { ...payload, createdAt: new Date().toISOString() });
-          showNotification("Đăng ký thành công!");
-        }
-      } else {
-        let updatedList = [...patients];
-        if (currentId) {
-          updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
-          showNotification("Cập nhật thành công!");
-        } else {
-          const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
-          updatedList.unshift(newDoc);
-          showNotification("Đã lưu hồ sơ thành công!");
-        }
-        setPatients(updatedList);
-        localStorage.setItem('local_patients', JSON.stringify(updatedList));
-      }
-      resetForm();
-      setActiveTab('monitoring');
-    } catch (err) {
-      console.warn(err);
-      let updatedList = [...patients];
-      if (currentId) {
-        updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
-        showNotification("Đã lưu cập nhật vào thiết bị (Chế độ Dự Phòng)!");
-      } else {
-        const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
-        updatedList.unshift(newDoc);
-        showNotification("Đã lưu hồ sơ mới vào thiết bị (Chế độ Dự Phòng)!");
-      }
-      setPatients(updatedList);
-      localStorage.setItem('local_patients', JSON.stringify(updatedList));
-      resetForm();
-      setActiveTab('monitoring');
-    }
-  };
-
-  const handleLoginSubmit = (e) => {
-    handleLogin(e);
-  };
+  }, [visiblePatients]);
 
   const initiateEdit = (patient) => {
     setCurrentId(patient.id);
@@ -995,6 +1059,7 @@ export default function App() {
       totalAmount: patient.totalAmount || 0,
       approvalImages: patient.approvalImages || (patient.approvalImage ? [patient.approvalImage] : []),
       status: patient.status || 'Waiting',
+      recipients: patient.recipients || [],
       history: patient.history || []
     });
     setActiveTab('register');
@@ -1049,9 +1114,9 @@ export default function App() {
         });
         setPatients(updatedList);
         localStorage.setItem('local_patients', JSON.stringify(updatedList));
-        triggerPushAlert("🔄 Cập nhật hành trình (Cục bộ)", `Khách hàng ${patient.name} đã được cập nhật trạng thái mới.`, "success");
+        triggerPushAlert("🔄 Cập nhật hành trình (Cục bộ)", `Khách hàng ${patient.name} đã được cập nhật trạng thái mới.`, patient.recipients || [], "success");
       }
-      showNotification("Đã cập nhật trạng thái hành trình khám!");
+      showNotification("Đã cập nhật trạng thái hành trình!");
     } catch (err) {
       console.error(err);
       showNotification("Lỗi đồng bộ trạng thái lên database!", "error");
@@ -1072,7 +1137,8 @@ export default function App() {
       capCuu: visit.capCuu !== undefined ? visit.capCuu : (visit.treatmentType === 'Cấp cứu/Daycare'),
       noiTru: visit.noiTru !== undefined ? visit.noiTru : (visit.treatmentType === 'Nội trú/ICU'),
       ngoaiVien: visit.ngoaiVien !== undefined ? visit.ngoaiVien : (visit.treatmentType === 'Ngoài viện'),
-      approvalImages: previousImages
+      approvalImages: previousImages,
+      recipients: visit.recipients || []
     }));
     showNotification("Đã sao chép lịch sử thăm khám cũ kèm chứng từ phê duyệt!");
     setCopyConfirmModal({ show: false, visitToCopy: null });
@@ -1203,131 +1269,27 @@ export default function App() {
     showNotification("Phương thức tính miễn giảm đã thay đổi!");
   };
 
-  const filteredPatients = useMemo(() => {
-    return patients.filter(p => {
-      const matchSearch = 
-        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.pid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.boardApproval?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.notes?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchSpecialty = !filterSpecialty || p.specialties?.includes(filterSpecialty);
-      const matchTier = !filterTier || p.tier === filterTier;
-      const matchDate = !filterDate || p.date === filterDate;
-      const matchSite = !filterSite || p.site === filterSite;
-
-      return matchSearch && matchSpecialty && matchTier && matchDate && matchSite;
+  const handleToggleRecipient = (uid) => {
+    setFormData(prev => {
+      const exist = prev.recipients || [];
+      const updated = exist.includes(uid) ? exist.filter(id => id !== uid) : [...exist, uid];
+      return { ...prev, recipients: updated };
     });
-  }, [patients, searchTerm, filterSpecialty, filterTier, filterDate, filterSite]);
-
-  const metrics = useMemo(() => {
-    let totalPatients = filteredPatients.length;
-    let vipCount = filteredPatients.filter(p => p.tier === 'VIP').length;
-    let vvipCount = filteredPatients.filter(p => p.tier === 'VVIP').length;
-    let totalRevenue = filteredPatients.reduce((sum, p) => sum + (p.totalAmount || 0), 0);
-    let totalDiscount = filteredPatients.reduce((sum, p) => sum + (p.approvedDiscountAmount || 0), 0);
-    let totalCollected = filteredPatients.reduce((sum, p) => sum + Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0)), 0);
-
-    return { totalPatients, vipCount, vvipCount, totalRevenue, totalDiscount, totalCollected };
-  }, [filteredPatients]);
-
-  const kanbanPatients = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
-    return patients.filter(p => {
-      const isToday = p.date === today;
-      const isNotCompleted = p.status !== 'Completed';
-      const matchDate = !filterDate ? (isToday || isNotCompleted) : p.date === filterDate;
-      const matchSite = !filterSite || p.site === filterSite;
-      return matchDate && matchSite;
-    });
-  }, [patients, filterDate, filterSite]);
-
-  const unreadCount = useMemo(() => {
-    return notifications.filter(n => !n.read).length;
-  }, [notifications]);
-
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const clearAllNotifications = () => {
-    setNotifications([]);
+  const registrableStaffList = useMemo(() => {
+    return staffList.filter(s => ['nhanvien', 'quanly_site'].includes(s.role));
+  }, [staffList]);
+
+  const handleCalendarNavigate = (direction) => {
+    const nextDate = new Date(currentCalendarDate);
+    if (calendarMode === 'week') {
+      nextDate.setDate(nextDate.getDate() + (direction === 'next' ? 7 : -7));
+    } else if (calendarMode === 'month') {
+      nextDate.setMonth(nextDate.getMonth() + (direction === 'next' ? 1 : -1));
+    }
+    setCurrentCalendarDate(nextDate);
   };
-
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-gradient-to-tr from-slate-100 via-indigo-50/20 to-slate-200 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-800">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/5 rounded-full filter blur-3xl -translate-x-12 -translate-y-12"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full filter blur-3xl translate-x-12 translate-y-12"></div>
-
-        <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-200 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
-          <div className="text-center space-y-3">
-            <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2.5 shadow-sm border border-slate-200 mx-auto">
-              <img 
-                src="https://iili.io/F66acRs.png" 
-                alt="Hospital Logo" 
-                className="w-full h-full object-contain" 
-              />
-            </div>
-            <div className="space-y-1">
-              <h1 className="text-2xl font-black tracking-tight text-slate-900">
-                QL KH VIP-VVIP
-              </h1>
-              <p className="text-xs text-slate-400 font-semibold tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
-            </div>
-          </div>
-
-          {authError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 text-center font-bold flex items-center gap-1.5 justify-center">
-              <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-500" />
-              {authError}
-            </div>
-          )}
-
-          <form onSubmit={handleLoginSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email </label>
-              <input 
-                type="email" 
-                placeholder="nhập email tại đây"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
-              />
-            </div>
-            
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu</label>
-              <div className="relative">
-                <input 
-                  type={showPassword ? "text" : "password"} 
-                  placeholder="••••••••"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full pl-4 pr-10 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <button 
-              type="submit" 
-              className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
-            >
-              <Lock className="w-4 h-4" /> Xác thực
-            </button>
-          </form>
-
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
@@ -1389,7 +1351,7 @@ export default function App() {
               <h3 className="text-base font-extrabold text-slate-955">Xác nhận sao chép lịch sử</h3>
             </div>
             <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-              Hệ thống sẽ tự động điền sẵn các thông tin cũ (gồm Chuyên khoa, Site khám, Khu vực khám, Chỉ đạo phê duyệt, Ghi chú và mảng chứng từ đính kèm) của lượt thăm khám trước vào biểu mẫu hiện tại để bạn có thể xem lại hoặc chỉnh sửa trước khi đăng ký lượt tiếp đón mới. Bạn có chắc chắn muốn thực hiện không?
+              Hệ thống sẽ tự động điền sẵn các thông tin cũ (gồm Chuyên khoa, Site khám, Khu vực khám, Chỉ đạo phê duyệt, Ghi chú và chứng từ đính kèm) của lượt thăm khám trước vào biểu mẫu hiện tại để bạn có thể xem lại hoặc chỉnh sửa trước khi đăng ký lượt tiếp đón mới. Bạn có chắc chắn muốn thực hiện không?
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button 
@@ -1592,7 +1554,7 @@ export default function App() {
                 <ClipboardList className="w-4 h-4" /> Theo dõi hồ sơ
               </button>
 
-              {(userRole === 'admin' || userRole === 'lanhdao') && (
+              {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
                 <button 
                   onClick={() => setActiveTab('settings')}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
@@ -1725,7 +1687,7 @@ export default function App() {
           <ClipboardList className="w-5 h-5" />
           <span>Theo dõi hồ sơ</span>
         </button>
-        {(userRole === 'admin' || userRole === 'lanhdao') && (
+        {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
           <button 
             onClick={() => setActiveTab('settings')}
             className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'}`}
@@ -1739,31 +1701,64 @@ export default function App() {
       {}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
+        {/* ========================== GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN ========================== */}
         {activeTab === 'dashboard' && (
           <div className="space-y-8 animate-fadeIn">
             
-            {(userRole === 'admin' || userRole === 'lanhdao') && iosNotificationStatus !== 'granted' && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-sm">
-                <div className="flex gap-3 items-start">
-                  <div className="p-2 bg-amber-100 text-amber-800 rounded-xl mt-0.5 border border-amber-200">
-                    <Smartphone className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 uppercase">Chưa kích hoạt cảnh báo ngầm thiết bị</h4>
-                    <p className="text-[11px] text-slate-500 mt-0.5 font-semibold leading-relaxed">
-                      Để nhận thông báo báo cáo ca VVIP và duyệt chi phí ngay cả khi đóng ứng dụng hoặc khóa màn hình iPhone, bạn cần bấm kích hoạt dưới đây.
+            {/* Smart Daily Briefing - Virtual assistant scheduling widget */}
+            <div className="bg-gradient-to-tr from-[#312e81] via-[#4338ca] to-[#6d28d9] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-indigo-500/30">
+              <div className="absolute right-0 top-0 w-96 h-96 bg-white/5 rounded-full filter blur-3xl opacity-20 translate-x-24 -translate-y-24"></div>
+              
+              <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="space-y-3 max-w-xl">
+                  <span className="px-3 py-1 bg-amber-400 text-[#1e1b4b] rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse">
+                    Trợ lý ảo đón tiếp VIP
+                  </span>
+                  <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight">
+                    Kế Hoạch Chủ Động Cho Ngày Mai & Tuần Tới
+                  </h3>
+                  <div className="space-y-2 text-xs text-indigo-100 font-semibold pt-1">
+                    <p className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                      Ngày mai ({briefingStats.tomorrowDateFormatted}): 
+                      <strong className="text-white ml-1"> {briefingStats.tomorrowPatients.length} ca tiếp đón </strong>
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-sky-400"></span>
+                      Tuần tới: 
+                      <strong className="text-white ml-1"> {briefingStats.nextWeekCount} ca đón tiếp đã lên lịch </strong>
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={requestIosNotificationPermission}
-                  className="w-full sm:w-auto px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black rounded-xl transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1"
-                >
-                  <BellRing className="w-3.5 h-3.5" /> Kích hoạt thông báo
-                </button>
-              </div>
-            )}
 
+                <div className="flex gap-2 w-full md:w-auto">
+                  <button 
+                    onClick={() => {
+                      const tomorrow = new Date();
+                      tomorrow.setDate(tomorrow.getDate() + 1);
+                      setFilterDate(tomorrow.toISOString().split('T')[0]);
+                      setCalendarMode('list');
+                      setActiveTab('monitoring');
+                    }}
+                    className="flex-1 md:flex-none px-5 py-3 bg-white text-indigo-900 hover:bg-indigo-50 text-xs font-black rounded-xl shadow-md transition transform active:scale-95 whitespace-nowrap"
+                  >
+                    Xem lịch ngày mai
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setFilterDate('');
+                      setCalendarMode('week');
+                      setActiveTab('monitoring');
+                    }}
+                    className="flex-1 md:flex-none px-5 py-3 bg-indigo-950/30 border border-indigo-400/30 hover:bg-indigo-950/50 text-white text-xs font-black rounded-xl transition transform active:scale-95 whitespace-nowrap"
+                  >
+                    Mở lịch tuần
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {}
             <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl shadow-slate-100 border border-slate-700">
               <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20"></div>
               <div className="relative z-10 space-y-4 max-w-2xl">
@@ -1787,7 +1782,7 @@ export default function App() {
               </div>
             </div>
 
-            {(userRole === 'admin' || userRole === 'lanhdao') && (
+            {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -1884,6 +1879,7 @@ export default function App() {
                 </div>
               </div>
 
+              {}
               <div className="flex gap-4 overflow-x-auto pb-4 items-stretch select-none">
                 {workflowStatuses.map(col => {
                   const colPatients = kanbanPatients.filter(p => (p.status || 'Waiting') === col.id);
@@ -1971,21 +1967,21 @@ export default function App() {
               </div>
             </div>
 
-            {/* Main portal links */}
+            {/* Quick links footer cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
                 <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                   <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo dõi hồ sơ
                 </h4>
                 <button 
-                  onClick={() => setActiveTab('monitoring')}
+                  onClick={() => { setCalendarMode('list'); setActiveTab('monitoring'); }}
                   className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
                 >
                   Đến bảng giám sát <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
 
-              {(userRole === 'admin' || userRole === 'lanhdao') && (
+              {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
                   <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                     <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống
@@ -2007,6 +2003,7 @@ export default function App() {
         {activeTab === 'register' && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
+            {}
             <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-md">
               <div>
                 <h2 className="text-base font-black text-slate-955 flex items-center gap-1.5">
@@ -2030,12 +2027,10 @@ export default function App() {
               </div>
             </div>
 
-            {}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
               
               <div className="lg:col-span-2 space-y-6">
                 
-                {/* Administrative Card */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -2043,6 +2038,18 @@ export default function App() {
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách hàng *</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nhập họ và tên Khách hàng"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800 animate-fadeIn"
+                        required
+                      />
+                    </div>
+
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">Mã PID *</label>
                       <div className="flex gap-2">
@@ -2060,31 +2067,11 @@ export default function App() {
                             setScannerError('');
                             setIsScanning(true);
                           }}
-                          className="px-3 bg-slate-100 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs"
+                          className="px-3 bg-slate-100 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs border border-slate-200/80"
                         >
                           <Scan className="w-4 h-4 text-slate-500" /> Quét mã
                         </button>
                       </div>
-                      
-                      {/* Matching message updated to minimalist format */}
-                      {matchedPatientProfile && (
-                        <div className="p-2 bg-emerald-50 border border-emerald-200 text-[10px] rounded-xl text-emerald-800 font-extrabold flex items-center gap-1.5 animate-fadeIn">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                          <span>Đã tìm thấy KH {matchedPatientProfile.name}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách hàng *</label>
-                      <input 
-                        type="text" 
-                        placeholder="Nhập họ và tên Khách hàng"
-                        value={formData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800 animate-fadeIn"
-                        required
-                      />
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
@@ -2094,9 +2081,9 @@ export default function App() {
                           type="button"
                           onClick={() => {
                             handleInputChange('tier', 'VIP');
-                            setLeftFormTab(patientVisitHistory.length > 0 ? 'visitHistory' : 'timeline');
+                            setFormRightTab('timeline');
                           }}
-                          className={`py-3 px-4 rounded-2xl border transition-all duration-200 text-left flex flex-col justify-center h-16 ${
+                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 ${
                             formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
@@ -2106,9 +2093,9 @@ export default function App() {
                           type="button"
                           onClick={() => {
                             handleInputChange('tier', 'VVIP');
-                            setLeftFormTab('visitHistory');
+                            setFormRightTab('billing');
                           }}
-                          className={`py-3 px-4 rounded-2xl border transition-all duration-200 text-left flex flex-col justify-center h-16 ${
+                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 ${
                             formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
@@ -2136,7 +2123,7 @@ export default function App() {
                             type="button"
                             onClick={() => handleInputChange('site', s.label)}
                             className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center ${
-                              formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-555 hover:bg-slate-55/50'
+                              formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
                             }`}
                           >
                             {s.label}
@@ -2145,7 +2132,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Area selection with 'Ưu tiên' word removed */}
+                    {/* SELECT EXAMINATION AREA */}
                     <div className="space-y-1.5 md:col-span-2 animate-fadeIn">
                       <label className="text-xs font-bold text-slate-600 block">Khu Vực Khám</label>
                       <div className="grid grid-cols-2 gap-3">
@@ -2170,7 +2157,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Kanban original description removed from the label */}
+                    {/* STATUS SELECT */}
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-600 block">Trạng thái</label>
                       <select
@@ -2183,6 +2170,45 @@ export default function App() {
                         ))}
                       </select>
                     </div>
+
+                    {/* RECIPIENTS DESIGNATED ASSIGNMENT - Pre-arrival setup widget */}
+                    {['Scheduled', 'Preparing', 'ReceivedInfo'].includes(formData.status) && (
+                      <div className="space-y-2 md:col-span-2 p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl animate-fadeIn">
+                        <label className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+                          <UserCheck className="w-4.5 h-4.5 text-indigo-600" /> Nhân Sự Đón Tiếp Chỉ Định *
+                        </label>
+                        <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                          Chọn lễ tân hoặc quản lý site chịu trách nhiệm chuẩn bị và nắm thông tin hành trình đón khách này:
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                          {registrableStaffList.map(staff => {
+                            const isAssigned = (formData.recipients || []).includes(staff.uid);
+                            return (
+                              <button
+                                key={staff.uid}
+                                type="button"
+                                onClick={() => handleToggleRecipient(staff.uid)}
+                                className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition ${
+                                  isAssigned 
+                                    ? 'bg-white border-indigo-600 text-indigo-900 shadow-2xs font-extrabold' 
+                                    : 'bg-white/40 border-slate-200 text-slate-600 hover:bg-white'
+                                }`}
+                              >
+                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                  isAssigned ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                                }`}>
+                                  {isAssigned && <Check className="w-2.5 h-2.5 text-white stroke-[3px]" />}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-xs truncate">{staff.name}</div>
+                                  <div className="text-[9px] text-slate-400 font-medium truncate uppercase">{staff.role} • {staff.title}</div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-600 block">HĐQT Phê Duyệt/Chỉ đạo</label>
@@ -2226,7 +2252,8 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* RELOCATED: Tab interface for Visitation History and Timeline now positioned underneath Administrative Info */}
+                {}
+                {/* Lịch sử tiếp đón & Timeline block directly placed below administrative details */}
                 {(patientVisitHistory.length > 0 || (formData.history && formData.history.length > 0)) && (
                   <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
                     <div className="flex border-b border-slate-100 pb-2 overflow-x-auto gap-2">
@@ -2412,6 +2439,7 @@ export default function App() {
                   )}
                 </div>
 
+                {}
                 {formData.tier === 'VVIP' && (
                   <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
@@ -2621,7 +2649,7 @@ export default function App() {
           </form>
         )}
 
-        {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ ========================== */}
+        {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ & BỘ LỊCH ========================== */}
         {activeTab === 'monitoring' && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -2639,359 +2667,531 @@ export default function App() {
               </button>
             </div>
 
-            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-              <div className="flex flex-col md:flex-row gap-3">
-                <div className="flex-1 relative">
-                  <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Tìm theo tên, mã PID, ghi chú..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-xs font-bold bg-white"
-                  />
-                </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  <select 
-                    value={filterTier}
-                    onChange={(e) => setFilterTier(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
-                  >
-                    <option value="">Tất cả hạng</option>
-                    <option value="VIP">VIP</option>
-                    <option value="VVIP">VVIP</option>
-                  </select>
-
-                  <select 
-                    value={filterSpecialty}
-                    onChange={(e) => setFilterSpecialty(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
-                  >
-                    <option value="">Tất cả chuyên khoa</option>
-                    {systemSettings.specialties.map((spec, idx) => (
-                      <option key={idx} value={spec}>{spec}</option>
-                    ))}
-                  </select>
-
-                  <select 
-                    value={filterSite}
-                    onChange={(e) => setFilterSite(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
-                  >
-                    <option value="">Tất cả Site</option>
-                    {sites.map(s => (
-                      <option key={s.id} value={s.label}>{s.label}</option>
-                    ))}
-                  </select>
-
-                  <input 
-                    type="date"
-                    value={filterDate}
-                    onChange={(e) => setFilterDate(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
-                  />
-
-                  {(searchTerm || filterTier || filterSpecialty || filterDate || filterSite) && (
-                    <button 
-                      onClick={() => { setSearchTerm(''); setFilterTier(''); setFilterSpecialty(''); setFilterDate(''); setFilterSite(''); }}
-                      className="px-3 py-2 text-rose-500 hover:bg-rose-50 rounded-xl text-xs font-bold transition"
-                    >
-                      Xóa lọc
-                    </button>
-                  )}
-                </div>
+            {/* Segmented controls for List view, Week view, Month view */}
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex justify-between items-center flex-wrap gap-3">
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                <button 
+                  onClick={() => setCalendarMode('list')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'list' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Dạng Danh Sách
+                </button>
+                <button 
+                  onClick={() => { setCalendarMode('week'); setCurrentCalendarDate(new Date()); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'week' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Lịch Tuần Động
+                </button>
+                <button 
+                  onClick={() => { setCalendarMode('month'); setCurrentCalendarDate(new Date()); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'month' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Lịch Tháng Chi Tiết
+                </button>
               </div>
+
+              {/* Navigation buttons for calendar grids */}
+              {calendarMode !== 'list' && (
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => handleCalendarNavigate('prev')}
+                    className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs font-extrabold text-slate-800 min-w-[120px] text-center">
+                    {calendarMode === 'week' ? (
+                      `Tuần ${formatDateVN(weekDays[0].toISOString().split('T')[0])}`
+                    ) : (
+                      `Tháng ${currentCalendarDate.getMonth() + 1} / ${currentCalendarDate.getFullYear()}`
+                    )}
+                  </span>
+                  <button 
+                    onClick={() => handleCalendarNavigate('next')}
+                    className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
 
-            {isLoading ? (
-              <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
-                <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
-                <p className="text-slate-400 font-semibold text-xs animate-pulse">Đang cập nhật...</p>
-              </div>
-            ) : filteredPatients.length === 0 ? (
-              <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
-                <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto text-slate-400">
-                  <ClipboardList className="w-8 h-8" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy gì hết nè</h3>
-                  <p className="text-slate-400 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
-                </div>
-              </div>
-            ) : (
-              <>
-                {}
-                <div className="hidden lg:block bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-[10px] text-slate-400 font-black uppercase tracking-wider">
-                          <th className="py-4 px-5">PID / Khách Hàng</th>
-                          <th className="py-4 px-3">Phân hạng</th>
-                          <th className="py-4 px-3">Ngày Khám / Site / Khu vực</th>
-                          <th className="py-4 px-3">Chuyên Khoa</th>
-                          <th className="py-4 px-3">HĐQT Chỉ Đạo</th>
-                          <th className="py-4 px-3 text-right">Tổng Chi Phí</th>
-                          <th className="py-4 px-3 text-right">Duyệt Giảm</th>
-                          <th className="py-4 px-3 text-right">Thực Thu</th>
-                          <th className="py-4 px-5 text-right">Tác vụ</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200 text-xs">
-                        {filteredPatients.map((p) => {
-                          const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
-                          const pSite = sites.find(s => s.label === p.site) || sites[0];
-                          return (
-                            <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 animate-fadeIn">
-                              <td className="py-4 px-5">
-                                <div className="font-extrabold text-slate-955 text-sm">{p.name}</div>
-                                <div className="text-[10px] text-indigo-600 font-mono font-black mt-0.5">PID: {p.pid}</div>
-                              </td>
-                              <td className="py-4 px-3">
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${
-                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                                }`}>
-                                  <Sparkles className="w-3 h-3" />
-                                  {p.tier}
-                                </span>
-                              </td>
-                              <td className="py-4 px-3">
-                                <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
-                                    {pSite.label}
-                                  </div>
-                                  <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
-                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
-                                  }`}>
-                                    {p.examinationArea || 'Khu VIP'}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-4 px-3">
-                                <div className="flex flex-wrap gap-1 max-w-[180px]">
-                                  {p.specialties?.map((s, idx) => (
-                                    <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded font-bold">
-                                      {s}
-                                    </span>
-                                  ))}
-                                </div>
-                              </td>
-                              <td className="py-4 px-3">
-                                <div className="font-bold text-slate-700">{p.boardApproval || '---'}</div>
-                                {p.notes && <div className="text-[10px] text-slate-400 max-w-[150px] truncate" title={p.notes}>{p.notes}</div>}
-                              </td>
-                              <td className="py-4 px-3 text-right font-bold text-slate-900 font-mono">
-                                {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Thanh toán quầy</span> : formatCurrency(p.totalAmount)}
-                              </td>
-                              <td className="py-4 px-3 text-right">
-                                {p.tier === 'VIP' ? (
-                                  <span className="text-slate-400 font-sans text-[10px]">---</span>
-                                ) : (
-                                  <>
-                                    <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
-                                    <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
-                                  </>
-                                )}
-                              </td>
-                              <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
-                                {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Hóa đơn gốc</span> : formatCurrency(realCollected)}
-                              </td>
-                              <td className="py-4 px-5 text-right whitespace-nowrap">
-                                <div className="flex justify-end gap-1.5">
-                                  {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
-                                    <button 
-                                      onClick={() => {
-                                        const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
-                                        setLightboxImages(imgs);
-                                        setLightboxIndex(0);
-                                      }}
-                                      className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl transition" 
-                                      title="Ảnh duyệt"
-                                    >
-                                      <ImageIcon className="w-4 h-4" />
-                                    </button>
-                                  )}
-                                  <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
-                                    <Edit3 className="w-4 h-4" />
-                                  </button>
-                                  
-                                  {userRole !== 'nhanvien' ? (
-                                    <button 
-                                      onClick={() => {
-                                        setConfirmModal({
-                                          show: true,
-                                          title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
-                                          message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
-                                          action: async () => {
-                                            try {
-                                              if (isFirebaseConnected && db) {
-                                                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
-                                                showNotification("Đã xóa hồ sơ thành công!");
-                                              } else {
-                                                const updated = patients.filter(item => item.id !== p.id);
-                                                setPatients(updated);
-                                                localStorage.setItem('local_patients', JSON.stringify(updated));
-                                                showNotification("Đã xóa hồ sơ cục bộ!");
-                                              }
-                                              setConfirmModal({ show: false, action: null, message: '', title: '' });
-                                            } catch (err) {
-                                              console.error(err);
-                                            }
-                                          }
-                                        });
-                                      }} 
-                                      className="p-1.5 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" 
-                                      title="Xóa"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  ) : (
-                                    <span className="p-1.5 text-slate-300 cursor-not-allowed">
-                                      <Lock className="w-4 h-4" />
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+            {}
+            {calendarMode === 'list' && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="flex-1 relative">
+                    <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Tìm theo tên, mã PID, ghi chú..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-xs font-bold bg-white"
+                    />
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <select 
+                      value={filterTier}
+                      onChange={(e) => setFilterTier(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    >
+                      <option value="">Tất cả hạng</option>
+                      <option value="VIP">VIP</option>
+                      <option value="VVIP">VVIP</option>
+                    </select>
+
+                    <select 
+                      value={filterSpecialty}
+                      onChange={(e) => setFilterSpecialty(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    >
+                      <option value="">Tất cả chuyên khoa</option>
+                      {systemSettings.specialties.map((spec, idx) => (
+                        <option key={idx} value={spec}>{spec}</option>
+                      ))}
+                    </select>
+
+                    <select 
+                      value={filterSite}
+                      onChange={(e) => setFilterSite(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    >
+                      <option value="">Tất cả Site</option>
+                      {sites.map(s => (
+                        <option key={s.id} value={s.label}>{s.label}</option>
+                      ))}
+                    </select>
+
+                    <input 
+                      type="date"
+                      value={filterDate}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    />
+
+                    {(searchTerm || filterTier || filterSpecialty || filterDate || filterSite) && (
+                      <button 
+                        onClick={() => { setSearchTerm(''); setFilterTier(''); setFilterSpecialty(''); setFilterDate(''); setFilterSite(''); }}
+                        className="px-3 py-2 text-rose-500 hover:bg-rose-50 rounded-xl text-xs font-bold transition"
+                      >
+                        Xóa lọc
+                      </button>
+                    )}
                   </div>
                 </div>
+              </div>
+            )}
 
-                {/* Mobile portrait view elements list */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
-                  {filteredPatients.map((p) => {
-                    const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
-                    const pSite = sites.find(s => s.label === p.site) || sites[0];
+            {/* WEEK VIEW CALENDAR GRID */}
+            {calendarMode === 'week' && (
+              <div className="grid grid-cols-1 md:grid-cols-7 gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm overflow-x-auto min-w-full">
+                {weekDays.map((day, idx) => {
+                  const dateStr = day.toISOString().split('T')[0];
+                  const dayPatients = visiblePatients.filter(p => p.date === dateStr);
+                  const isCurrentToday = dateStr === todayStr;
+
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`p-3 rounded-2xl border min-h-[220px] flex flex-col space-y-3 ${
+                        isCurrentToday ? 'bg-indigo-50/40 border-indigo-200' : 'bg-slate-50/40 border-slate-150'
+                      }`}
+                    >
+                      <div className="text-center pb-2 border-b border-slate-250">
+                        <span className="text-[10px] uppercase font-black text-slate-400 block">
+                          {day.toLocaleDateString('vi-VN', { weekday: 'short' })}
+                        </span>
+                        <span className={`text-sm font-extrabold font-mono inline-block px-2 py-0.5 rounded-full ${
+                          isCurrentToday ? 'bg-indigo-600 text-white' : 'text-slate-800'
+                        }`}>
+                          {day.getDate()}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 space-y-2 overflow-y-auto max-h-[300px]">
+                        {dayPatients.length === 0 ? (
+                          <div className="text-center text-[10px] text-slate-300 font-bold pt-8">Không có ca</div>
+                        ) : (
+                          dayPatients.map(p => (
+                            <div 
+                              key={p.id}
+                              onClick={() => initiateEdit(p)}
+                              className="p-2 bg-white border border-slate-200 rounded-xl shadow-3xs hover:border-indigo-400 transition cursor-pointer space-y-1 animate-scaleIn text-left"
+                            >
+                              <div className="font-extrabold text-[10px] text-slate-800 truncate">{p.name}</div>
+                              <div className="flex items-center justify-between gap-1 text-[8px] text-slate-400">
+                                <span className="font-mono">PID: {p.pid}</span>
+                                <span className={`px-1 rounded-sm uppercase font-black text-[7px] ${
+                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                                }`}>
+                                  {p.tier}
+                                </span>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* MONTH VIEW CALENDAR GRID */}
+            {calendarMode === 'month' && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-black uppercase text-slate-400 pb-2 border-b border-slate-100">
+                  <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span>
+                </div>
+                
+                <div className="grid grid-cols-7 gap-2">
+                  {monthDays.map((day, idx) => {
+                    if (!day) return <div key={idx} className="aspect-square bg-slate-50/20 rounded-xl border border-transparent"></div>;
+
+                    const dateStr = day.toISOString().split('T')[0];
+                    const dayPatients = visiblePatients.filter(p => p.date === dateStr);
+                    const isCurrentToday = dateStr === todayStr;
+
                     return (
-                      <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
-                            <h4 className="font-extrabold text-slate-900 text-sm">{p.name}</h4>
-                            <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 animate-fadeIn">
-                              <Calendar className="w-3.5 h-3.5" />
-                              Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
-                            </p>
-                            <div className="flex flex-wrap gap-1 mt-1.5">
-                              <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
-                                {pSite.label}
-                              </span>
-                              <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
-                                p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
-                              }`}>
-                                {p.examinationArea || 'Khu VIP'}
-                              </span>
-                            </div>
+                      <div 
+                        key={idx}
+                        onClick={() => {
+                          if (dayPatients.length > 0) {
+                            setFilterDate(dateStr);
+                            setCalendarMode('list');
+                          }
+                        }}
+                        className={`aspect-square p-2 rounded-2xl border flex flex-col justify-between transition-all relative ${
+                          dayPatients.length > 0 ? 'cursor-pointer hover:border-indigo-400 shadow-3xs' : ''
+                        } ${
+                          isCurrentToday ? 'bg-indigo-50/50 border-indigo-200' : 'bg-white border-slate-150'
+                        }`}
+                      >
+                        <span className={`text-[11px] font-black font-mono leading-none ${
+                          isCurrentToday ? 'text-indigo-600 font-black' : 'text-slate-500'
+                        }`}>
+                          {day.getDate()}
+                        </span>
+
+                        {dayPatients.length > 0 && (
+                          <div className="flex gap-1 flex-wrap justify-end">
+                            {dayPatients.slice(0, 3).map((p, pIdx) => (
+                              <span 
+                                key={pIdx} 
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  p.tier === 'VVIP' ? 'bg-amber-400' : 'bg-indigo-500'
+                                }`} 
+                                title={`${p.name} (${p.tier})`}
+                              />
+                            ))}
+                            {dayPatients.length > 3 && (
+                              <span className="text-[7px] text-slate-400 font-bold">+{dayPatients.length - 3}</span>
+                            )}
                           </div>
-                          <span className={`inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[9px] font-black ${
-                            p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
-                          }`}>
-                            {p.tier}
-                          </span>
-                        </div>
-
-                        <div className="flex flex-wrap gap-1">
-                          {p.specialties?.map((s, idx) => (
-                            <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-2.5 py-0.5 rounded font-bold">
-                              {s}
-                            </span>
-                          ))}
-                        </div>
-
-                        <div className="bg-slate-50 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-655">
-                          <div>Phê duyệt/Chỉ đạo: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
-                          {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
-                        </div>
-
-                        {p.tier === 'VVIP' ? (
-                          <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
-                            <div>
-                              <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
-                              <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
-                            </div>
-                            <div>
-                              <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
-                              <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
-                            </div>
-                            <div>
-                              <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
-                              <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
-                            </div>
-                          </div>
-                        ) : null}
-
-                        <div className="flex justify-end gap-2 pt-1">
-                          {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
-                            <button 
-                              type="button"
-                              onClick={() => {
-                                const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
-                                setLightboxImages(imgs);
-                                setLightboxIndex(0);
-                              }}
-                              className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
-                            >
-                              <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
-                            </button>
-                          )}
-                          <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
-                            <Edit3 className="w-3.5 h-3.5" /> Sửa
-                          </button>
-                          
-                          {userRole !== 'nhanvien' && (
-                            <button 
-                              type="button"
-                              onClick={() => {
-                                setConfirmModal({
-                                  title: "Xác nhận gỡ bỏ dữ liệu",
-                                  message: "Bạn có chắc chắn muốn gỡ bỏ vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
-                                  show: true,
-                                  action: async () => {
-                                    try {
-                                      if (isFirebaseConnected && db) {
-                                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
-                                        showNotification("Đã xóa dữ liệu đám mây!");
-                                      } else {
-                                        const updated = patients.filter(item => item.id !== p.id);
-                                        setPatients(updated);
-                                        localStorage.setItem('local_patients', JSON.stringify(updated));
-                                        showNotification("Đã xóa dữ liệu!");
-                                      }
-                                      setConfirmModal({ show: false, action: null, message: '', title: '' });
-                                    } catch (err) {
-                                      console.error(err);
-                                    }
-                                  }
-                                });
-                              }}
-                              className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" /> Xóa
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {}
+            {calendarMode === 'list' && (
+              <>
+                {isLoading ? (
+                  <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
+                    <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+                    <p className="text-slate-400 font-semibold text-xs animate-pulse">Đang cập nhật...</p>
+                  </div>
+                ) : filteredPatients.length === 0 ? (
+                  <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
+                    <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto text-slate-400">
+                      <ClipboardList className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy hồ sơ nào phù hợp</h3>
+                      <p className="text-slate-400 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="hidden lg:block bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-fadeIn">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200 text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                              <th className="py-4 px-5">PID / Khách Hàng</th>
+                              <th className="py-4 px-3">Phân hạng</th>
+                              <th className="py-4 px-3">Ngày Khám / Site / Khu vực</th>
+                              <th className="py-4 px-3">Chuyên Khoa</th>
+                              <th className="py-4 px-3">HĐQT Chỉ Đạo</th>
+                              <th className="py-4 px-3 text-right">Tổng Chi Phí</th>
+                              <th className="py-4 px-3 text-right">Duyệt Giảm</th>
+                              <th className="py-4 px-3 text-right">Thực Thu</th>
+                              <th className="py-4 px-5 text-right">Tác vụ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200 text-xs">
+                            {filteredPatients.map((p) => {
+                              const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
+                              const pSite = sites.find(s => s.label === p.site) || sites[0];
+                              return (
+                                <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 animate-fadeIn">
+                                  <td className="py-4 px-5">
+                                    <div className="font-extrabold text-slate-955 text-sm">{p.name}</div>
+                                    <div className="text-[10px] text-indigo-600 font-mono font-black mt-0.5">PID: {p.pid}</div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${
+                                      p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                                    }`}>
+                                      <Sparkles className="w-3 h-3" />
+                                      {p.tier}
+                                    </span>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
+                                        {pSite.label}
+                                      </div>
+                                      <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
+                                        p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
+                                      }`}>
+                                        {p.examinationArea || 'Khu VIP'}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="flex flex-wrap gap-1 max-w-[180px]">
+                                      {p.specialties?.map((s, idx) => (
+                                        <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded font-bold">
+                                          {s}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="font-bold text-slate-700">{p.boardApproval || '---'}</div>
+                                    {p.notes && <div className="text-[10px] text-slate-400 max-w-[150px] truncate" title={p.notes}>{p.notes}</div>}
+                                  </td>
+                                  <td className="py-4 px-3 text-right font-bold text-slate-900 font-mono">
+                                    {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Thanh toán quầy</span> : formatCurrency(p.totalAmount)}
+                                  </td>
+                                  <td className="py-4 px-3 text-right">
+                                    {p.tier === 'VIP' ? (
+                                      <span className="text-slate-400 font-sans text-[10px]">---</span>
+                                    ) : (
+                                      <>
+                                        <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
+                                        <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
+                                      </>
+                                    )}
+                                  </td>
+                                  <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
+                                    {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Hóa đơn gốc</span> : formatCurrency(realCollected)}
+                                  </td>
+                                  <td className="py-4 px-5 text-right whitespace-nowrap">
+                                    <div className="flex justify-end gap-1.5">
+                                      {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
+                                        <button 
+                                          onClick={() => {
+                                            const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
+                                            setLightboxImages(imgs);
+                                            setLightboxIndex(0);
+                                          }}
+                                          className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl transition" 
+                                          title="Ảnh duyệt"
+                                        >
+                                          <ImageIcon className="w-4 h-4" />
+                                        </button>
+                                      )}
+                                      <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
+                                        <Edit3 className="w-4 h-4" />
+                                      </button>
+                                      
+                                      {userRole !== 'nhanvien' ? (
+                                        <button 
+                                          onClick={() => {
+                                            setConfirmModal({
+                                              show: true,
+                                              title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
+                                              message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+                                              action: async () => {
+                                                try {
+                                                  if (isFirebaseConnected && db) {
+                                                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
+                                                    showNotification("Đã xóa hồ sơ thành công!");
+                                                  } else {
+                                                    const updated = patients.filter(item => item.id !== p.id);
+                                                    setPatients(updated);
+                                                    localStorage.setItem('local_patients', JSON.stringify(updated));
+                                                    showNotification("Đã xóa hồ sơ cục bộ!");
+                                                  }
+                                                  setConfirmModal({ show: false, action: null, message: '', title: '' });
+                                                } catch (err) {
+                                                  console.error(err);
+                                                }
+                                              }
+                                            });
+                                          }} 
+                                          className="p-1.5 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" 
+                                          title="Xóa"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      ) : (
+                                        <span className="p-1.5 text-slate-300 cursor-not-allowed">
+                                          <Lock className="w-4 h-4" />
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {}
+                    {/* Mobile cards rendering */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
+                      {filteredPatients.map((p) => {
+                        const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
+                        const pSite = sites.find(s => s.label === p.site) || sites[0];
+                        return (
+                          <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
+                                <h4 className="font-extrabold text-slate-900 text-sm">{p.name}</h4>
+                                <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 animate-fadeIn">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
+                                </p>
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
+                                    {pSite.label}
+                                  </span>
+                                  <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
+                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
+                                  }`}>
+                                    {p.examinationArea || 'Khu VIP'}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className={`inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[9px] font-black ${
+                                p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                              }`}>
+                                {p.tier}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-wrap gap-1">
+                              {p.specialties?.map((s, idx) => (
+                                <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-2.5 py-0.5 rounded font-bold">
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+
+                            <div className="bg-slate-50 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-655">
+                              <div>Phê duyệt/Chỉ đạo: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
+                              {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
+                            </div>
+
+                            {p.tier === 'VVIP' ? (
+                              <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
+                                <div>
+                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
+                                  <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
+                                  <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
+                                  <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
+                                </div>
+                              </div>
+                            ) : null}
+
+                            <div className="flex justify-end gap-2 pt-1">
+                              {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
+                                    setLightboxImages(imgs);
+                                    setLightboxIndex(0);
+                                  }}
+                                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
+                                >
+                                  <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
+                                </button>
+                              )}
+                              <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
+                                <Edit3 className="w-3.5 h-3.5" /> Sửa
+                              </button>
+                              
+                              {userRole !== 'nhanvien' && (
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    setConfirmModal({
+                                      title: "Xác nhận gỡ bỏ dữ liệu",
+                                      message: "Bạn có chắc chắn muốn gỡ bỏ vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+                                      show: true,
+                                      action: async () => {
+                                        try {
+                                          if (isFirebaseConnected && db) {
+                                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
+                                            showNotification("Đã xóa dữ liệu đám mây!");
+                                          } else {
+                                            const updated = patients.filter(item => item.id !== p.id);
+                                            setPatients(updated);
+                                            localStorage.setItem('local_patients', JSON.stringify(updated));
+                                            showNotification("Đã xóa dữ liệu!");
+                                          }
+                                          setConfirmModal({ show: false, action: null, message: '', title: '' });
+                                        } catch (err) {
+                                          console.error(err);
+                                        }
+                                      }
+                                    });
+                                  }}
+                                  className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" /> Xóa
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>
         )}
 
         {/* ========================== GIAO DIỆN 4: CẤU HÌNH THAM SỐ ========================== */}
-        {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao') && (
+        {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
           <div className="space-y-6 animate-fadeIn">
             
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
               <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
             </div>
 
+            {}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
@@ -3074,7 +3274,6 @@ export default function App() {
 
               </div>
 
-              {}
               <div className="space-y-6">
                 
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
@@ -3094,7 +3293,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleAddSpecialty}
-                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 border border-slate-900 transition flex items-center gap-1"
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center gap-1"
                     >
                       <Plus className="w-4 h-4" /> Thêm
                     </button>
@@ -3116,6 +3315,7 @@ export default function App() {
                   </div>
                 </div>
 
+                {}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -3169,6 +3369,7 @@ export default function App() {
                           className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold cursor-pointer"
                         >
                           <option value="nhanvien">nhanvien</option>
+                          <option value="quanly_site">quanly_site</option>
                           <option value="quanly">quanly</option>
                           <option value="lanhdao">lanhdao</option>
                           <option value="admin">admin</option>
@@ -3221,7 +3422,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.6</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.7</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
