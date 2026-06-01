@@ -59,7 +59,9 @@ import {
   ArrowRightLeft,
   Image as ImageIcon,
   Scan,
-  Smartphone
+  Smartphone,
+  Copy,
+  History
 } from 'lucide-react';
 
 const defaultFirebaseConfig = {
@@ -206,6 +208,7 @@ export default function App() {
   const [authError, setAuthError] = useState('');
 
   const [confirmModal, setConfirmModal] = useState({ show: false, action: null, message: '', title: '' });
+  const [copyConfirmModal, setCopyConfirmModal] = useState({ show: false, visitToCopy: null });
   const [lightboxImages, setLightboxImages] = useState([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isScanning, setIsScanning] = useState(false);
@@ -769,6 +772,29 @@ export default function App() {
     }
   }, [calculatedSums.totalAmount, calculatedSums.approvedDiscountAmount]);
 
+  const matchedPatientProfile = useMemo(() => {
+    if (!formData.pid.trim()) return null;
+    return patients.find(p => p.pid.trim().toLowerCase() === formData.pid.trim().toLowerCase());
+  }, [formData.pid, patients]);
+
+  const patientVisitHistory = useMemo(() => {
+    if (!formData.pid.trim()) return [];
+    // Lọc ra các lượt khám cũ khớp PID (loại trừ lượt hiện tại đang chỉnh sửa nếu trùng ID)
+    return patients.filter(p => p.pid.trim().toLowerCase() === formData.pid.trim().toLowerCase() && p.id !== currentId);
+  }, [formData.pid, patients, currentId]);
+
+  // Tự động nhận diện khi gõ PID và auto-fill Họ Tên bệnh nhân
+  useEffect(() => {
+    if (matchedPatientProfile && !currentId) {
+      setFormData(prev => {
+        if (prev.name !== matchedPatientProfile.name) {
+          return { ...prev, name: matchedPatientProfile.name };
+        }
+        return prev;
+      });
+    }
+  }, [matchedPatientProfile, currentId]);
+
   const handleInputChange = (field, val) => {
     if (field === 'discountRate' && userRole === 'nhanvien') {
       showNotification("Tài khoản nhân viên không có quyền duyệt chiết khấu!", "error");
@@ -1020,6 +1046,24 @@ export default function App() {
       console.error(err);
       showNotification("Lỗi đồng bộ trạng thái lên database!", "error");
     }
+  };
+
+  const executeCopyVisit = (visit) => {
+    setFormData(prev => ({
+      ...prev,
+      specialties: visit.specialties || [],
+      site: visit.site || 'BV Tâm Anh - Tân Sơn Hòa',
+      examinationArea: visit.examinationArea || 'Khu VIP',
+      boardApproval: visit.boardApproval || '',
+      notes: visit.notes || '',
+      treatmentType: visit.treatmentType || 'Ngoại trú',
+      ngoaiTru: visit.ngoaiTru !== undefined ? visit.ngoaiTru : (visit.treatmentType === 'Ngoại trú'),
+      capCuu: visit.capCuu !== undefined ? visit.capCuu : (visit.treatmentType === 'Cấp cứu/Daycare'),
+      noiTru: visit.noiTru !== undefined ? visit.noiTru : (visit.treatmentType === 'Nội trú/ICU'),
+      ngoaiVien: visit.ngoaiVien !== undefined ? visit.ngoaiVien : (visit.treatmentType === 'Ngoài viện')
+    }));
+    showNotification("Đã sao chép lịch sử thăm khám cũ thành công!");
+    setCopyConfirmModal({ show: false, visitToCopy: null });
   };
 
   const handleCreateStaff = async (e) => {
@@ -1276,6 +1320,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
       
+      {/* LIGHTBOX POPUP FOR VISITING OLD DOCUMENTS */}
       {lightboxImages.length > 0 && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 animate-fadeIn">
           <div className="absolute top-4 right-4 z-50 flex gap-2">
@@ -1320,6 +1365,36 @@ export default function App() {
           <p className="text-white/60 text-xs font-semibold mt-4">
             Ảnh {lightboxIndex + 1} / {lightboxImages.length}
           </p>
+        </div>
+      )}
+
+      {}
+      {/* CUSTOM CONFIRMATION DIALOG FOR COPY VISIT */}
+      {copyConfirmModal.show && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleIn">
+            <div className="flex items-center gap-2.5 text-indigo-600">
+              <Copy className="w-5 h-5 flex-shrink-0 text-indigo-500" />
+              <h3 className="text-base font-extrabold text-slate-955">Xác nhận sao chép lịch sử</h3>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed font-semibold">
+              Hệ thống sẽ tự động điền sẵn các thông tin cũ (gồm Chuyên khoa, Site khám, Khu vực khám, Chỉ đạo phê duyệt và Ghi chú) của lượt thăm khám trước vào biểu mẫu hiện tại để bạn có thể xem lại hoặc chỉnh sửa trước khi đăng ký lượt tiếp đón mới. Bạn có chắc chắn muốn thực hiện không?
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button 
+                onClick={() => setCopyConfirmModal({ show: false, visitToCopy: null })}
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 rounded-xl transition"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                onClick={() => executeCopyVisit(copyConfirmModal.visitToCopy)}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white rounded-xl transition shadow-xs"
+              >
+                Xác nhận sao chép
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1452,6 +1527,7 @@ export default function App() {
         </div>
       )}
 
+      {}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1645,6 +1721,7 @@ export default function App() {
         )}
       </div>
 
+      {}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {activeTab === 'dashboard' && (
@@ -1750,7 +1827,6 @@ export default function App() {
               </div>
             )}
 
-            {}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
@@ -1879,10 +1955,10 @@ export default function App() {
               </div>
             </div>
 
-            {/* LOẠI BỎ CÁC ĐOẠN VĂN GHI CHÚ, HƯỚNG DẪN TRONG THẺ LINK TRANG CHỦ THEO image_ee9edb.png / image_ee9d0b.png */}
+            {/* MAIN PORTAL QUICK LINKS - NO HELPER DESCRIPTIVE TEXT TO PREVENT CLUTTER */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-36">
-                <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
+                <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                   <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo dõi hồ sơ
                 </h4>
                 <button 
@@ -1894,8 +1970,8 @@ export default function App() {
               </div>
 
               {(userRole === 'admin' || userRole === 'lanhdao') && (
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-36">
-                  <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
+                  <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                     <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống
                   </h4>
                   <button 
@@ -1938,6 +2014,7 @@ export default function App() {
               </div>
             </div>
 
+            {}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
               
               <div className="lg:col-span-2 space-y-6">
@@ -1948,20 +2025,7 @@ export default function App() {
                     Thông Tin Hành Chính
                   </h3>
 
-                  {}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách hàng *</label>
-                      <input 
-                        type="text" 
-                        placeholder="Nhập họ và tên Khách hàng"
-                        value={formData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800 animate-fadeIn"
-                        required
-                      />
-                    </div>
-
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">Mã PID *</label>
                       <div className="flex gap-2">
@@ -1979,14 +2043,33 @@ export default function App() {
                             setScannerError('');
                             setIsScanning(true);
                           }}
-                          className="px-3 bg-slate-100 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs border border-slate-200/80"
+                          className="px-3 bg-slate-100 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs"
                         >
                           <Scan className="w-4 h-4 text-slate-500" /> Quét mã
                         </button>
                       </div>
+                      
+                      {/* REAL-TIME AUTO FILL FEEDBACK ALERTS */}
+                      {matchedPatientProfile && (
+                        <div className="p-2 bg-emerald-50 border border-emerald-200 text-[10px] rounded-xl text-emerald-800 font-extrabold flex items-center gap-1.5 animate-fadeIn">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                          <span>Đã khớp hồ sơ VIP: {matchedPatientProfile.name}</span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* LOẠI BỎ DÒNG CHỮ GIẢI THÍCH NHỎ TRONG HAI Ô CHỌN HẠNG VIP / VVIP THEO image_ee99a6.png */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách hàng *</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nhập họ và tên Khách hàng"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800 animate-fadeIn"
+                        required
+                      />
+                    </div>
+
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-600 block">Phân Hạng Tiếp Đón</label>
                       <div className="grid grid-cols-2 gap-3">
@@ -1994,7 +2077,8 @@ export default function App() {
                           type="button"
                           onClick={() => {
                             handleInputChange('tier', 'VIP');
-                            setFormRightTab('timeline');
+                            // Nếu có lịch sử, chuyển tab phải sang Lịch sử tiếp đón, còn không sang Timeline
+                            setFormRightTab(patientVisitHistory.length > 0 ? 'visitHistory' : 'timeline');
                           }}
                           className={`py-3 px-4 rounded-2xl border transition-all duration-200 text-left flex flex-col justify-center h-16 ${
                             formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-2xs' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
@@ -2070,7 +2154,7 @@ export default function App() {
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">Trạng Thế (Vị Trí Kanban Ban Đầu)</label>
+                      <label className="text-xs font-bold text-slate-600 block">Trạng Thái (Vị Trí Kanban Ban Đầu)</label>
                       <select
                         value={formData.status}
                         onChange={(e) => handleInputChange('status', e.target.value)}
@@ -2261,174 +2345,238 @@ export default function App() {
               {}
               <div className="space-y-6">
                 
-                {formData.tier === 'VVIP' ? (
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
-                    <div className="flex border-b border-slate-100 pb-2">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                  <div className="flex border-b border-slate-100 pb-2 overflow-x-auto gap-2">
+                    {/* BẢNG CHI PHÍ/DUYỆT GIẢM - CHỈ DÀNH CHO VVIP */}
+                    {formData.tier === 'VVIP' && (
                       <button
                         type="button"
                         onClick={() => setFormRightTab('billing')}
-                        className={`flex-1 py-2 text-xs font-black text-center transition border-b-2 ${
+                        className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 ${
                           formRightTab === 'billing' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
                         }`}
                       >
-                        Bảng tổng hợp
+                        Bảng chi phí/duyệt giảm
                       </button>
-                      {currentId && (
-                        <button
-                          type="button"
-                          onClick={() => setFormRightTab('timeline')}
-                          className={`flex-1 py-2 text-xs font-black text-center transition border-b-2 ${
-                            formRightTab === 'timeline' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
-                          }`}
-                        >
-                          Lịch sử Timeline
-                        </button>
-                      )}
-                    </div>
+                    )}
 
-                    {formRightTab === 'billing' ? (
-                      <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800 animate-fadeIn">
-                        <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
-                        
-                        <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
-                          <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
-                          Biên lai chi phí
-                        </h3>
+                    {/* LỊCH SỬ TIẾP ĐÓN - CHỈ HIỂN THỊ ĐỘNG KHI CÓ VISIT HISTORY TRONG QUÁ KHỨ */}
+                    {patientVisitHistory.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setFormRightTab('visitHistory')}
+                        className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 flex items-center gap-1 ${
+                          formRightTab === 'visitHistory' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
+                        }`}
+                      >
+                        <History className="w-3.5 h-3.5" />
+                        Lịch sử tiếp đón ({patientVisitHistory.length})
+                      </button>
+                    )}
 
-                        <div className="space-y-1.5 pt-2 relative z-10">
-                          <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
+                    <button
+                      type="button"
+                      onClick={() => setFormRightTab('timeline')}
+                      className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 ${
+                        formRightTab === 'timeline' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      Lịch sử Timeline
+                    </button>
+                  </div>
+
+                  {formRightTab === 'billing' && formData.tier === 'VVIP' && (
+                    <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800 animate-fadeIn">
+                      <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
+                      
+                      <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
+                        <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
+                        Biên lai chi phí
+                      </h3>
+
+                      <div className="space-y-1.5 pt-2 relative z-10">
+                        <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
+                            onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-500 font-mono"
+                          />
+                          <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">VNĐ</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 relative z-10">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
+                            Duyệt giảm (%) {userRole === 'nhanvien' && '🔒'}
+                          </label>
                           <div className="relative">
                             <input 
-                              type="text" 
-                              value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
-                              onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
+                              type="number" 
+                              min="0"
+                              max="100"
+                              value={formData.discountRate || ''}
+                              disabled={userRole === 'nhanvien'} 
+                              onChange={(e) => handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
                               placeholder="0"
-                              className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-500 font-mono"
+                              className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-500 ${
+                                userRole === 'nhanvien'
+                                  ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
+                                  : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
+                              }`}
                             />
-                            <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">VNĐ</span>
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">%</span>
                           </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-3 relative z-10">
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
-                              Duyệt giảm (%) {userRole === 'nhanvien' && '🔒'}
-                            </label>
-                            <div className="relative">
-                              <input 
-                                type="number" 
-                                min="0"
-                                max="100"
-                                value={formData.discountRate || ''}
-                                disabled={userRole === 'nhanvien'} 
-                                onChange={(e) => handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                                placeholder="0"
-                                className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-500 ${
-                                  userRole === 'nhanvien'
-                                    ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
-                                    : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
-                                }`}
-                              />
-                              <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">%</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
-                          
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="text-slate-400">Tổng phí tự động:</span>
-                            <div className="flex items-center gap-1">
-                              <input 
-                                type="text"
-                                value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
-                                onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
-                                className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
-                              />
-                              <span>đ</span>
-                            </div>
-                          </div>
-
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
-                            <div className="flex items-center gap-1">
-                              <span className="text-rose-400">-</span>
-                              <input 
-                                type="text"
-                                value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
-                                onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
-                                className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
-                              />
-                              <span className="text-rose-400">đ</span>
-                            </div>
-                          </div>
-
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
-                            <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
-                          </div>
-
-                          <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
-                            <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
-                            <span className="text-lg font-black text-emerald-400 font-mono">
-                              {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
-                            </span>
-                          </div>
-
                         </div>
                       </div>
-                    ) : (
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-h-[350px] overflow-y-auto pr-1 animate-fadeIn">
-                        {(!formData.history || formData.history.length === 0) ? (
-                          <p className="text-xs text-slate-400 font-bold text-center py-6">Chưa có hoạt động nào được ghi nhận.</p>
-                        ) : (
-                          <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
-                            {formData.history.map((log, index) => (
-                              <div key={index} className="relative">
-                                <span className="absolute -left-[22px] top-1 bg-indigo-600 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
-                                <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
-                                <div className="text-[9px] text-slate-400 mt-1 flex justify-between font-bold">
-                                  <span>Bởi: {log.user}</span>
-                                  <span className="font-mono">
-                                    {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'})}
+
+                      <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
+                        
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Tổng phí tự động:</span>
+                          <div className="flex items-center gap-1">
+                            <input 
+                              type="text"
+                              value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
+                              onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
+                              className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
+                            />
+                            <span>đ</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-rose-400">-</span>
+                            <input 
+                              type="text"
+                              value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
+                              onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
+                              className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
+                            />
+                            <span className="text-rose-400">đ</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
+                          <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
+                        </div>
+
+                        <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
+                          <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
+                          <span className="text-lg font-black text-emerald-400 font-mono">
+                            {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
+                          </span>
+                        </div>
+
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB: LỊCH SỬ TIẾP ĐÓN - TRẢ VỀ TOÀN BỘ CÁC LƯỢT KHÁM CŨ CỦA PID NÀY */}
+                  {formRightTab === 'visitHistory' && patientVisitHistory.length > 0 && (
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1 animate-fadeIn">
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">
+                        Hồ sơ lưu trữ: {patientVisitHistory.length} lượt tiếp đón trước
+                      </div>
+                      <div className="space-y-3">
+                        {patientVisitHistory.map((visit) => {
+                          const vSite = sites.find(s => s.label === visit.site) || sites[0];
+                          return (
+                            <div key={visit.id} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-3 relative hover:shadow-xs transition duration-150">
+                              
+                              <div className="flex justify-between items-start gap-1">
+                                <div>
+                                  <div className="font-bold text-[11px] text-slate-900">
+                                    {visit.date ? formatDateVN(visit.date) : "Lượt khám cũ"}
+                                  </div>
+                                  <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-extrabold border mt-1 ${vSite.bg}`}>
+                                    {vSite.label}
                                   </span>
                                 </div>
+                                
+                                <button
+                                  type="button"
+                                  onClick={() => setCopyConfirmModal({ show: true, visitToCopy: visit })}
+                                  className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-lg text-[9px] font-black flex items-center gap-1 transition shadow-2xs"
+                                  title="Sao chép toàn bộ thông tin chỉ định này sang lượt mới"
+                                >
+                                  <Copy className="w-3 h-3" /> Sao chép nhanh
+                                </button>
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  /* LOẠI BỎ TOÀN BỘ KHUNG ĐEN "CHĂM SÓC NHANH VIP" CHỨA CÁC DÒNG HƯỚNG DẪN THEO image_ee9cca.png */
-                  <div className="space-y-4 animate-fadeIn">
-                    {currentId && (
-                      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
-                        <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-indigo-650" />
-                          Hoạt động Timeline
-                        </h3>
-                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-h-[280px] overflow-y-auto pr-1">
-                          <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
-                            {formData.history?.map((log, index) => (
-                              <div key={index} className="relative">
-                                <span className="absolute -left-[22px] top-1 bg-indigo-65 text-indigo-600 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
-                                <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
-                                <div className="text-[9px] text-slate-400 mt-1 flex justify-between font-bold">
-                                  <span>Bởi: {log.user}</span>
-                                  <span className="font-mono">
-                                    {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'})}
-                                  </span>
+
+                              <div className="space-y-1 text-[10px] text-slate-655 font-semibold">
+                                <div>Khu vực: <strong className="text-slate-800">{visit.examinationArea || 'Khu VIP'}</strong></div>
+                                {visit.boardApproval && (
+                                  <div>Chỉ đạo: <span className="bg-slate-900 text-white font-black px-1.5 py-0.5 rounded-xs text-[8px]">{visit.boardApproval}</span></div>
+                                )}
+                                {visit.notes && <div className="italic text-slate-400 truncate">"{visit.notes}"</div>}
+                              </div>
+
+                              {visit.specialties && visit.specialties.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {visit.specialties.map((spec, i) => (
+                                    <span key={i} className="px-1.5 py-0.5 bg-slate-200/60 text-slate-700 rounded-xs text-[8px] font-bold">
+                                      {spec}
+                                    </span>
+                                  ))}
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                              )}
+
+                              {/* HỖ TRỢ XEM NHANH ẢNH PHÊ DUYỆT TRỰC TIẾP TỪ LƯỢT KHÁM CŨ */}
+                              {((visit.approvalImages && visit.approvalImages.length > 0) || visit.approvalImage) && (
+                                <div className="pt-1.5 border-t border-slate-200 flex gap-2 overflow-x-auto">
+                                  {(visit.approvalImages || [visit.approvalImage]).map((img, imgIdx) => (
+                                    <button
+                                      key={imgIdx}
+                                      type="button"
+                                      onClick={() => {
+                                        setLightboxImages(visit.approvalImages || [visit.approvalImage]);
+                                        setLightboxIndex(imgIdx);
+                                      }}
+                                      className="w-12 h-8 rounded-lg overflow-hidden border border-slate-200/80 shrink-0 hover:border-slate-400 transition"
+                                    >
+                                      <img src={img} alt="Văn bản cũ" className="w-full h-full object-cover" />
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+
+                            </div>
+                          );
+                        })}
                       </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
+
+                  {formRightTab === 'timeline' && (
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-h-[350px] overflow-y-auto pr-1 animate-fadeIn">
+                      {(!formData.history || formData.history.length === 0) ? (
+                        <p className="text-xs text-slate-400 font-bold text-center py-6">Chưa có hoạt động nào được ghi nhận.</p>
+                      ) : (
+                        <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
+                          {formData.history.map((log, index) => (
+                            <div key={index} className="relative">
+                              <span className="absolute -left-[22px] top-1 bg-indigo-600 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
+                              <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
+                              <div className="text-[9px] text-slate-400 mt-1 flex justify-between font-bold">
+                                <span>Bởi: {log.user}</span>
+                                <span className="font-mono">
+                                  {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'})}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -2708,7 +2856,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
                   {filteredPatients.map((p) => {
                     const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
@@ -2754,8 +2901,7 @@ export default function App() {
                           {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
                         </div>
 
-                        {/* LOẠI BỎ TRIỆT ĐỂ DÒNG CHỮ HƯỚNG DẪN KHI LÀ VIP THƯỜNG Ở MOBILE THEO image_ee9cec.png */}
-                        {p.tier === 'VVIP' && (
+                        {p.tier === 'VVIP' ? (
                           <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center animate-fadeIn">
                             <div>
                               <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
@@ -2769,6 +2915,10 @@ export default function App() {
                               <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
                               <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
                             </div>
+                          </div>
+                        ) : (
+                          <div className="border-t border-b border-slate-200 py-3 text-center text-[10px] text-slate-500 font-extrabold bg-slate-50 rounded-xl">
+                            Khách VIP - Thanh toán quầy trực tiếp
                           </div>
                         )}
 
@@ -2940,7 +3090,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleAddSpecialty}
-                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center gap-1"
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 border border-slate-900 transition flex items-center gap-1"
                     >
                       <Plus className="w-4 h-4" /> Thêm
                     </button>
@@ -3067,7 +3217,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.5</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.6</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
