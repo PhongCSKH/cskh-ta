@@ -1750,6 +1750,7 @@ export default function App() {
               </div>
             )}
 
+            {}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
@@ -1878,33 +1879,28 @@ export default function App() {
               </div>
             </div>
 
+            {/* LOẠI BỎ CÁC ĐOẠN VĂN GHI CHÚ, HƯỚNG DẪN TRONG THẺ LINK TRANG CHỦ THEO image_ee9edb.png / image_ee9d0b.png */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-                <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-36">
+                <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
                   <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo dõi hồ sơ
                 </h4>
-                <p className="text-xs text-slate-555 leading-relaxed font-semibold">
-                  Truy cập nhanh danh sách bệnh nhân VIP/VVIP đang điều trị tại phòng khám và bệnh viện chuyên khoa. Thực hiện tra cứu tiến trình và biên lai đính kèm.
-                </p>
                 <button 
                   onClick={() => setActiveTab('monitoring')}
-                  className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition"
+                  className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
                 >
                   Đến bảng giám sát <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
 
               {(userRole === 'admin' || userRole === 'lanhdao') && (
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-                  <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-36">
+                  <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
                     <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống
                   </h4>
-                  <p className="text-xs text-slate-555 leading-relaxed font-semibold">
-                    Thiết lập công thức tính tổng phí điều trị, cấu hình các chuyên khoa tiếp nhận và phân quyền tài khoản cho đội ngũ tiếp đón.
-                  </p>
                   <button 
                     onClick={() => setActiveTab('settings')}
-                    className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition"
+                    className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
                   >
                     Đến trang cấu hình <ChevronRight className="w-4 h-4" />
                   </button>
@@ -1952,6 +1948,7 @@ export default function App() {
                     Thông Tin Hành Chính
                   </h3>
 
+                  {}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách hàng *</label>
@@ -1989,6 +1986,7 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* LOẠI BỎ DÒNG CHỮ GIẢI THÍCH NHỎ TRONG HAI Ô CHỌN HẠNG VIP / VVIP THEO image_ee99a6.png */}
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-600 block">Phân Hạng Tiếp Đón</label>
                       <div className="grid grid-cols-2 gap-3">
@@ -1998,12 +1996,11 @@ export default function App() {
                             handleInputChange('tier', 'VIP');
                             setFormRightTab('timeline');
                           }}
-                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-between h-20 ${
-                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          className={`py-3 px-4 rounded-2xl border transition-all duration-200 text-left flex flex-col justify-center h-16 ${
+                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-2xs' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
                           <span className="font-black text-sm">VIP</span>
-                          <span className="text-[9px] font-semibold text-slate-400 leading-tight">Take care nhanh, không chiết khấu</span>
                         </button>
                         <button
                           type="button"
@@ -2011,12 +2008,11 @@ export default function App() {
                             handleInputChange('tier', 'VVIP');
                             setFormRightTab('billing');
                           }}
-                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-between h-20 ${
-                            formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          className={`py-3 px-4 rounded-2xl border transition-all duration-200 text-left flex flex-col justify-center h-16 ${
+                            formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-2xs' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
                           <span className="font-black text-sm text-amber-600">VVIP</span>
-                          <span className="text-[9px] font-semibold text-slate-400 leading-tight">Chăm sóc đặc biệt & duyệt giảm chi phí</span>
                         </button>
                       </div>
                     </div>
@@ -2040,7 +2036,7 @@ export default function App() {
                             type="button"
                             onClick={() => handleInputChange('site', s.label)}
                             className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center ${
-                              formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-55/50'
+                              formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-555 hover:bg-slate-55/50'
                             }`}
                           >
                             {s.label}
@@ -2049,7 +2045,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* BỔ SUNG TRƯỜNG KHU VỰC KHÁM */}
                     <div className="space-y-1.5 md:col-span-2 animate-fadeIn">
                       <label className="text-xs font-bold text-slate-600 block">Khu Vực Khám</label>
                       <div className="grid grid-cols-2 gap-3">
@@ -2192,7 +2187,6 @@ export default function App() {
                   )}
                 </div>
 
-                {/* ẨN CHI PHÍ LÂM SÀNG KHI LÀ KHÁCH VIP THƯỜNG */}
                 {formData.tier === 'VVIP' && (
                   <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
@@ -2264,9 +2258,9 @@ export default function App() {
 
               </div>
 
+              {}
               <div className="space-y-6">
                 
-                {/* ĐIỀU CHỈNH GIAO DIỆN BIÊN LAI - CHỈ HIỂN THỊ CHO VVIP */}
                 {formData.tier === 'VVIP' ? (
                   <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
                     <div className="flex border-b border-slate-100 pb-2">
@@ -2407,24 +2401,10 @@ export default function App() {
                     )}
                   </div>
                 ) : (
-                  /* GIAO DIỆN PHỤ TRỢ CHO KHÁCH VIP THƯỜNG */
+                  /* LOẠI BỎ TOÀN BỘ KHUNG ĐEN "CHĂM SÓC NHANH VIP" CHỨA CÁC DÒNG HƯỚNG DẪN THEO image_ee9cca.png */
                   <div className="space-y-4 animate-fadeIn">
-                    <div className="bg-slate-900 text-white p-5 rounded-3xl border border-slate-850 shadow-xl relative overflow-hidden space-y-3.5">
-                      <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-55/10 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
-                      <h3 className="text-[11px] font-black text-indigo-350 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
-                        <Sparkles className="w-4.5 h-4.5 text-indigo-405 animate-pulse" />
-                        Chăm sóc nhanh VIP
-                      </h3>
-                      <div className="text-xs space-y-2.5 text-slate-300 font-semibold relative z-10 leading-relaxed">
-                        <p>✓ Chăm sóc ưu tiên đặc biệt tại <strong>{formData.examinationArea}</strong>.</p>
-                        <p>✓ Không thiết lập duyệt chiết khấu/miễn giảm tài chính.</p>
-                        <p>✓ Mọi dịch vụ phát sinh thanh toán trực tiếp tại quầy theo biểu giá hiện hành.</p>
-                        <p>✓ Đồng bộ luồng điều phối nhanh của Ban Giám Đốc.</p>
-                      </div>
-                    </div>
-
                     {currentId && (
-                      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
                         <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                           <Clock className="w-4 h-4 text-indigo-650" />
                           Hoạt động Timeline
@@ -2488,6 +2468,7 @@ export default function App() {
           </form>
         )}
 
+        {}
         {activeTab === 'monitoring' && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -2727,6 +2708,7 @@ export default function App() {
                   </div>
                 </div>
 
+                {}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
                   {filteredPatients.map((p) => {
                     const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
@@ -2772,8 +2754,9 @@ export default function App() {
                           {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
                         </div>
 
-                        {p.tier === 'VVIP' ? (
-                          <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
+                        {/* LOẠI BỎ TRIỆT ĐỂ DÒNG CHỮ HƯỚNG DẪN KHI LÀ VIP THƯỜNG Ở MOBILE THEO image_ee9cec.png */}
+                        {p.tier === 'VVIP' && (
+                          <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center animate-fadeIn">
                             <div>
                               <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
                               <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
@@ -2786,10 +2769,6 @@ export default function App() {
                               <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
                               <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="border-t border-b border-slate-200 py-3 text-center text-xs text-slate-500 font-bold">
-                            Chăm sóc Take care nhanh - Không duyệt giảm tài chính
                           </div>
                         )}
 
@@ -2852,6 +2831,7 @@ export default function App() {
           </div>
         )}
 
+        {}
         {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao') && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -2960,7 +2940,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleAddSpecialty}
-                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 border border-slate-900 transition flex items-center gap-1"
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center gap-1"
                     >
                       <Plus className="w-4 h-4" /> Thêm
                     </button>
