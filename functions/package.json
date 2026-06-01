@@ -2,7 +2,7 @@
   "name": "functions",
   "description": "Cloud Functions for Firebase - CSKH TA",
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "main": "index.js",
   "dependencies": {
