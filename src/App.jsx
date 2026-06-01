@@ -1614,7 +1614,7 @@ export default function App() {
                   <div className="absolute inset-x-0 h-0.5 bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-bounce" style={{ top: '45%' }}></div>
                   <div className="flex justify-between">
                     <div className="w-4 h-4 border-b-4 border-l-4 border-indigo-500 rounded-bl-xs"></div>
-                    <div className="w-4 h-4 border-b-4 border-r-4 border-indigo-500 rounded-br-xs"></div>
+                    <div className="w-4 h-4 border-b-4 border-r-4 border-indigo-500 rounded-tr-xs"></div>
                   </div>
                 </div>
               </div>
@@ -2005,7 +2005,7 @@ export default function App() {
                     </div>
 
                     {dashFilterMode === 'range' && (
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-650 animate-fadeIn">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-655 animate-fadeIn">
                         <div className="flex items-center gap-1">
                           <span>Từ:</span>
                           <input 
@@ -2058,7 +2058,7 @@ export default function App() {
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
-                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-100">
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
@@ -2236,6 +2236,7 @@ export default function App() {
         {activeTab === 'register' && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
+            {/* Sticky Header */}
             <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-md">
               <div>
                 <h2 className="text-base font-black text-slate-955 flex items-center gap-1.5">
@@ -2259,10 +2260,13 @@ export default function App() {
               </div>
             </div>
 
+            {/* Form Body - Grid Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
               
+              {/* Left Column (lg:col-span-2) */}
               <div className="lg:col-span-2 space-y-6">
                 
+                {/* Block 1: Thông Tin Hành Chính */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -2271,7 +2275,7 @@ export default function App() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     
-                    {/* Đảo trường Mã PID lên hàng đầu tiên (theo yêu cầu cải tiến) */}
+                    {/* Mã PID ở dòng đầu tiên */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">Mã PID *</label>
                       <div className="flex gap-2">
@@ -2280,7 +2284,7 @@ export default function App() {
                           placeholder="Nhập/Quét mã bệnh nhân PID..."
                           value={formData.pid}
                           onChange={(e) => handleInputChange('pid', e.target.value)}
-                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-mono font-black bg-white text-slate-800 animate-fadeIn"
+                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-mono font-black bg-white text-slate-800 animate-fadeIn"
                           required
                         />
                         <button
@@ -2301,7 +2305,7 @@ export default function App() {
                       )}
                     </div>
 
-                    {/* Họ & Tên khách hàng đặt phía dưới Mã PID */}
+                    {/* Họ & Tên khách hàng bên dưới Mã PID */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách hàng *</label>
                       <input 
@@ -2309,11 +2313,12 @@ export default function App() {
                         placeholder="Nhập họ và tên Khách hàng"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800 animate-fadeIn"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 animate-fadeIn"
                         required
                       />
                     </div>
 
+                    {/* Phân hạng */}
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-600 block">Phân Hạng Tiếp Đón</label>
                       <div className="grid grid-cols-2 gap-3">
@@ -2344,18 +2349,20 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* Ngày khám */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">Ngày khám / Điều trị</label>
                       <input 
                         type="date" 
                         value={formData.date}
                         onChange={(e) => handleInputChange('date', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-800 bg-white"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white"
                       />
                     </div>
 
+                    {/* Site thăm khám */}
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">Site thăm khám</label>
+                      <label className="text-xs font-bold text-slate-605 block">Site thăm khám</label>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                         {sites.map(s => (
                           <button
@@ -2372,8 +2379,9 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* Khu vực khám */}
                     <div className="space-y-1.5 md:col-span-2 animate-fadeIn">
-                      <label className="text-xs font-bold text-slate-600 block">Khu Vực Khám</label>
+                      <label className="text-xs font-bold text-slate-605 block">Khu Vực Khám</label>
                       <div className="grid grid-cols-2 gap-3">
                         <button
                           type="button"
@@ -2396,12 +2404,13 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* Trạng thái */}
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-600 block">Trạng thái</label>
                       <select
                         value={formData.status}
                         onChange={(e) => handleInputChange('status', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-800 bg-white cursor-pointer"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white cursor-pointer"
                       >
                         {workflowStatuses.map(status => (
                           <option key={status.id} value={status.id}>{status.label}</option>
@@ -2409,6 +2418,7 @@ export default function App() {
                       </select>
                     </div>
 
+                    {/* Chỉ định nhân viên tiếp đón */}
                     {['Scheduled', 'Preparing', 'ReceivedInfo'].includes(formData.status) && (
                       <div className="space-y-2 md:col-span-2 p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl animate-fadeIn">
                         <label className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
@@ -2447,6 +2457,7 @@ export default function App() {
                       </div>
                     )}
 
+                    {/* HĐQT Phê duyệt */}
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-600 block">HĐQT Phê Duyệt/Chỉ đạo</label>
                       <div className="space-y-2">
@@ -2476,6 +2487,7 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* Ghi chú */}
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-600 block">Ghi chú</label>
                       <textarea 
@@ -2486,10 +2498,11 @@ export default function App() {
                         className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-medium bg-white text-slate-800"
                       ></textarea>
                     </div>
+
                   </div>
                 </div>
 
-                {/* Bảng Nhật ký & Lịch sử tiếp đón thu gọn mặc định (theo yêu cầu cải tiến) */}
+                {/* Block 2: Bảng Nhật ký & Lịch sử tiếp đón thu gọn mặc định */}
                 {(patientVisitHistory.length > 0 || (formData.history && formData.history.length > 0)) && (
                   <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
                     
@@ -2617,7 +2630,7 @@ export default function App() {
                             <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
                               {formData.history?.map((log, index) => (
                                 <div key={index} className="relative">
-                                  <span className="absolute -left-[22px] top-1 bg-indigo-60 text-indigo-650 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
+                                  <span className="absolute -left-[22px] top-1 bg-indigo-60 text-indigo-655 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
                                   <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
                                   <div className="text-[9px] text-slate-400 mt-1 flex justify-between font-bold">
                                     <span>Bởi: {log.user}</span>
@@ -2634,119 +2647,119 @@ export default function App() {
                     )}
                   </div>
                 )}
-              </div>
-            )}
 
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4" ref={specRef}>
-              <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                Chuyên khoa thăm khám
-              </h3>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm chuyên khoa..."
-                  value={specSearch}
-                  onChange={(e) => {
-                    setSpecSearch(e.target.value);
-                    setIsSpecDropdownOpen(true);
-                  }}
-                  onFocus={() => setIsSpecDropdownOpen(true)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800"
-                />
-                {isSpecDropdownOpen && (
-                  <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-fadeIn">
-                    {filteredSpecialties.length === 0 ? (
-                      <div className="text-xs text-slate-400 font-bold text-center py-4">Không tìm thấy chuyên khoa phù hợp</div>
-                    ) : (
-                      filteredSpecialties.map((spec) => {
-                        const isSelected = formData.specialties.includes(spec);
-                        return (
-                          <button
-                            key={spec}
-                            type="button"
-                            onClick={() => toggleSpecialtySelection(spec)}
-                            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${
-                              isSelected ? 'bg-indigo-50 text-indigo-750' : 'hover:bg-slate-50 text-slate-700'
-                            }`}
-                          >
-                            <span>{spec}</span>
-                            {isSelected && <Check className="w-4 h-4 text-indigo-650" />}
-                          </button>
-                        );
-                      })
+                {/* Block 3: Chuyên khoa thăm khám */}
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4" ref={specRef}>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Chuyên khoa thăm khám
+                  </h3>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Tìm kiếm chuyên khoa..."
+                      value={specSearch}
+                      onChange={(e) => {
+                        setSpecSearch(e.target.value);
+                        setIsSpecDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsSpecDropdownOpen(true)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800"
+                    />
+                    {isSpecDropdownOpen && (
+                      <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-fadeIn">
+                        {filteredSpecialties.length === 0 ? (
+                          <div className="text-xs text-slate-400 font-bold text-center py-4">Không tìm thấy chuyên khoa phù hợp</div>
+                        ) : (
+                          filteredSpecialties.map((spec) => {
+                            const isSelected = formData.specialties.includes(spec);
+                            return (
+                              <button
+                                key={spec}
+                                type="button"
+                                onClick={() => toggleSpecialtySelection(spec)}
+                                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${
+                                  isSelected ? 'bg-indigo-50 text-indigo-750' : 'hover:bg-slate-50 text-slate-700'
+                                }`}
+                              >
+                                <span>{spec}</span>
+                                {isSelected && <Check className="w-4 h-4 text-indigo-650" />}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-              {formData.specialties.length > 0 && (
-                <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
-                  {formData.specialties.map((spec) => (
-                    <span
-                      key={spec}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold animate-scaleIn"
-                    >
-                      {spec}
-                      <button
-                        type="button"
-                        onClick={() => toggleSpecialtySelection(spec)}
-                        className="p-0.5 hover:bg-slate-850 rounded-full transition"
-                      >
-                        <X className="w-3 h-3 text-slate-400 hover:text-white" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {formData.tier === 'VVIP' && (
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
-                  <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                  Chi Phí Điều Trị & Lâm Sàng Thực Tế
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  
-                  <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
-                    <select
-                      value={formData.treatmentType || 'Ngoại trú'}
-                      onChange={(e) => handleTreatmentTypeChange(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800 cursor-pointer"
-                    >
-                      <option value="Ngoại trú">Ngoại trú</option>
-                      <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
-                      <option value="Nội trú/ICU">Nội trú/ICU</option>
-                      <option value="Ngoài viện">Ngoài viện</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
-                    <div className="relative">
-                      <input 
-                        type="text" 
-                        value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
-                        onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
-                        placeholder="0"
-                        className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
-                      />
-                      <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                  {formData.specialties.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+                      {formData.specialties.map((spec) => (
+                        <span
+                          key={spec}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold animate-scaleIn"
+                        >
+                          {spec}
+                          <button
+                            type="button"
+                            onClick={() => toggleSpecialtySelection(spec)}
+                            className="p-0.5 hover:bg-slate-850 rounded-full transition"
+                          >
+                            <X className="w-3 h-3 text-slate-400 hover:text-white" />
+                          </button>
+                        </span>
+                      ))}
                     </div>
-                  </div>
+                  )}
+                </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
-                    <div className="relative">
-                      <input 
-                        type="text" 
-                        value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
-                        onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
-                        placeholder="0"
-                        className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
-                      />
+                {/* Block 4: Chi Phí Điều Trị & Lâm Sàng Thực Tế */}
+                {formData.tier === 'VVIP' && (
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
+                      <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                      Chi Phí Điều Trị & Lâm Sàng Thực Tế
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
+                        <select
+                          value={formData.treatmentType || 'Ngoại trú'}
+                          onChange={(e) => handleTreatmentTypeChange(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800 cursor-pointer"
+                        >
+                          <option value="Ngoại trú">Ngoại trú</option>
+                          <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
+                          <option value="Nội trú/ICU">Nội trú/ICU</option>
+                          <option value="Ngoài viện">Ngoài viện</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
+                            onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
+                          />
+                          <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
+                            onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
+                          />
                       <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
                     </div>
                   </div>
@@ -2769,910 +2782,915 @@ export default function App() {
               </div>
             )}
 
-          </div>
+              </div>
 
-          <div className="space-y-6">
-            
-            {formData.tier === 'VVIP' && (
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
-                <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800">
-                  <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
-                  
-                  <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
-                    <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
-                    Bảng chi phí/duyệt giảm
+              {/* Right Column (space-y-6) */}
+              <div className="space-y-6">
+                
+                {/* Bảng chi phí/duyệt giảm */}
+                {formData.tier === 'VVIP' && (
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
+                    <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800">
+                      <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
+                      
+                      <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
+                        <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
+                        Bảng chi phí/duyệt giảm
+                      </h3>
+
+                      <div className="space-y-1.5 pt-2 relative z-10">
+                        <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
+                            onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-505 font-mono"
+                          />
+                          <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">VNĐ</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 relative z-10">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
+                            Duyệt giảm (%) {userRole === 'nhanvien' && '🔒'}
+                          </label>
+                          <div className="relative">
+                            <input 
+                              type="number" 
+                              min="0"
+                              max="100"
+                              value={formData.discountRate || ''}
+                              disabled={userRole === 'nhanvien'} 
+                              onChange={(e) => handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                              placeholder="0"
+                              className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-505 ${
+                                userRole === 'nhanvien'
+                                  ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
+                                  : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
+                              }`}
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-550 font-bold font-mono">%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
+                        
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Tổng phí tự động:</span>
+                          <div className="flex items-center gap-1">
+                            <input 
+                              type="text"
+                              value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
+                              onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
+                              className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
+                            />
+                            <span>đ</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-rose-400">-</span>
+                            <input 
+                              type="text"
+                              value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
+                              onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
+                              className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
+                            />
+                            <span className="text-rose-400">đ</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
+                          <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
+                        </div>
+
+                        <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
+                          <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
+                          <span className="text-lg font-black text-emerald-400 font-mono">
+                            {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
+                          </span>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ảnh Phê Duyệt Gửi Kèm */}
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Ảnh Phê Duyệt Gửi Kèm
                   </h3>
 
-                  <div className="space-y-1.5 pt-2 relative z-10">
-                    <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
-                    <div className="relative">
-                      <input 
-                        type="text" 
-                        value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
-                        onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
-                        placeholder="0"
-                        className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-505 font-mono"
-                      />
-                      <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">VNĐ</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 relative z-10">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
-                        Duyệt giảm (%) {userRole === 'nhanvien' && '🔒'}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-2">
+                      {formData.approvalImages?.map((img, index) => (
+                        <div key={index} className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-50 animate-fadeIn">
+                          <img src={img} alt="Công văn" className="w-full h-full object-cover" />
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const updated = formData.approvalImages.filter((_, i) => i !== index);
+                              handleInputChange('approvalImages', updated);
+                            }}
+                            className="absolute right-1.5 top-1.5 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full transition shadow-md"
+                            title="Gỡ bỏ"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      <label className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition duration-200 aspect-video">
+                        <Upload className="w-5 h-5 text-slate-400" />
+                        <span className="text-[10px] font-bold text-slate-700">Tải thêm ảnh</span>
+                        <input type="file" accept="image/*" multiple onChange={handleMultipleImagesUpload} className="hidden" />
                       </label>
-                      <div className="relative">
-                        <input 
-                          type="number" 
-                          min="0"
-                          max="100"
-                          value={formData.discountRate || ''}
-                          disabled={userRole === 'nhanvien'} 
-                          onChange={(e) => handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                          placeholder="0"
-                          className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-500 ${
-                            userRole === 'nhanvien'
-                              ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
-                              : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
-                          }`}
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-550 font-bold font-mono">%</span>
-                      </div>
                     </div>
                   </div>
+                </div>
 
-                  <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
-                    
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">Tổng phí tự động:</span>
-                      <div className="flex items-center gap-1">
-                        <input 
-                          type="text"
-                          value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
-                          onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
-                          className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
-                        />
-                        <span>đ</span>
-                      </div>
-                    </div>
+              </div> {/* Close right column */}
 
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-rose-400">-</span>
-                        <input 
-                          type="text"
-                          value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
-                          onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
-                          className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
-                        />
-                        <span className="text-rose-400">đ</span>
-                      </div>
-                    </div>
+            </div> {/* Close outer body grid layout */}
 
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
-                      <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
-                    </div>
+          </form>
+        )}
 
-                    <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
-                      <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
-                      <span className="text-lg font-black text-emerald-400 font-mono">
-                        {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
-                      </span>
-                    </div>
+        {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ & BỘ LỊCH ========================== */}
+        {activeTab === 'monitoring' && (
+          <div className="space-y-6 animate-fadeIn">
+            
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-lg font-black text-slate-955 flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo Dõi Hồ Sơ Khách Hàng VIP-VVIP
+                </h2>
+              </div>
+              <button 
+                onClick={() => { resetForm(); setActiveTab('register'); }}
+                className="px-4 py-2.5 bg-slate-900 text-white hover:bg-slate-850 rounded-xl text-xs font-black flex items-center gap-1.5 border border-slate-900 transition transform active:scale-95"
+              >
+                <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ mới
+              </button>
+            </div>
 
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex justify-between items-center flex-wrap gap-3">
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                <button 
+                  onClick={() => setCalendarMode('list')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'list' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Dạng Danh Sách
+                </button>
+                <button 
+                  onClick={() => { setCalendarMode('week'); setCurrentCalendarDate(new Date()); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'week' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Lịch Tuần Động
+                </button>
+                <button 
+                  onClick={() => { setCalendarMode('month'); setCurrentCalendarDate(new Date()); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'month' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Lịch Tháng Chi Tiết
+                </button>
+              </div>
+
+              {calendarMode !== 'list' && (
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => handleCalendarNavigate('prev')}
+                    className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs font-extrabold text-slate-800 min-w-[120px] text-center">
+                    {calendarMode === 'week' ? (
+                      `Tuần ${formatDateVN(weekDays[0].toISOString().split('T')[0])}`
+                    ) : (
+                      `Tháng ${currentCalendarDate.getMonth() + 1} / ${currentCalendarDate.getFullYear()}`
+                    )}
+                  </span>
+                  <button 
+                    onClick={() => handleCalendarNavigate('next')}
+                    className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {calendarMode === 'list' && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="flex-1 relative">
+                    <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Tìm theo tên, mã PID, ghi chú..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-xs font-bold bg-white"
+                    />
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <select 
+                      value={filterTier}
+                      onChange={(e) => setFilterTier(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    >
+                      <option value="">Tất cả hạng</option>
+                      <option value="VIP">VIP</option>
+                      <option value="VVIP">VVIP</option>
+                    </select>
+
+                    <select 
+                      value={filterSpecialty}
+                      onChange={(e) => setFilterSpecialty(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    >
+                      <option value="">Tất cả chuyên khoa</option>
+                      {systemSettings.specialties.map((spec, idx) => (
+                        <option key={idx} value={spec}>{spec}</option>
+                      ))}
+                    </select>
+
+                    <select 
+                      value={filterSite}
+                      onChange={(e) => setFilterSite(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    >
+                      <option value="">Tất cả Site</option>
+                      {sites.map(s => (
+                        <option key={s.id} value={s.label}>{s.label}</option>
+                      ))}
+                    </select>
+
+                    <input 
+                      type="date"
+                      value={filterDate}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    />
+
+                    {(searchTerm || filterTier || filterSpecialty || filterDate || filterSite) && (
+                      <button 
+                        onClick={() => { setSearchTerm(''); setFilterTier(''); setFilterSpecialty(''); setFilterDate(''); setFilterSite(''); }}
+                        className="px-3 py-2 text-rose-500 hover:bg-rose-50 rounded-xl text-xs font-bold transition"
+                      >
+                        Xóa lọc
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-              <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                Ảnh Phê Duyệt Gửi Kèm
-              </h3>
+            {calendarMode === 'week' && (
+              <div className="grid grid-cols-1 md:grid-cols-7 gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm overflow-x-auto min-w-full">
+                {weekDays.map((day, idx) => {
+                  const dateStr = day.toISOString().split('T')[0];
+                  const dayPatients = visiblePatients.filter(p => p.date === dateStr);
+                  const isCurrentToday = dateStr === todayStr;
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-2">
-                  {formData.approvalImages?.map((img, index) => (
-                    <div key={index} className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-50 animate-fadeIn">
-                      <img src={img} alt="Công văn" className="w-full h-full object-cover" />
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          const updated = formData.approvalImages.filter((_, i) => i !== index);
-                          handleInputChange('approvalImages', updated);
-                        }}
-                        className="absolute right-1.5 top-1.5 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full transition shadow-md"
-                        title="Gỡ bỏ"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                  <label className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition duration-200 aspect-video">
-                    <Upload className="w-5 h-5 text-slate-400" />
-                    <span className="text-[10px] font-bold text-slate-700">Tải thêm ảnh</span>
-                    <input type="file" accept="image/*" multiple onChange={handleMultipleImagesUpload} className="hidden" />
-                  </label>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </form>
-    )}
-
-    {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ & BỘ LỊCH ========================== */}
-    {activeTab === 'monitoring' && (
-      <div className="space-y-6 animate-fadeIn">
-        
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-lg font-black text-slate-955 flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo Dõi Hồ Sơ Khách Hàng VIP-VVIP
-            </h2>
-          </div>
-          <button 
-            onClick={() => { resetForm(); setActiveTab('register'); }}
-            className="px-4 py-2.5 bg-slate-900 text-white hover:bg-slate-850 rounded-xl text-xs font-black flex items-center gap-1.5 border border-slate-900 transition transform active:scale-95"
-          >
-            <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ mới
-          </button>
-        </div>
-
-        <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex justify-between items-center flex-wrap gap-3">
-          <div className="flex bg-slate-100 p-1 rounded-xl">
-            <button 
-              onClick={() => setCalendarMode('list')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'list' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
-            >
-              Dạng Danh Sách
-            </button>
-            <button 
-              onClick={() => { setCalendarMode('week'); setCurrentCalendarDate(new Date()); }}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'week' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
-            >
-              Lịch Tuần Động
-            </button>
-            <button 
-              onClick={() => { setCalendarMode('month'); setCurrentCalendarDate(new Date()); }}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'month' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
-            >
-              Lịch Tháng Chi Tiết
-            </button>
-          </div>
-
-          {calendarMode !== 'list' && (
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => handleCalendarNavigate('prev')}
-                className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="text-xs font-extrabold text-slate-800 min-w-[120px] text-center">
-                {calendarMode === 'week' ? (
-                  `Tuần ${formatDateVN(weekDays[0].toISOString().split('T')[0])}`
-                ) : (
-                  `Tháng ${currentCalendarDate.getMonth() + 1} / ${currentCalendarDate.getFullYear()}`
-                )}
-              </span>
-              <button 
-                onClick={() => handleCalendarNavigate('next')}
-                className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        </div>
-
-        {calendarMode === 'list' && (
-          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex-1 relative">
-                <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-400" />
-                <input 
-                  type="text" 
-                  placeholder="Tìm theo tên, mã PID, ghi chú..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-xs font-bold bg-white"
-                />
-              </div>
-              
-              <div className="flex flex-wrap gap-2">
-                <select 
-                  value={filterTier}
-                  onChange={(e) => setFilterTier(e.target.value)}
-                  className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
-                >
-                  <option value="">Tất cả hạng</option>
-                  <option value="VIP">VIP</option>
-                  <option value="VVIP">VVIP</option>
-                </select>
-
-                <select 
-                  value={filterSpecialty}
-                  onChange={(e) => setFilterSpecialty(e.target.value)}
-                  className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
-                >
-                  <option value="">Tất cả chuyên khoa</option>
-                  {systemSettings.specialties.map((spec, idx) => (
-                    <option key={idx} value={spec}>{spec}</option>
-                  ))}
-                </select>
-
-                <select 
-                  value={filterSite}
-                  onChange={(e) => setFilterSite(e.target.value)}
-                  className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
-                >
-                  <option value="">Tất cả Site</option>
-                  {sites.map(s => (
-                    <option key={s.id} value={s.label}>{s.label}</option>
-                  ))}
-                </select>
-
-                <input 
-                  type="date"
-                  value={filterDate}
-                  onChange={(e) => setFilterDate(e.target.value)}
-                  className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
-                />
-
-                {(searchTerm || filterTier || filterSpecialty || filterDate || filterSite) && (
-                  <button 
-                    onClick={() => { setSearchTerm(''); setFilterTier(''); setFilterSpecialty(''); setFilterDate(''); setFilterSite(''); }}
-                    className="px-3 py-2 text-rose-500 hover:bg-rose-50 rounded-xl text-xs font-bold transition"
-                  >
-                    Xóa lọc
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {calendarMode === 'week' && (
-          <div className="grid grid-cols-1 md:grid-cols-7 gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm overflow-x-auto min-w-full">
-            {weekDays.map((day, idx) => {
-              const dateStr = day.toISOString().split('T')[0];
-              const dayPatients = visiblePatients.filter(p => p.date === dateStr);
-              const isCurrentToday = dateStr === todayStr;
-
-              return (
-                <div 
-                  key={idx} 
-                  className={`p-3 rounded-2xl border min-h-[220px] flex flex-col space-y-3 ${
-                    isCurrentToday ? 'bg-indigo-50/40 border-indigo-200' : 'bg-slate-50/40 border-slate-150'
-                  }`}
-                >
-                  <div className="text-center pb-2 border-b border-slate-250">
-                    <span className="text-[10px] uppercase font-black text-slate-400 block">
-                      {day.toLocaleDateString('vi-VN', { weekday: 'short' })}
-                    </span>
-                    <span className={`text-sm font-extrabold font-mono inline-block px-2 py-0.5 rounded-full ${
-                      isCurrentToday ? 'bg-indigo-600 text-white' : 'text-slate-800'
-                    }`}>
-                      {day.getDate()}
-                    </span>
-                  </div>
-
-                  <div className="flex-1 space-y-2 overflow-y-auto max-h-[300px]">
-                    {dayPatients.length === 0 ? (
-                      <div className="text-center text-[10px] text-slate-300 font-bold pt-8">Không có ca</div>
-                    ) : (
-                      dayPatients.map(p => (
-                        <div 
-                          key={p.id}
-                          onClick={() => initiateEdit(p)}
-                          className="p-2 bg-white border border-slate-200 rounded-xl shadow-3xs hover:border-indigo-400 transition cursor-pointer space-y-1 animate-scaleIn text-left"
-                        >
-                          <div className="font-extrabold text-[10px] text-slate-800 truncate">{p.name}</div>
-                          <div className="flex items-center justify-between gap-1 text-[8px] text-slate-400">
-                            <span className="font-mono">PID: {p.pid}</span>
-                            <span className={`px-1 rounded-sm uppercase font-black text-[7px] ${
-                              p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
-                            }`}>
-                              {p.tier}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {calendarMode === 'month' && (
-          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-black uppercase text-slate-400 pb-2 border-b border-slate-100">
-              <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span>
-            </div>
-            
-            <div className="grid grid-cols-7 gap-2">
-              {monthDays.map((day, idx) => {
-                if (!day) return <div key={idx} className="aspect-square bg-slate-50/20 rounded-xl border border-transparent"></div>;
-
-                const dateStr = day.toISOString().split('T')[0];
-                const dayPatients = visiblePatients.filter(p => p.date === dateStr);
-                const isCurrentToday = dateStr === todayStr;
-
-                return (
-                  <div 
-                    key={idx}
-                    onClick={() => {
-                      if (dayPatients.length > 0) {
-                        setFilterDate(dateStr);
-                        setCalendarMode('list');
-                      }
-                    }}
-                    className={`aspect-square p-2 rounded-2xl border flex flex-col justify-between transition-all relative ${
-                      dayPatients.length > 0 ? 'cursor-pointer hover:border-indigo-400 shadow-3xs' : ''
-                    } ${
-                      isCurrentToday ? 'bg-indigo-50/50 border-indigo-200' : 'bg-white border-slate-150'
-                    }`}
-                  >
-                    <span className={`text-[11px] font-black font-mono leading-none ${
-                      isCurrentToday ? 'text-indigo-600 font-black' : 'text-slate-550'
-                    }`}>
-                      {day.getDate()}
-                    </span>
-
-                    {dayPatients.length > 0 && (
-                      <div className="flex gap-1 flex-wrap justify-end">
-                        {dayPatients.slice(0, 3).map((p, pIdx) => (
-                          <span 
-                            key={pIdx} 
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              p.tier === 'VVIP' ? 'bg-amber-400' : 'bg-indigo-500'
-                            }`} 
-                            title={`${p.name} (${p.tier})`}
-                          />
-                        ))}
-                        {dayPatients.length > 3 && (
-                          <span className="text-[7px] text-slate-400 font-bold">+{dayPatients.length - 3}</span>
-                        )}
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`p-3 rounded-2xl border min-h-[220px] flex flex-col space-y-3 ${
+                        isCurrentToday ? 'bg-indigo-50/40 border-indigo-200' : 'bg-slate-50/40 border-slate-150'
+                      }`}
+                    >
+                      <div className="text-center pb-2 border-b border-slate-250">
+                        <span className="text-[10px] uppercase font-black text-slate-400 block">
+                          {day.toLocaleDateString('vi-VN', { weekday: 'short' })}
+                        </span>
+                        <span className={`text-sm font-extrabold font-mono inline-block px-2 py-0.5 rounded-full ${
+                          isCurrentToday ? 'bg-indigo-600 text-white' : 'text-slate-800'
+                        }`}>
+                          {day.getDate()}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
-        {calendarMode === 'list' && (
-          <>
-            {isLoading ? (
-              <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
-                <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
-                <p className="text-slate-400 font-semibold text-xs animate-pulse">Đang cập nhật...</p>
-              </div>
-            ) : filteredPatients.length === 0 ? (
-              <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
-                <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto text-slate-400">
-                  <ClipboardList className="w-8 h-8" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy hồ sơ nào phù hợp</h3>
-                  <p className="text-slate-400 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="hidden lg:block bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-fadeIn">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-slate-55 border-b border-slate-200 text-[10px] text-slate-400 font-black uppercase tracking-wider">
-                          <th className="py-4 px-5">PID / Khách Hàng</th>
-                          <th className="py-4 px-3">Phân hạng</th>
-                          <th className="py-4 px-3">Ngày Khám / Site / Khu vực</th>
-                          <th className="py-4 px-3">Chuyên Khoa</th>
-                          <th className="py-4 px-3">HĐQT Chỉ Đạo</th>
-                          <th className="py-4 px-3 text-right">Tổng Chi Phí</th>
-                          <th className="py-4 px-3 text-right">Duyệt Giảm</th>
-                          <th className="py-4 px-3 text-right">Thực Thu</th>
-                          <th className="py-4 px-5 text-right">Tác vụ</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200 text-xs">
-                        {filteredPatients.map((p) => {
-                          const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
-                          const pSite = sites.find(s => s.label === p.site) || sites[0];
-                          return (
-                            <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 animate-fadeIn">
-                              <td className="py-4 px-5">
-                                <div className="font-extrabold text-slate-955 text-sm">{p.name}</div>
-                                <div className="text-[10px] text-indigo-600 font-mono font-black mt-0.5">PID: {p.pid}</div>
-                              </td>
-                              <td className="py-4 px-3">
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${
-                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                      <div className="flex-1 space-y-2 overflow-y-auto max-h-[300px]">
+                        {dayPatients.length === 0 ? (
+                          <div className="text-center text-[10px] text-slate-300 font-bold pt-8">Không có ca</div>
+                        ) : (
+                          dayPatients.map(p => (
+                            <div 
+                              key={p.id}
+                              onClick={() => initiateEdit(p)}
+                              className="p-2 bg-white border border-slate-200 rounded-xl shadow-3xs hover:border-indigo-400 transition cursor-pointer space-y-1 animate-scaleIn text-left"
+                            >
+                              <div className="font-extrabold text-[10px] text-slate-800 truncate">{p.name}</div>
+                              <div className="flex items-center justify-between gap-1 text-[8px] text-slate-400">
+                                <span className="font-mono">PID: {p.pid}</span>
+                                <span className={`px-1 rounded-sm uppercase font-black text-[7px] ${
+                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
                                 }`}>
-                                  <Sparkles className="w-3 h-3" />
                                   {p.tier}
                                 </span>
-                              </td>
-                              <td className="py-4 px-3">
-                                <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
-                                    {pSite.label}
-                                  </div>
-                                  <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
-                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
-                                  }`}>
-                                    {p.examinationArea || 'Khu VIP'}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-4 px-3">
-                                <div className="flex flex-wrap gap-1 max-w-[180px]">
-                                  {p.specialties?.map((s, idx) => (
-                                    <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded font-bold">
-                                      {s}
-                                    </span>
-                                  ))}
-                                </div>
-                              </td>
-                              <td className="py-4 px-3">
-                                <div className="font-bold text-slate-700">{p.boardApproval || '---'}</div>
-                                {p.notes && <div className="text-[10px] text-slate-400 max-w-[150px] truncate" title={p.notes}>{p.notes}</div>}
-                              </td>
-                              <td className="py-4 px-3 text-right font-bold text-slate-900 font-mono">
-                                {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Thanh toán quầy</span> : formatCurrency(p.totalAmount)}
-                              </td>
-                              <td className="py-4 px-3 text-right">
-                                {p.tier === 'VIP' ? (
-                                  <span className="text-slate-400 font-sans text-[10px]">---</span>
-                                ) : (
-                                  <>
-                                    <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
-                                    <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
-                                  </>
-                                )}
-                              </td>
-                              <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
-                                {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Hóa đơn gốc</span> : formatCurrency(realCollected)}
-                              </td>
-                              <td className="py-4 px-5 text-right whitespace-nowrap">
-                                <div className="flex justify-end gap-1.5">
-                                  {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
-                                    <button 
-                                      onClick={() => {
-                                        const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
-                                        setLightboxImages(imgs);
-                                        setLightboxIndex(0);
-                                      }}
-                                      className="p-1.5 bg-slate-50 border border-slate-200 text-slate-605 hover:bg-slate-100 rounded-xl transition" 
-                                      title="Ảnh duyệt"
-                                    >
-                                      <ImageIcon className="w-4 h-4" />
-                                    </button>
-                                  )}
-                                  <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
-                                    <Edit3 className="w-4 h-4" />
-                                  </button>
-                                  
-                                  {userRole !== 'nhanvien' ? (
-                                    <button 
-                                      onClick={() => {
-                                        setConfirmModal({
-                                          show: true,
-                                          title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
-                                          message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
-                                          action: async () => {
-                                            try {
-                                              if (isFirebaseConnected && db) {
-                                                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
-                                                showNotification("Đã xóa hồ sơ thành công!");
-                                              } else {
-                                                const updated = patients.filter(item => item.id !== p.id);
-                                                setPatients(updated);
-                                                localStorage.setItem('local_patients', JSON.stringify(updated));
-                                                showNotification("Đã xóa hồ sơ cục bộ!");
-                                              }
-                                              setConfirmModal({ show: false, action: null, message: '', title: '' });
-                                            } catch (err) {
-                                              console.error(err);
-                                            }
-                                          }
-                                        });
-                                      }} 
-                                      className="p-1.5 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" 
-                                      title="Xóa"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  ) : (
-                                    <span className="p-1.5 text-slate-300 cursor-not-allowed">
-                                      <Lock className="w-4 h-4" />
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {calendarMode === 'month' && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-black uppercase text-slate-400 pb-2 border-b border-slate-100">
+                  <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span>
                 </div>
+                
+                <div className="grid grid-cols-7 gap-2">
+                  {monthDays.map((day, idx) => {
+                    if (!day) return <div key={idx} className="aspect-square bg-slate-50/20 rounded-xl border border-transparent"></div>;
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
-                  {filteredPatients.map((p) => {
-                    const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
-                    const pSite = sites.find(s => s.label === p.site) || sites[0];
+                    const dateStr = day.toISOString().split('T')[0];
+                    const dayPatients = visiblePatients.filter(p => p.date === dateStr);
+                    const isCurrentToday = dateStr === todayStr;
+
                     return (
-                      <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
-                            <h4 className="font-extrabold text-slate-900 text-sm">{p.name}</h4>
-                            <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 animate-fadeIn">
-                              <Calendar className="w-3.5 h-3.5" />
-                              Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
-                            </p>
-                            <div className="flex flex-wrap gap-1 mt-1.5">
-                              <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
-                                {pSite.label}
-                              </span>
-                              <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
-                                p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
-                              }`}>
-                                {p.examinationArea || 'Khu VIP'}
-                              </span>
-                            </div>
+                      <div 
+                        key={idx}
+                        onClick={() => {
+                          if (dayPatients.length > 0) {
+                            setFilterDate(dateStr);
+                            setCalendarMode('list');
+                          }
+                        }}
+                        className={`aspect-square p-2 rounded-2xl border flex flex-col justify-between transition-all relative ${
+                          dayPatients.length > 0 ? 'cursor-pointer hover:border-indigo-400 shadow-3xs' : ''
+                        } ${
+                          isCurrentToday ? 'bg-indigo-50/50 border-indigo-200' : 'bg-white border-slate-150'
+                        }`}
+                      >
+                        <span className={`text-[11px] font-black font-mono leading-none ${
+                          isCurrentToday ? 'text-indigo-600 font-black' : 'text-slate-550'
+                        }`}>
+                          {day.getDate()}
+                        </span>
+
+                        {dayPatients.length > 0 && (
+                          <div className="flex gap-1 flex-wrap justify-end">
+                            {dayPatients.slice(0, 3).map((p, pIdx) => (
+                              <span 
+                                key={pIdx} 
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  p.tier === 'VVIP' ? 'bg-amber-400' : 'bg-indigo-500'
+                                }`} 
+                                title={`${p.name} (${p.tier})`}
+                              />
+                            ))}
+                            {dayPatients.length > 3 && (
+                              <span className="text-[7px] text-slate-400 font-bold">+{dayPatients.length - 3}</span>
+                            )}
                           </div>
-                          <span className={`inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[9px] font-black ${
-                            p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
-                          }`}>
-                            {p.tier}
-                          </span>
-                        </div>
-
-                        <div className="flex flex-wrap gap-1">
-                          {p.specialties?.map((s, idx) => (
-                            <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-2.5 py-0.5 rounded font-bold">
-                              {s}
-                            </span>
-                          ))}
-                        </div>
-
-                        <div className="bg-slate-55 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-655">
-                          <div>Phê duyệt/Chỉ đạo: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
-                          {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
-                        </div>
-
-                        {p.tier === 'VVIP' ? (
-                          <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
-                            <div>
-                              <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
-                              <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
-                            </div>
-                            <div>
-                              <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
-                              <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
-                            </div>
-                            <div>
-                              <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
-                              <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
-                            </div>
-                          </div>
-                        ) : null}
-
-                        <div className="flex justify-end gap-2 pt-1">
-                          {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
-                            <button 
-                              type="button"
-                              onClick={() => {
-                                const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
-                                setLightboxImages(imgs);
-                                setLightboxIndex(0);
-                              }}
-                              className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
-                            >
-                              <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
-                            </button>
-                          )}
-                          <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
-                            <Edit3 className="w-3.5 h-3.5" /> Sửa
-                          </button>
-                          
-                          {userRole !== 'nhanvien' && (
-                            <button 
-                              type="button"
-                              onClick={() => {
-                                setConfirmModal({
-                                  title: "Xác nhận gỡ bỏ dữ liệu",
-                                  message: "Bạn có chắc chắn muốn gỡ bỏ vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
-                                  show: true,
-                                  action: async () => {
-                                    try {
-                                      if (isFirebaseConnected && db) {
-                                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
-                                        showNotification("Đã xóa dữ liệu đám mây!");
-                                      } else {
-                                        const updated = patients.filter(item => item.id !== p.id);
-                                        setPatients(updated);
-                                        localStorage.setItem('local_patients', JSON.stringify(updated));
-                                        showNotification("Đã xóa dữ liệu!");
-                                      }
-                                      setConfirmModal({ show: false, action: null, message: '', title: '' });
-                                    } catch (err) {
-                                      console.error(err);
-                                    }
-                                  }
-                                });
-                              }}
-                              className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" /> Xóa
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {calendarMode === 'list' && (
+              <>
+                {isLoading ? (
+                  <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
+                    <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+                    <p className="text-slate-400 font-semibold text-xs animate-pulse">Đang cập nhật...</p>
+                  </div>
+                ) : filteredPatients.length === 0 ? (
+                  <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
+                    <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto text-slate-400">
+                      <ClipboardList className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy hồ sơ nào phù hợp</h3>
+                      <p className="text-slate-400 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="hidden lg:block bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-fadeIn">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-slate-55 border-b border-slate-200 text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                              <th className="py-4 px-5">PID / Khách Hàng</th>
+                              <th className="py-4 px-3">Phân hạng</th>
+                              <th className="py-4 px-3">Ngày Khám / Site / Khu vực</th>
+                              <th className="py-4 px-3">Chuyên Khoa</th>
+                              <th className="py-4 px-3">HĐQT Chỉ Đạo</th>
+                              <th className="py-4 px-3 text-right">Tổng Chi Phí</th>
+                              <th className="py-4 px-3 text-right">Duyệt Giảm</th>
+                              <th className="py-4 px-3 text-right">Thực Thu</th>
+                              <th className="py-4 px-5 text-right">Tác vụ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200 text-xs">
+                            {filteredPatients.map((p) => {
+                              const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
+                              const pSite = sites.find(s => s.label === p.site) || sites[0];
+                              return (
+                                <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 animate-fadeIn">
+                                  <td className="py-4 px-5">
+                                    <div className="font-extrabold text-slate-955 text-sm">{p.name}</div>
+                                    <div className="text-[10px] text-indigo-600 font-mono font-black mt-0.5">PID: {p.pid}</div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${
+                                      p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                                    }`}>
+                                      <Sparkles className="w-3 h-3" />
+                                      {p.tier}
+                                    </span>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
+                                        {pSite.label}
+                                      </div>
+                                      <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
+                                        p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
+                                      }`}>
+                                        {p.examinationArea || 'Khu VIP'}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="flex flex-wrap gap-1 max-w-[180px]">
+                                      {p.specialties?.map((s, idx) => (
+                                        <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded font-bold">
+                                          {s}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="font-bold text-slate-700">{p.boardApproval || '---'}</div>
+                                    {p.notes && <div className="text-[10px] text-slate-400 max-w-[150px] truncate" title={p.notes}>{p.notes}</div>}
+                                  </td>
+                                  <td className="py-4 px-3 text-right font-bold text-slate-900 font-mono">
+                                    {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Thanh toán quầy</span> : formatCurrency(p.totalAmount)}
+                                  </td>
+                                  <td className="py-4 px-3 text-right">
+                                    {p.tier === 'VIP' ? (
+                                      <span className="text-slate-400 font-sans text-[10px]">---</span>
+                                    ) : (
+                                      <>
+                                        <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
+                                        <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
+                                      </>
+                                    )}
+                                  </td>
+                                  <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
+                                    {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Hóa đơn gốc</span> : formatCurrency(realCollected)}
+                                  </td>
+                                  <td className="py-4 px-5 text-right whitespace-nowrap">
+                                    <div className="flex justify-end gap-1.5">
+                                      {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
+                                        <button 
+                                          onClick={() => {
+                                            const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
+                                            setLightboxImages(imgs);
+                                            setLightboxIndex(0);
+                                          }}
+                                          className="p-1.5 bg-slate-50 border border-slate-200 text-slate-605 hover:bg-slate-100 rounded-xl transition" 
+                                          title="Ảnh duyệt"
+                                        >
+                                          <ImageIcon className="w-4 h-4" />
+                                        </button>
+                                      )}
+                                      <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
+                                        <Edit3 className="w-4 h-4" />
+                                      </button>
+                                      
+                                      {userRole !== 'nhanvien' ? (
+                                        <button 
+                                          onClick={() => {
+                                            setConfirmModal({
+                                              show: true,
+                                              title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
+                                              message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+                                              action: async () => {
+                                                try {
+                                                  if (isFirebaseConnected && db) {
+                                                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
+                                                    showNotification("Đã xóa hồ sơ thành công!");
+                                                  } else {
+                                                    const updated = patients.filter(item => item.id !== p.id);
+                                                    setPatients(updated);
+                                                    localStorage.setItem('local_patients', JSON.stringify(updated));
+                                                    showNotification("Đã xóa hồ sơ cục bộ!");
+                                                  }
+                                                  setConfirmModal({ show: false, action: null, message: '', title: '' });
+                                                } catch (err) {
+                                                  console.error(err);
+                                                }
+                                              }
+                                            });
+                                          }} 
+                                          className="p-1.5 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" 
+                                          title="Xóa"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      ) : (
+                                        <span className="p-1.5 text-slate-300 cursor-not-allowed">
+                                          <Lock className="w-4 h-4" />
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
+                      {filteredPatients.map((p) => {
+                        const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
+                        const pSite = sites.find(s => s.label === p.site) || sites[0];
+                        return (
+                          <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
+                                <h4 className="font-extrabold text-slate-900 text-sm">{p.name}</h4>
+                                <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 animate-fadeIn">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
+                                </p>
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
+                                    {pSite.label}
+                                  </span>
+                                  <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
+                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
+                                  }`}>
+                                    {p.examinationArea || 'Khu VIP'}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className={`inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[9px] font-black ${
+                                p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                              }`}>
+                                {p.tier}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-wrap gap-1">
+                              {p.specialties?.map((s, idx) => (
+                                <span key={idx} className="text-[9px] bg-slate-50 text-slate-605 border border-slate-200 px-2.5 py-0.5 rounded font-bold">
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+
+                            <div className="bg-slate-55 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-655">
+                              <div>Phê duyệt/Chỉ đạo: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
+                              {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
+                            </div>
+
+                            {p.tier === 'VVIP' ? (
+                              <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
+                                <div>
+                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
+                                  <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
+                                  <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
+                                  <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
+                                </div>
+                              </div>
+                            ) : null}
+
+                            <div className="flex justify-end gap-2 pt-1">
+                              {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
+                                    setLightboxImages(imgs);
+                                    setLightboxIndex(0);
+                                  }}
+                                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
+                                >
+                                  <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
+                                </button>
+                              )}
+                              <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
+                                <Edit3 className="w-3.5 h-3.5" /> Sửa
+                              </button>
+                              
+                              {userRole !== 'nhanvien' && (
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    setConfirmModal({
+                                      title: "Xác nhận gỡ bỏ dữ liệu",
+                                      message: "Bạn có chắc chắn muốn gỡ bỏ vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+                                      show: true,
+                                      action: async () => {
+                                        try {
+                                          if (isFirebaseConnected && db) {
+                                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
+                                            showNotification("Đã xóa dữ liệu đám mây!");
+                                          } else {
+                                            const updated = patients.filter(item => item.id !== p.id);
+                                            setPatients(updated);
+                                            localStorage.setItem('local_patients', JSON.stringify(updated));
+                                            showNotification("Đã xóa dữ liệu!");
+                                          }
+                                          setConfirmModal({ show: false, action: null, message: '', title: '' });
+                                        } catch (err) {
+                                          console.error(err);
+                                        }
+                                      }
+                                    });
+                                  }}
+                                  className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-605 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" /> Xóa
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </>
             )}
-          </>
-        )}
-      </div>
-    )}
-
-    {/* ========================== GIAO DIỆN 4: CẤU HÌNH THAM SỐ ========================== */}
-    {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
-      <div className="space-y-6 animate-fadeIn">
-        
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-          <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-            <div>
-              <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
-                Cấu Hinh Các Trường Cộng Tổng
-              </h3>
-              <p className="text-xs text-slate-400 mt-1">Lựa chọn các loại chi phí phát sinh để tự động tính vào [Tổng cộng]:</p>
-            </div>
-
-            <div className="space-y-3">
-              {[
-                { key: 'phiKham', label: 'Phí khám/Điều trị' },
-                { key: 'ngoaiTru', label: 'Ngoại trú' },
-                { key: 'capCuu', label: 'Cấp cứu/daycare' },
-                { key: 'noiTru', label: 'Nội trú/ICU' },
-                { key: 'ngoaiVien', label: 'Ngoại viện' },
-                { key: 'clsCdha', label: 'CLS/CDHA' },
-                { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
-              ].map((field) => (
-                <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-150 hover:bg-slate-50 cursor-pointer transition">
-                  <input 
-                    type="checkbox"
-                    checked={systemSettings.totalFormulaFields[field.key] || false}
-                    onChange={() => handleFormulaCheckboxChange(field.key)}
-                    className="w-4 h-4 rounded-md text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                  />
-                  <span className="text-xs font-bold text-slate-700">{field.label}</span>
-                </label>
-              ))}
-            </div>
-
-            <div className="border-t border-slate-150 pt-6 space-y-4">
-              <div>
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
-                  Phương Thức Tính Số Tiền Duyệt Giảm
-                </h3>
-              </div>
-
-              <div className="space-y-2.5">
-                <button
-                  type="button"
-                  onClick={() => handleDiscountFormulaChange('only_total')}
-                  className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
-                    systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
-                    systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
-                  }`}>
-                    {systemSettings.discountFormulaType === 'only_total' && <span className="w-2 h-2 rounded-full bg-white"></span>}
-                  </div>
-                  <div>
-                    <strong className="text-xs text-slate-800 block">Duyệt giảm trên tổng gốc</strong>
-                    <span className="text-[10px] text-slate-400 block mt-1">Biểu thức: <code>Số tiền duyệt giảm = [Tổng cộng] × [% giảm]</code></span>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleDiscountFormulaChange('total_minus_insurance_advance')}
-                  className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
-                    systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
-                    systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
-                  }`}>
-                    {systemSettings.discountFormulaType === 'total_minus_insurance_advance' && <span className="w-2 h-2 rounded-full bg-white"></span>}
-                  </div>
-                  <div>
-                    <strong className="text-xs text-slate-800 block">Khấu trừ bảo hiểm & tạm ứng trước khi giảm</strong>
-                    <span className="text-[10px] text-slate-400 block mt-1">Biểu thức: <code>Số tiền duyệt giảm = ([Tổng cộng] - [BHYT/Tạm ứng]) × [% giảm]</code></span>
-                  </div>
-                </button>
-              </div>
-            </div>
-
           </div>
+        )}
 
-          <div className="space-y-6">
+        {/* ========================== GIAO DIỆN 4: CẤU HÌNH THAM SỐ ========================== */}
+        {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
+          <div className="space-y-6 animate-fadeIn">
             
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-              <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                Quản Lý Danh Mục Chuyên Khoa
-              </h3>
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+              <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
+            </div>
 
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  placeholder="Thêm chuyên khoa mới..."
-                  value={newSpecialtyInput}
-                  onChange={(e) => setNewSpecialtyInput(e.target.value)}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddSpecialty}
-                  className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center gap-1"
-                >
-                  <Plus className="w-4 h-4" /> Thêm
-                </button>
-              </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
+                    Cấu Hinh Các Trường Cộng Tổng
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">Lựa chọn các loại chi phí phát sinh để tự động tính vào [Tổng cộng]:</p>
+                </div>
 
-              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                {systemSettings.specialties.map((spec, idx) => (
-                  <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition animate-fadeIn">
-                    <span className="text-xs font-bold text-slate-700">{spec}</span>
+                <div className="space-y-3">
+                  {[
+                    { key: 'phiKham', label: 'Phí khám/Điều trị' },
+                    { key: 'ngoaiTru', label: 'Ngoại trú' },
+                    { key: 'capCuu', label: 'Cấp cứu/daycare' },
+                    { key: 'noiTru', label: 'Nội trú/ICU' },
+                    { key: 'ngoaiVien', label: 'Ngoại viện' },
+                    { key: 'clsCdha', label: 'CLS/CDHA' },
+                    { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
+                  ].map((field) => (
+                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-150 hover:bg-slate-50 cursor-pointer transition">
+                      <input 
+                        type="checkbox"
+                        checked={systemSettings.totalFormulaFields[field.key] || false}
+                        onChange={() => handleFormulaCheckboxChange(field.key)}
+                        className="w-4 h-4 rounded-md text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                      />
+                      <span className="text-xs font-bold text-slate-700">{field.label}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="border-t border-slate-150 pt-6 space-y-4">
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
+                      Phương Thức Tính Số Tiền Duyệt Giảm
+                    </h3>
+                  </div>
+
+                  <div className="space-y-2.5">
                     <button
                       type="button"
-                      onClick={() => handleRemoveSpecialty(spec)}
-                      className="p-1 text-slate-400 hover:text-red-500 rounded-lg transition"
+                      onClick={() => handleDiscountFormulaChange('only_total')}
+                      className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
+                        systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
+                      }`}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
+                        systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                      }`}>
+                        {systemSettings.discountFormulaType === 'only_total' && <span className="w-2 h-2 rounded-full bg-white"></span>}
+                      </div>
+                      <div>
+                        <strong className="text-xs text-slate-800 block">Duyệt giảm trên tổng gốc</strong>
+                        <span className="text-[10px] text-slate-400 block mt-1">Biểu thức: <code>Số tiền duyệt giảm = [Tổng cộng] × [% giảm]</code></span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDiscountFormulaChange('total_minus_insurance_advance')}
+                      className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
+                        systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
+                        systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                      }`}>
+                        {systemSettings.discountFormulaType === 'total_minus_insurance_advance' && <span className="w-2 h-2 rounded-full bg-white"></span>}
+                      </div>
+                      <div>
+                        <strong className="text-xs text-slate-800 block">Khấu trừ bảo hiểm & tạm ứng trước khi giảm</strong>
+                        <span className="text-[10px] text-slate-400 block mt-1">Biểu thức: <code>Số tiền duyệt giảm = ([Tổng cộng] - [BHYT/Tạm ứng]) × [% giảm]</code></span>
+                      </div>
                     </button>
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-              <div>
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                  Quản Trị Phân Quyền Nhân Sự
-                </h3>
               </div>
 
-              {userRole === 'admin' ? (
-                <form onSubmit={handleCreateStaff} className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                  <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-6">
+                
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Quản Lý Danh Mục Chuyên Khoa
+                  </h3>
+
+                  <div className="flex gap-2">
                     <input 
                       type="text" 
-                      placeholder="Họ tên nhân viên..." 
-                      value={newStaff.name}
-                      onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
-                      className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold animate-fadeIn"
-                      required
+                      placeholder="Thêm chuyên khoa mới..."
+                      value={newSpecialtyInput}
+                      onChange={(e) => setNewSpecialtyInput(e.target.value)}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
                     />
-                    <input 
-                      type="text" 
-                      placeholder="Chức danh" 
-                      value={newStaff.title}
-                      onChange={(e) => setNewStaff({ ...newStaff, title: e.target.value })}
-                      className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
-                    <input 
-                      type="email" 
-                      placeholder="Email đăng nhập..." 
-                      value={newStaff.email}
-                      onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
-                      className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
-                      required
-                    />
-                    <input 
-                      type="text" 
-                      placeholder="Mã UID (Lấy từ Firebase Authentication)..." 
-                      value={newStaff.uid}
-                      onChange={(e) => setNewStaff({ ...newStaff, uid: e.target.value })}
-                      className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-mono font-bold animate-fadeIn"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Vai trò phân quyền</label>
-                    <select 
-                      value={newStaff.role}
-                      onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold cursor-pointer"
+                    <button
+                      type="button"
+                      onClick={handleAddSpecialty}
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center gap-1"
                     >
-                      <option value="nhanvien">nhanvien</option>
-                      <option value="quanly_site">quanly_site</option>
-                      <option value="quanly">quanly</option>
-                      <option value="lanhdao">lanhdao</option>
-                      <option value="admin">admin</option>
-                    </select>
+                      <Plus className="w-4 h-4" /> Thêm
+                    </button>
                   </div>
-                  <button 
-                    type="submit"
-                    className="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center justify-center gap-1"
-                  >
-                    <UserPlus className="w-4 h-4" /> Đăng ký tài khoản nhân viên
-                  </button>
-                </form>
-              ) : null}
 
-              <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
-                {staffList.map((staff) => (
-                  <div key={staff.uid} className="flex justify-between items-center p-3 rounded-2xl border border-slate-200 bg-slate-50/50">
-                    <div>
-                      <div className="text-xs font-bold text-slate-800">{staff.name}</div>
-                      <div className="text-[9px] text-slate-400 font-mono">{staff.email}</div>
-                      <div className="text-[9px] text-slate-400 italic">UID: {staff.uid} | {staff.title}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-black px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-sm uppercase">
-                        {staff.role}
-                      </span>
-                      {userRole === 'admin' && staff.uid !== "acc_admin" && (
+                  <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                    {systemSettings.specialties.map((spec, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition animate-fadeIn">
+                        <span className="text-xs font-bold text-slate-700">{spec}</span>
                         <button
                           type="button"
-                          onClick={() => handleDeleteStaff(staff.uid)}
-                          className="p-1 border border-slate-200 text-slate-400 hover:text-red-500 rounded transition"
-                          title="Xóa"
+                          onClick={() => handleRemoveSpecialty(spec)}
+                          className="p-1 text-slate-400 hover:text-red-500 rounded-lg transition"
                         >
-                          <X className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                      Quản Trị Phân Quyền Nhân Sự
+                    </h3>
+                  </div>
+
+                  {userRole === 'admin' ? (
+                    <form onSubmit={handleCreateStaff} className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                      <div className="grid grid-cols-2 gap-2">
+                        <input 
+                          type="text" 
+                          placeholder="Họ tên nhân viên..." 
+                          value={newStaff.name}
+                          onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold animate-fadeIn"
+                          required
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Chức danh" 
+                          value={newStaff.title}
+                          onChange={(e) => setNewStaff({ ...newStaff, title: e.target.value })}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 gap-2">
+                        <input 
+                          type="email" 
+                          placeholder="Email đăng nhập..." 
+                          value={newStaff.email}
+                          onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
+                          required
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Mã UID (Lấy từ Firebase Authentication)..." 
+                          value={newStaff.uid}
+                          onChange={(e) => setNewStaff({ ...newStaff, uid: e.target.value })}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-mono font-bold animate-fadeIn"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Vai trò phân quyền</label>
+                        <select 
+                          value={newStaff.role}
+                          onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold cursor-pointer"
+                        >
+                          <option value="nhanvien">nhanvien</option>
+                          <option value="quanly_site">quanly_site</option>
+                          <option value="quanly">quanly</option>
+                          <option value="lanhdao">lanhdao</option>
+                          <option value="admin">admin</option>
+                        </select>
+                      </div>
+                      <button 
+                        type="submit"
+                        className="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center justify-center gap-1"
+                      >
+                        <UserPlus className="w-4 h-4" /> Đăng ký tài khoản nhân viên
+                      </button>
+                    </form>
+                  ) : null}
+
+                  <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                    {staffList.map((staff) => (
+                      <div key={staff.uid} className="flex justify-between items-center p-3 rounded-2xl border border-slate-200 bg-slate-50/50">
+                        <div>
+                          <div className="text-xs font-bold text-slate-800">{staff.name}</div>
+                          <div className="text-[9px] text-slate-400 font-mono">{staff.email}</div>
+                          <div className="text-[9px] text-slate-400 italic">UID: {staff.uid} | {staff.title}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-black px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-sm uppercase">
+                            {staff.role}
+                          </span>
+                          {userRole === 'admin' && staff.uid !== "acc_admin" && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteStaff(staff.uid)}
+                              className="p-1 border border-slate-200 text-slate-400 hover:text-red-500 rounded transition"
+                              title="Xóa"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
               </div>
+
             </div>
-
           </div>
+        )}
 
+      </main>
+
+      <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
+        <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.8</p>
+          <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
-      </div>
-    )}
-
-  </main>
-
-  <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
-    <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-      <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.8</p>
-      <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
+      </footer>
     </div>
-  </footer>
-</div>
-);
+  );
 }
