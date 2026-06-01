@@ -174,7 +174,7 @@ const defaultSystemSettings = {
 };
 
 const workflowStatuses = [
-  { id: 'Waiting', label: 'Chờ Tiếp Đón', color: 'bg-slate-100 text-slate-700 border-slate-250', dot: 'bg-slate-400' },
+  { id: 'Waiting', label: 'Chờ Tiếp Đón', color: 'bg-slate-100 text-slate-700 border-slate-255', dot: 'bg-slate-400' },
   { id: 'Received', label: 'Đã Tiếp Đón', color: 'bg-indigo-50 text-indigo-700 border-indigo-200/80', dot: 'bg-indigo-500' },
   { id: 'Examining', label: 'Đang Khám', color: 'bg-blue-50 text-blue-700 border-blue-200/80', dot: 'bg-blue-500' },
   { id: 'Testing', label: 'Đang Làm CLS/CĐHA', color: 'bg-amber-50 text-amber-700 border-amber-200/80', dot: 'bg-amber-500' },
@@ -696,6 +696,16 @@ export default function App() {
     } else {
       setAuthError('Email hoặc mật khẩu không chính xác.');
     }
+  };
+
+  const handleLogout = () => {
+    if (isFirebaseConnected && auth) {
+      signOut(auth).catch(e => console.warn(e));
+    }
+    setCurrentUser(null);
+    setUserRole('nhanvien');
+    localStorage.removeItem('crm_current_user');
+    showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
   };
 
   const handleInputChange = (field, val) => {
@@ -1294,35 +1304,6 @@ export default function App() {
         </div>
       )}
 
-      <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
-        {activePushAlerts.map(alert => (
-          <div 
-            key={alert.id}
-            className={`pointer-events-auto p-4 rounded-2xl shadow-xl border flex gap-3 items-start transition-all transform duration-300 bg-white ${
-              alert.type === 'success' ? 'border-emerald-100 bg-emerald-50/95' :
-              alert.type === 'error' ? 'border-rose-100 bg-rose-50/95' : 'border-indigo-100 bg-indigo-50/95'
-            }`}
-          >
-            <div className={`p-1.5 rounded-lg text-white ${
-              alert.type === 'success' ? 'bg-emerald-500' :
-              alert.type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'
-            }`}>
-              <BellRing className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-extrabold text-slate-900">{alert.title}</h4>
-              <p className="text-[11px] text-slate-600 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
-            </div>
-            <button 
-              onClick={() => setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id))}
-              className="text-slate-400 hover:text-slate-600 p-0.5 transition"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ))}
-      </div>
-
       {confirmModal.show && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
@@ -1708,7 +1689,7 @@ export default function App() {
                         title={`Trống: ${col.label}`}
                       >
                         <span className={`w-2 h-2 rounded-full ${col.dot} mb-2`}></span>
-                        <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-555 mb-2 font-mono">
+                        <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-550 mb-2 font-mono">
                           0
                         </span>
                         <span className="text-[9px] font-extrabold text-slate-400 whitespace-nowrap [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
@@ -2454,7 +2435,7 @@ export default function App() {
                                 {formatCurrency(p.totalAmount)}
                               </td>
                               <td className="py-4 px-3 text-right">
-                                <div className="font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</div>
+                                <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
                                 <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
                               </td>
                               <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
@@ -2475,7 +2456,7 @@ export default function App() {
                                       <ImageIcon className="w-4 h-4" />
                                     </button>
                                   )}
-                                  <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
+                                  <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
                                     <Edit3 className="w-4 h-4" />
                                   </button>
                                   
@@ -2586,7 +2567,7 @@ export default function App() {
                                 setLightboxImages(imgs);
                                 setLightboxIndex(0);
                               }}
-                              className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
+                              className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
                             >
                               <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
                             </button>
@@ -2636,7 +2617,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ========================== GIAO DIỆN 4: CẤU HÌNH HỆ THỐNG ========================== */}
         {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao') && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -2658,6 +2638,10 @@ export default function App() {
                 <div className="space-y-3">
                   {[
                     { key: 'phiKham', label: 'Phí khám/Điều trị' },
+                    { key: 'ngoaiTru', label: 'Ngoại trú' },
+                    { key: 'capCuu', label: 'Cấp cứu/daycare' },
+                    { key: 'noiTru', label: 'Nội trú/ICU' },
+                    { key: 'ngoaiVien', label: 'Ngoại viện' },
                     { key: 'clsCdha', label: 'CLS/CDHA' },
                     { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
                   ].map((field) => (
@@ -2845,7 +2829,7 @@ export default function App() {
                           {userRole === 'admin' && staff.uid !== "acc_admin" && (
                             <button
                               type="button"
-                              onClick={() => handleDeleteStaff(uid)}
+                              onClick={() => handleDeleteStaff(staff.uid)}
                               className="p-1 border border-slate-200 text-slate-400 hover:text-red-500 rounded transition"
                               title="Xóa"
                             >
