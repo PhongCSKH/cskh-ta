@@ -352,15 +352,16 @@ export default function App() {
     try {
       const token = await getToken(messaging, {
         vapidKey: "BFjwAUlwacxhmYk0TiQdDTDYJKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQIAcSuG3iAAqtNnkPtJAW_s"
-      }).catch(err => {
-        return null;
       });
       if (token) {
         const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userId);
-        await updateDoc(userDocRef, { fcmToken: token }).catch(e => console.warn(e));
+        await updateDoc(userDocRef, { fcmToken: token }).catch(async (e) => {
+          // Ghi đè an toàn nếu tài liệu chưa được khởi tạo đầy đủ trường
+          await setDoc(userDocRef, { fcmToken: token }, { merge: true }).catch(err => console.warn(err));
+        });
       }
     } catch (err) {
-      console.warn(err);
+      console.warn("Lỗi đồng bộ mã thông báo FCM thiết bị:", err);
     }
   };
 
@@ -443,8 +444,15 @@ export default function App() {
     });
   };
 
-  const handleLogout = () => {
-    if (isFirebaseConnected && auth) {
+  // Nâng cấp: Khi đăng xuất, thu hồi Token FCM để tránh gửi lầm sang thiết bị khác
+  const handleLogout = async () => {
+    if (isFirebaseConnected && auth && currentUser) {
+      try {
+        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser.uid);
+        await updateDoc(userDocRef, { fcmToken: null }).catch(e => console.warn(e));
+      } catch (err) {
+        console.warn(err);
+      }
       signOut(auth).catch(e => console.warn(e));
     }
     setCurrentUser(null);
@@ -592,8 +600,14 @@ export default function App() {
   useEffect(() => {
     checkIosPermissionStatus();
 
-    if ('serviceWorker' in navigator && Notification.permission === 'granted') {
-      navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(e => console.warn(e));
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        .then((registration) => {
+          console.log("Firebase SW registered context scope:", registration.scope);
+        })
+        .catch((err) => {
+          console.warn("Lỗi đăng ký Firebase Service Worker:", err);
+        });
     }
 
     if (!document.getElementById('html5-qrcode-script')) {
@@ -1435,7 +1449,7 @@ export default function App() {
           </div>
 
           {authError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 text-center font-bold flex items-center gap-1.5 justify-center">
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-605 text-center font-bold flex items-center gap-1.5 justify-center">
               <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-500" />
               {authError}
             </div>
@@ -1565,7 +1579,7 @@ export default function App() {
       )}
 
       {isScanning && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-50 bg-slate-955/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
           <style>{`
             #reader video {
               width: 100% !important;
@@ -1652,7 +1666,7 @@ export default function App() {
             </div>
             <button 
               onClick={() => setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id))}
-              className="text-slate-400 hover:text-slate-600 p-0.5 transition"
+              className="text-slate-400 hover:text-slate-650 p-0.5 transition"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -2161,7 +2175,7 @@ export default function App() {
                               className={`p-3 rounded-xl border shadow-2xs hover:shadow-xs transition duration-150 space-y-2.5 relative group ${patientSite.cardBg}`}
                             >
                               <div className="flex justify-between items-start gap-1">
-                                <span className="text-[8px] text-slate-500 font-mono font-black truncate">PID: {p.pid}</span>
+                                <span className="text-[8px] text-slate-550 font-mono font-black truncate">PID: {p.pid}</span>
                                 <div className="flex gap-1">
                                   <span className={`px-1 py-0.5 rounded-xs text-[7px] font-bold uppercase ${
                                     p.examinationArea === 'Khu VIP' ? 'bg-indigo-100 text-indigo-800' : 'bg-teal-100 text-teal-800'
@@ -2396,7 +2410,7 @@ export default function App() {
                           type="button"
                           onClick={() => handleInputChange('examinationArea', 'Khu VIP')}
                           className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center ${
-                            formData.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                            formData.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-50'
                           }`}
                         >
                           Khu VIP
@@ -2495,7 +2509,7 @@ export default function App() {
                         placeholder="Mô tả ghi chú nếu có..."
                         value={formData.notes}
                         onChange={(e) => handleInputChange('notes', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-medium bg-white text-slate-800"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-medium bg-white text-slate-800"
                       ></textarea>
                     </div>
 
@@ -2727,7 +2741,7 @@ export default function App() {
                         <select
                           value={formData.treatmentType || 'Ngoại trú'}
                           onChange={(e) => handleTreatmentTypeChange(e.target.value)}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800 cursor-pointer"
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 cursor-pointer"
                         >
                           <option value="Ngoại trú">Ngoại trú</option>
                           <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
@@ -2828,7 +2842,7 @@ export default function App() {
                               placeholder="0"
                               className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-505 ${
                                 userRole === 'nhanvien'
-                                  ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
+                                  ? 'bg-slate-800 border-slate-700 text-slate-550 cursor-not-allowed'
                                   : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
                               }`}
                             />
@@ -3092,7 +3106,7 @@ export default function App() {
                               className="p-2 bg-white border border-slate-200 rounded-xl shadow-3xs hover:border-indigo-400 transition cursor-pointer space-y-1 animate-scaleIn text-left"
                             >
                               <div className="font-extrabold text-[10px] text-slate-800 truncate">{p.name}</div>
-                              <div className="flex items-center justify-between gap-1 text-[8px] text-slate-400">
+                              <div className="flex items-center justify-between gap-1 text-[8px] text-slate-450">
                                 <span className="font-mono">PID: {p.pid}</span>
                                 <span className={`px-1 rounded-sm uppercase font-black text-[7px] ${
                                   p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
@@ -3572,7 +3586,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => handleRemoveSpecialty(spec)}
-                          className="p-1 text-slate-400 hover:text-red-500 rounded-lg transition"
+                          className="p-1 text-slate-405 hover:text-red-500 rounded-lg transition"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -3687,7 +3701,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.8</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.9</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
