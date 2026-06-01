@@ -231,10 +231,10 @@ export default function App() {
     date: new Date().toISOString().split('T')[0],
     specialties: [],
     site: 'BV Tâm Anh - Tân Sơn Hòa',
-    ngoaiTru: 0,
-    capCuu: 0,
-    noiTru: 0,
-    ngoaiVien: 0,
+    ngoaiTru: false,
+    capCuu: false,
+    noiTru: false,
+    ngoaiVien: false,
     phiKham: 0,
     clsCdha: 0,
     thuocVacxin: 0,
@@ -384,10 +384,10 @@ export default function App() {
       date: new Date().toISOString().split('T')[0],
       specialties: [],
       site: 'BV Tâm Anh - Tân Sơn Hòa',
-      ngoaiTru: 0,
-      capCuu: 0,
-      noiTru: 0,
-      ngoaiVien: 0,
+      ngoaiTru: false,
+      capCuu: false,
+      noiTru: false,
+      ngoaiVien: false,
       phiKham: 0,
       clsCdha: 0,
       thuocVacxin: 0,
@@ -399,16 +399,6 @@ export default function App() {
       status: 'Waiting',
       history: []
     });
-  };
-
-  const handleLogout = () => {
-    if (isFirebaseConnected && auth) {
-      signOut(auth).catch(e => console.warn(e));
-    }
-    setCurrentUser(null);
-    setUserRole('nhanvien');
-    localStorage.removeItem('crm_current_user');
-    showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
   };
 
   useEffect(() => {
@@ -647,10 +637,6 @@ export default function App() {
     let total = 0;
     
     if (formulas.phiKham) total += Number(formData.phiKham || 0);
-    if (formulas.ngoaiTru) total += Number(formData.ngoaiTru || 0);
-    if (formulas.capCuu) total += Number(formData.capCuu || 0);
-    if (formulas.noiTru) total += Number(formData.noiTru || 0);
-    if (formulas.ngoaiVien) total += Number(formData.ngoaiVien || 0);
     if (formulas.clsCdha) total += Number(formData.clsCdha || 0);
     if (formulas.thuocVacxin) total += Number(formData.thuocVacxin || 0);
 
@@ -864,10 +850,10 @@ export default function App() {
       date: patient.date || new Date().toISOString().split('T')[0],
       specialties: patient.specialties || [],
       site: patient.site || 'BV Tâm Anh - Tân Sơn Hòa',
-      ngoaiTru: patient.ngoaiTru || 0,
-      capCuu: patient.capCuu || 0,
-      noiTru: patient.noiTru || 0,
-      ngoaiVien: patient.ngoaiVien || 0,
+      ngoaiTru: patient.ngoaiTru || false,
+      capCuu: patient.capCuu || false,
+      noiTru: patient.noiTru || false,
+      ngoaiVien: patient.ngoaiVien || false,
       phiKham: patient.phiKham || 0,
       clsCdha: patient.clsCdha || 0,
       thuocVacxin: patient.thuocVacxin || 0,
@@ -1501,7 +1487,7 @@ export default function App() {
                           }`} />
                           <div className="flex-1 space-y-0.5">
                             <strong className="text-slate-800 block leading-tight">{n.title}</strong>
-                            <p className="text-[11px] text-slate-550 leading-normal font-medium">{n.message}</p>
+                            <p className="text-[11px] text-slate-555 leading-normal font-medium">{n.message}</p>
                             <span className="text-[9px] text-slate-400 font-bold block flex items-center gap-1 mt-1">
                               <Clock className="w-3 h-3" /> {n.timestamp}
                             </span>
@@ -1653,7 +1639,7 @@ export default function App() {
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-100">
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
@@ -1722,7 +1708,7 @@ export default function App() {
                         title={`Trống: ${col.label}`}
                       >
                         <span className={`w-2 h-2 rounded-full ${col.dot} mb-2`}></span>
-                        <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-500 mb-2 font-mono">
+                        <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-555 mb-2 font-mono">
                           0
                         </span>
                         <span className="text-[9px] font-extrabold text-slate-400 whitespace-nowrap [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
@@ -1826,6 +1812,7 @@ export default function App() {
           </div>
         )}
 
+        {/* ========================== GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI ========================== */}
         {activeTab === 'register' && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
@@ -2040,101 +2027,89 @@ export default function App() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Phí khám/Điều trị</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
-                          onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                    <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
+                      <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị (Hộp tick chọn)</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input 
+                            type="checkbox"
+                            checked={formData.ngoaiTru || false}
+                            onChange={(e) => handleInputChange('ngoaiTru', e.target.checked)}
+                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                          />
+                          <span className="text-xs font-bold text-slate-700">Ngoại trú</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input 
+                            type="checkbox"
+                            checked={formData.capCuu || false}
+                            onChange={(e) => handleInputChange('capCuu', e.target.checked)}
+                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                          />
+                          <span className="text-xs font-bold text-slate-700">Cấp cứu/Daycare</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input 
+                            type="checkbox"
+                            checked={formData.noiTru || false}
+                            onChange={(e) => handleInputChange('noiTru', e.target.checked)}
+                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                          />
+                          <span className="text-xs font-bold text-slate-700">Nội trú/ICU</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input 
+                            type="checkbox"
+                            checked={formData.ngoaiVien || false}
+                            onChange={(e) => handleInputChange('ngoaiVien', e.target.checked)}
+                            className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                          />
+                          <span className="text-xs font-bold text-slate-700">Ngoài viện</span>
+                        </label>
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Ngoại trú</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={formData.ngoaiTru ? formData.ngoaiTru.toLocaleString('vi-VN') : ''}
-                          onChange={(e) => handleCurrencyChange('ngoaiTru', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full md:col-span-2 lg:col-span-3">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
+                            onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
+                          />
+                          <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Cấp cứu/Daycare</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={formData.capCuu ? formData.capCuu.toLocaleString('vi-VN') : ''}
-                          onChange={(e) => handleCurrencyChange('capCuu', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
+                            onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
+                          />
+                          <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Nội trú/ICU</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={formData.noiTru ? formData.noiTru.toLocaleString('vi-VN') : ''}
-                          onChange={(e) => handleCurrencyChange('noiTru', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Nội trú ngoài viện</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={formData.ngoaiVien ? formData.ngoaiVien.toLocaleString('vi-VN') : ''}
-                          onChange={(e) => handleCurrencyChange('ngoaiVien', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">CLS/CDHA</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
-                          onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Thuốc/vacxin</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
-                          onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-655 block">Thuốc/vacxin</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
+                            onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold text-slate-900 bg-white"
+                          />
+                          <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                        </div>
                       </div>
                     </div>
 
@@ -2322,6 +2297,7 @@ export default function App() {
           </form>
         )}
 
+        {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ ========================== */}
         {activeTab === 'monitoring' && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -2456,7 +2432,7 @@ export default function App() {
                                 </span>
                               </td>
                               <td className="py-4 px-3">
-                                <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
+                                <div className="text-slate-500 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
                                 <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1 ${pSite.bg}`}>
                                   {pSite.label}
                                 </div>
@@ -2499,7 +2475,7 @@ export default function App() {
                                       <ImageIcon className="w-4 h-4" />
                                     </button>
                                   )}
-                                  <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
+                                  <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
                                     <Edit3 className="w-4 h-4" />
                                   </button>
                                   
@@ -2660,6 +2636,7 @@ export default function App() {
           </div>
         )}
 
+        {/* ========================== GIAO DIỆN 4: CẤU HÌNH HỆ THỐNG ========================== */}
         {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao') && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -2681,10 +2658,6 @@ export default function App() {
                 <div className="space-y-3">
                   {[
                     { key: 'phiKham', label: 'Phí khám/Điều trị' },
-                    { key: 'ngoaiTru', label: 'Ngoại trú' },
-                    { key: 'capCuu', label: 'Cấp cứu/daycare' },
-                    { key: 'noiTru', label: 'Nội trú/ICU' },
-                    { key: 'ngoaiVien', label: 'Ngoại viện' },
                     { key: 'clsCdha', label: 'CLS/CDHA' },
                     { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
                   ].map((field) => (
@@ -2872,7 +2845,7 @@ export default function App() {
                           {userRole === 'admin' && staff.uid !== "acc_admin" && (
                             <button
                               type="button"
-                              onClick={() => handleDeleteStaff(staff.uid)}
+                              onClick={() => handleDeleteStaff(uid)}
                               className="p-1 border border-slate-200 text-slate-400 hover:text-red-500 rounded transition"
                               title="Xóa"
                             >
@@ -2895,7 +2868,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.2</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.3</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
