@@ -1,30 +1,23 @@
-name: Deploy to Firebase Hosting
+name: Deploy to Firebase Functions
 
 on:
   push:
     branches:
-      - main # Chạy tự động mỗi khi bạn lưu/commit code vào nhánh main
+      - main  # Hoặc tên nhánh chính của bạn
 
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout mã nguồn
-        uses: actions/checkout@v4
-
-      - name: Thiết lập NodeJS
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Cài đặt thư viện phụ thuộc của React App (Root)
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
         run: npm install
-
-      - name: Cài đặt thư viện phụ thuộc của Cloud Functions
-        run: npm --prefix functions install
-
-      - name: Biên dịch ứng dụng (Build)
-        run: npm run build
-
-      - name: Đẩy lên Firebase Hosting và Functions bằng Token
-        run: npx firebase-tools deploy --token "${{ secrets.FIREBASE_TOKEN }}" --only hosting,functions
+        
+      # Bước này sẽ tự động cài đặt Firebase CLI và triển khai code
+      - name: Deploy to Firebase
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only functions
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
