@@ -62,7 +62,6 @@ import {
   Smartphone
 } from 'lucide-react';
 
-/* STREAMING_CHUNK: Loading Firebase configurations... */
 const defaultFirebaseConfig = {
   apiKey: "AIzaSyBMmXRbUFvXRsUH6anb22sKlY8JlqiF7Lk",
   authDomain: "cskh-ta.firebaseapp.com",
@@ -95,7 +94,6 @@ try {
   console.warn(error);
 }
 
-/* STREAMING_CHUNK: Defining data formatting and mock data accounts... */
 const formatCurrency = (number) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(number || 0);
 };
@@ -192,7 +190,6 @@ const sites = [
   { id: 'ch', label: 'BV Tâm Anh - Chánh Hưng', bg: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500', cardBg: 'bg-[#f0fdf4] border-[#bbf7d0] hover:border-[#86efac]' }
 ];
 
-/* STREAMING_CHUNK: Initializing component main function and state hooks... */
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState('nhanvien');
@@ -270,7 +267,6 @@ export default function App() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  /* STREAMING_CHUNK: Designing FCM Token registers and alerts... */
   const triggerPushAlert = (title, message, type = 'info') => {
     const id = Date.now() + Math.random().toString(36).substr(2, 9);
     const newAlert = { id, title, message, type };
@@ -381,7 +377,6 @@ export default function App() {
     }
   };
 
-  /* STREAMING_CHUNK: Preparing dropdown search and reset filters... */
   const resetForm = () => {
     setCurrentId(null);
     setFormRightTab('billing');
@@ -410,6 +405,16 @@ export default function App() {
       status: 'Waiting',
       history: []
     });
+  };
+
+  const handleLogout = () => {
+    if (isFirebaseConnected && auth) {
+      signOut(auth).catch(e => console.warn(e));
+    }
+    setCurrentUser(null);
+    setUserRole('nhanvien');
+    localStorage.removeItem('crm_current_user');
+    showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
   };
 
   useEffect(() => {
@@ -490,7 +495,6 @@ export default function App() {
     };
   }, [isScanning]);
 
-  /* STREAMING_CHUNK: Registering browser hooks and service workers... */
   useEffect(() => {
     checkIosPermissionStatus();
 
@@ -584,7 +588,6 @@ export default function App() {
     }
   }, []);
 
-  /* STREAMING_CHUNK: Loading and synchronizing database changes... */
   useEffect(() => {
     if (!currentUser) return;
     setIsLoading(true);
@@ -677,10 +680,6 @@ export default function App() {
     let total = 0;
     
     if (formulas.phiKham) total += Number(formData.phiKham || 0);
-    if (formulas.ngoaiTru) total += Number(formData.ngoaiTru || 0);
-    if (formulas.capCuu) total += Number(formData.capCuu || 0);
-    if (formulas.noiTru) total += Number(formData.noiTru || 0);
-    if (formulas.ngoaiVien) total += Number(formData.ngoaiVien || 0);
     if (formulas.clsCdha) total += Number(formData.clsCdha || 0);
     if (formulas.thuocVacxin) total += Number(formData.thuocVacxin || 0);
 
@@ -707,7 +706,6 @@ export default function App() {
     }
   }, [calculatedSums.totalAmount, calculatedSums.approvedDiscountAmount]);
 
-  /* STREAMING_CHUNK: Executing data registers and editing events... */
   const handleInputChange = (field, val) => {
     if (field === 'discountRate' && userRole === 'nhanvien') {
       showNotification("Tài khoản nhân viên không có quyền duyệt chiết khấu!", "error");
@@ -720,6 +718,17 @@ export default function App() {
     const cleanValue = rawValue.replace(/\D/g, '');
     const numValue = cleanValue === '' ? 0 : parseInt(cleanValue, 10);
     handleInputChange(field, numValue);
+  };
+
+  const toggleSpecialtySelection = (spec) => {
+    setFormData(prev => {
+      const exists = prev.specialties.includes(spec);
+      if (exists) {
+        return { ...prev, specialties: prev.specialties.filter(s => s !== spec) };
+      } else {
+        return { ...prev, specialties: [...prev.specialties, spec] };
+      }
+    });
   };
 
   const handleMultipleImagesUpload = (e) => {
@@ -835,6 +844,10 @@ export default function App() {
       resetForm();
       setActiveTab('monitoring');
     }
+  };
+
+  const handleLoginSubmit = (e) => {
+    handleLogin(e);
   };
 
   const initiateEdit = (patient) => {
@@ -1057,7 +1070,6 @@ export default function App() {
     showNotification("Phương thức tính miễn giảm đã thay đổi!");
   };
 
-  /* STREAMING_CHUNK: Filtering records and data rendering... */
   const filteredPatients = useMemo(() => {
     return patients.filter(p => {
       const matchSearch = 
@@ -1109,7 +1121,6 @@ export default function App() {
     setNotifications([]);
   };
 
-  /* STREAMING_CHUNK: Designing login and authentication screen... */
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-gradient-to-tr from-slate-100 via-indigo-50/20 to-slate-200 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-800">
@@ -1140,7 +1151,7 @@ export default function App() {
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email </label>
               <input 
@@ -1176,7 +1187,7 @@ export default function App() {
               type="submit" 
               className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
             >
-              <Lock className="w-4 h-4" /> _Xác thực
+              <Lock className="w-4 h-4" /> Xác thực
             </button>
           </form>
 
@@ -1185,7 +1196,6 @@ export default function App() {
     );
   }
 
-  /* STREAMING_CHUNK: Designing main dashboard layout... */
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
       
@@ -1302,6 +1312,35 @@ export default function App() {
           </div>
         </div>
       )}
+
+      <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
+        {activePushAlerts.map(alert => (
+          <div 
+            key={alert.id}
+            className={`pointer-events-auto p-4 rounded-2xl shadow-xl border flex gap-3 items-start transition-all transform duration-300 bg-white ${
+              alert.type === 'success' ? 'border-emerald-100 bg-emerald-50/95' :
+              alert.type === 'error' ? 'border-rose-100 bg-rose-50/95' : 'border-indigo-100 bg-indigo-50/95'
+            }`}
+          >
+            <div className={`p-1.5 rounded-lg text-white ${
+              alert.type === 'success' ? 'bg-emerald-500' :
+              alert.type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'
+            }`}>
+              <BellRing className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xs font-extrabold text-slate-900">{alert.title}</h4>
+              <p className="text-[11px] text-slate-600 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
+            </div>
+            <button 
+              onClick={() => setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id))}
+              className="text-slate-400 hover:text-slate-600 p-0.5 transition"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
 
       {confirmModal.show && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
@@ -1559,7 +1598,7 @@ export default function App() {
             <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl shadow-slate-100 border border-slate-700">
               <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20"></div>
               <div className="relative z-10 space-y-4 max-w-2xl">
-                <span className="px-3 py-1 bg-amber-400 text-slate-950 rounded-full text-[10px] font-black uppercase tracking-wider">
+                <span className="px-3 py-1 bg-amber-400 text-slate-955 rounded-full text-[10px] font-black uppercase tracking-wider">
                   Phòng Chăm Sóc Khách Hàng
                 </span>
                 <h2 className="text-xl sm:text-3xl font-black tracking-tight leading-tight">
@@ -1571,7 +1610,7 @@ export default function App() {
                 <div className="pt-2">
                   <button 
                     onClick={() => { resetForm(); setActiveTab('register'); }}
-                    className="px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-950 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-2 transition transform active:scale-95"
+                    className="px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-955 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-2 transition transform active:scale-95"
                   >
                     <Plus className="w-4.5 h-4.5 stroke-[3px]" /> Tiếp nhận hồ sơ mới <ArrowRight className="w-4 h-4" />
                   </button>
@@ -1586,7 +1625,7 @@ export default function App() {
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
                     Những gì của ngày hôm nay
                   </h3>
-                  <span className="text-[10px] bg-indigo-50 border border-indigo-200 text-indigo-700 px-2.5 py-1 rounded-full font-extrabold">
+                  <span className="text-[10px] bg-indigo-50 border border-indigo-200 text-indigo-750 px-2.5 py-1 rounded-full font-extrabold">
                     {isFirebaseConnected ? 'Live' : 'Offline'}
                   </span>
                 </div>
@@ -1619,7 +1658,7 @@ export default function App() {
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-100">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
@@ -1973,7 +2012,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* ========================== CHUYÊN KHOA THĂM KHÁM MULTI-SELECT + SEARCH ========================== */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4" ref={specRef}>
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -2004,11 +2042,11 @@ export default function App() {
                                 type="button"
                                 onClick={() => toggleSpecialtySelection(spec)}
                                 className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${
-                                  isSelected ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-700'
+                                  isSelected ? 'bg-indigo-50 text-indigo-750' : 'hover:bg-slate-50 text-slate-700'
                                 }`}
                               >
                                 <span>{spec}</span>
-                                {isSelected && <Check className="w-4 h-4 text-indigo-600" />}
+                                {isSelected && <Check className="w-4 h-4 text-indigo-650" />}
                               </button>
                             );
                           })
@@ -2021,7 +2059,7 @@ export default function App() {
                       {formData.specialties.map((spec) => (
                         <span
                           key={spec}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold animate-scaleIn"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold"
                         >
                           {spec}
                           <button
@@ -2037,7 +2075,6 @@ export default function App() {
                   )}
                 </div>
 
-                {/* ========================== CHI PHÍ ĐIỀU TRỊ & LÂM SÀNG THỰC TẾ ========================== */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -2046,7 +2083,6 @@ export default function App() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     
-                    {/* HÌNH THỨC ĐIỀU TRỊ - SINGLE DROP DOWN */}
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
                       <select
@@ -2218,7 +2254,7 @@ export default function App() {
 
                         <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
                           <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
-                          <span className="text-lg font-black text-emerald-450 font-mono">
+                          <span className="text-lg font-black text-emerald-400 font-mono">
                             {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
                           </span>
                         </div>
@@ -2443,7 +2479,7 @@ export default function App() {
                                 {formatCurrency(p.totalAmount)}
                               </td>
                               <td className="py-4 px-3 text-right">
-                                <div className="font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</div>
+                                <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
                                 <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
                               </td>
                               <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
@@ -2523,7 +2559,7 @@ export default function App() {
                           <div>
                             <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
                             <h4 className="font-extrabold text-slate-900 text-sm">{p.name}</h4>
-                            <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                            <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 animate-fadeIn">
                               <Calendar className="w-3.5 h-3.5" />
                               Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
                             </p>
