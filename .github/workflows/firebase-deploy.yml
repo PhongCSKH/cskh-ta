@@ -17,8 +17,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: Cài đặt thư viện phụ thuộc
+      - name: Cài đặt thư viện phụ thuộc của React App (Root)
         run: npm install
+
+      - name: Cài đặt thư viện phụ thuộc của Cloud Functions
+        run: npm --prefix functions install
 
       - name: Biên dịch ứng dụng (Build)
         run: npm run build
