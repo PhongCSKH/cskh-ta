@@ -62,8 +62,7 @@ import {
   Smartphone,
   Copy,
   History,
-  ChevronLeft,
-  User
+  ChevronLeft
 } from 'lucide-react';
 
 const defaultFirebaseConfig = {
@@ -230,7 +229,7 @@ export default function App() {
   const [filterDate, setFilterDate] = useState('');
   const [filterSite, setFilterSite] = useState('');
 
-  const [calendarMode, setCalendarMode] = useState('list'); // 'list' | 'week' | 'month'
+  const [calendarMode, setCalendarMode] = useState('list'); 
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
 
   const [currentId, setCurrentId] = useState(null);
@@ -261,7 +260,7 @@ export default function App() {
     totalAmount: 0,
     approvalImages: [],
     status: 'Waiting',
-    recipients: [], // array of assigned staff UIDs
+    recipients: [], 
     history: []
   });
 
@@ -285,7 +284,6 @@ export default function App() {
   };
 
   const triggerPushAlert = (title, message, dataRecipients = [], type = 'info') => {
-    // If targeted recipients exist, only notify assigned staff or general managers/admins
     const hasTargetedRecipients = Array.isArray(dataRecipients) && dataRecipients.length > 0;
     
     if (currentUser) {
@@ -293,7 +291,6 @@ export default function App() {
       const isAssigned = hasTargetedRecipients && dataRecipients.includes(currentUser.uid);
       
       if (hasTargetedRecipients && !isManagerOrAdmin && !isAssigned) {
-        // Skip alert for this user since they are not assigned and not a manager/admin
         return;
       }
     }
@@ -812,7 +809,6 @@ export default function App() {
     return patients.filter(p => p.pid.trim().toLowerCase() === formData.pid.trim().toLowerCase() && p.id !== currentId);
   }, [formData.pid, patients, currentId]);
 
-  // Adjust left-side tab depending on visitation history existence
   useEffect(() => {
     if (patientVisitHistory.length > 0) {
       setLeftFormTab('visitHistory');
@@ -821,7 +817,6 @@ export default function App() {
     }
   }, [patientVisitHistory.length]);
 
-  // Auto-fill Patient Name when PID matches previous record
   useEffect(() => {
     if (matchedPatientProfile && !currentId) {
       setFormData(prev => {
@@ -910,7 +905,6 @@ export default function App() {
 
   const visiblePatients = useMemo(() => {
     return patients.filter(p => {
-      // General view limit for standard staff & site managers
       if (currentUser && ['nhanvien', 'quanly_site'].includes(currentUser.role)) {
         if (isFutureOrPreArrival(p)) {
           return isUserAssignedToPatient(p);
@@ -922,6 +916,7 @@ export default function App() {
 
   const filteredPatients = useMemo(() => {
     return visiblePatients.filter(p => {
+      if (!p) return false;
       const matchSearch = 
         p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.pid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -950,6 +945,7 @@ export default function App() {
 
   const kanbanPatients = useMemo(() => {
     return visiblePatients.filter(p => {
+      if (!p) return false;
       const isToday = p.date === todayStr;
       const isNotCompleted = p.status !== 'Completed';
       const matchDate = !filterDate ? (isToday || isNotCompleted) : p.date === filterDate;
@@ -973,7 +969,7 @@ export default function App() {
   const weekDays = useMemo(() => {
     const startOfWeek = new Date(currentCalendarDate);
     const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); 
     startOfWeek.setDate(diff);
 
     const days = [];
@@ -990,15 +986,13 @@ export default function App() {
     const month = currentCalendarDate.getMonth();
     
     const firstDayIndex = new Date(year, month, 1).getDay();
-    const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1; // standard Mon-Sun index
+    const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1; 
     const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
 
     const days = [];
-    // Pad previous month days
     for (let i = 0; i < adjustedFirstDayIndex; i++) {
       days.push(null);
     }
-    // Current month days
     for (let i = 1; i <= totalDaysInMonth; i++) {
       days.push(new Date(year, month, i));
     }
@@ -1010,14 +1004,13 @@ export default function App() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-    const tomorrowPatients = visiblePatients.filter(p => p.date === tomorrowStr);
+    const tomorrowPatients = visiblePatients.filter(p => p && p.date === tomorrowStr);
     
-    // Next 7 days (exclusive of tomorrow)
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 8);
     const sevenDaysStr = sevenDaysFromNow.toISOString().split('T')[0];
 
-    const nextWeekPatients = visiblePatients.filter(p => p.date > tomorrowStr && p.date <= sevenDaysStr);
+    const nextWeekPatients = visiblePatients.filter(p => p && p.date > tomorrowStr && p.date <= sevenDaysStr);
 
     return {
       tomorrowPatients,
@@ -1025,6 +1018,104 @@ export default function App() {
       tomorrowDateFormatted: tomorrow.toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' })
     };
   }, [visiblePatients]);
+
+  const savePatient = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      showNotification("Họ & Tên khách hàng không được để trống!", "error");
+      return;
+    }
+    if (!formData.pid.trim()) {
+      showNotification("Mã PID là bắt buộc!", "error");
+      return;
+    }
+
+    const currentHistory = formData.history || [];
+    let newLog = {};
+    if (currentId) {
+      newLog = {
+        timestamp: new Date().toISOString(),
+        action: "Cập nhật thông tin hồ sơ",
+        user: currentUser.name
+      };
+    } else {
+      newLog = {
+        timestamp: new Date().toISOString(),
+        action: "Tiếp đón khởi tạo hành trình",
+        user: currentUser.name
+      };
+    }
+
+    let payload = {
+      ...formData,
+      status: formData.status || 'Waiting',
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentUser.name,
+      history: [...currentHistory, newLog]
+    };
+
+    if (formData.tier === 'VIP') {
+      payload = {
+        ...payload,
+        phiKham: 0,
+        clsCdha: 0,
+        thuocVacxin: 0,
+        insuranceAdvance: 0,
+        discountRate: 0,
+        approvedDiscountAmount: 0,
+        totalAmount: 0
+      };
+    }
+
+    const firstImg = payload.approvalImages && payload.approvalImages.length > 0 ? payload.approvalImages[0] : '';
+    payload.approvalImage = firstImg;
+
+    try {
+      if (isFirebaseConnected && db) {
+        const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
+        if (currentId) {
+          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payload);
+          showNotification("Cập nhật thành công!");
+        } else {
+          await addDoc(patientsCol, { ...payload, createdAt: new Date().toISOString() });
+          showNotification("Đăng ký thành công!");
+        }
+      } else {
+        let updatedList = [...patients];
+        if (currentId) {
+          updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
+          showNotification("Cập nhật thành công!");
+        } else {
+          const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
+          updatedList.unshift(newDoc);
+          showNotification("Đã lưu hồ sơ thành công!");
+        }
+        setPatients(updatedList);
+        localStorage.setItem('local_patients', JSON.stringify(updatedList));
+      }
+      resetForm();
+      setActiveTab('monitoring');
+    } catch (err) {
+      console.warn(err);
+      let updatedList = [...patients];
+      if (currentId) {
+        updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
+        showNotification("Đã lưu cập nhật vào thiết bị (Chế độ Dự Phòng)!");
+      } else {
+        const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
+        updatedList.unshift(newDoc);
+        showNotification("Đã lưu hồ sơ mới vào thiết bị (Chế độ Dự Phòng)!");
+      }
+      setPatients(updatedList);
+      localStorage.setItem('local_patients', JSON.stringify(updatedList));
+      resetForm();
+      setActiveTab('monitoring');
+    }
+  };
+
+  const handleLoginSubmit = (e) => {
+    handleLogin(e);
+  };
 
   const initiateEdit = (patient) => {
     setCurrentId(patient.id);
@@ -1116,7 +1207,7 @@ export default function App() {
         localStorage.setItem('local_patients', JSON.stringify(updatedList));
         triggerPushAlert("🔄 Cập nhật hành trình (Cục bộ)", `Khách hàng ${patient.name} đã được cập nhật trạng thái mới.`, patient.recipients || [], "success");
       }
-      showNotification("Đã cập nhật trạng thái hành trình!");
+      showNotification("Đã cập nhật trạng thái hành trình khám!");
     } catch (err) {
       console.error(err);
       showNotification("Lỗi đồng bộ trạng thái lên database!", "error");
@@ -1291,10 +1382,84 @@ export default function App() {
     setCurrentCalendarDate(nextDate);
   };
 
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-tr from-slate-100 via-indigo-50/20 to-slate-200 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-800">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/5 rounded-full filter blur-3xl -translate-x-12 -translate-y-12"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full filter blur-3xl translate-x-12 translate-y-12"></div>
+
+        <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-200 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
+          <div className="text-center space-y-3">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2.5 shadow-sm border border-slate-200 mx-auto">
+              <img 
+                src="https://iili.io/F66acRs.png" 
+                alt="Hospital Logo" 
+                className="w-full h-full object-contain" 
+              />
+            </div>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-black tracking-tight text-slate-900">
+                QL KH VIP-VVIP
+              </h1>
+              <p className="text-xs text-slate-400 font-semibold tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
+            </div>
+          </div>
+
+          {authError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 text-center font-bold flex items-center gap-1.5 justify-center">
+              <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-500" />
+              {authError}
+            </div>
+          )}
+
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email </label>
+              <input 
+                type="email" 
+                placeholder="nhập email tại đây"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
+              />
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu</label>
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full pl-4 pr-10 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
+            >
+              <Lock className="w-4 h-4" /> Xác thực
+            </button>
+          </form>
+
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
       
-      {/* Lightbox photo viewing container */}
       {lightboxImages.length > 0 && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 animate-fadeIn">
           <div className="absolute top-4 right-4 z-50 flex gap-2">
@@ -1342,7 +1507,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Copy visit confirmation modal */}
       {copyConfirmModal.show && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleIn">
@@ -1371,7 +1535,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Camera scanner view container */}
       {isScanning && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
           <style>{`
@@ -1431,7 +1594,7 @@ export default function App() {
             <button
               type="button"
               onClick={stopScanner}
-              className="px-4 py-1.5 border border-slate-200 text-slate-500 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition w-full"
+              className="px-4 py-1.5 border border-slate-200 text-slate-550 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition w-full"
             >
               Hủy bỏ quét
             </button>
@@ -1457,7 +1620,7 @@ export default function App() {
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="text-xs font-extrabold text-slate-900">{alert.title}</h4>
-              <p className="text-[11px] text-slate-600 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
+              <p className="text-[11px] text-slate-605 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
             </div>
             <button 
               onClick={() => setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id))}
@@ -1476,7 +1639,7 @@ export default function App() {
               <ShieldAlert className="w-5 h-5 flex-shrink-0 text-rose-500" />
               <h3 className="text-base font-extrabold text-slate-955">{confirmModal.title || "Xác nhận tác vụ"}</h3>
             </div>
-            <p className="text-sm text-slate-500 leading-relaxed font-medium">{confirmModal.message}</p>
+            <p className="text-sm text-slate-505 leading-relaxed font-medium">{confirmModal.message}</p>
             <div className="flex justify-end gap-2 pt-2">
               <button 
                 onClick={() => setConfirmModal({ show: false, action: null, message: '', title: '' })}
@@ -1502,7 +1665,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Main navigation header */}
+      {}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1591,7 +1754,6 @@ export default function App() {
                 )}
               </button>
 
-              {}
               {showNotificationCenter && (
                 <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 p-4 space-y-3 animate-scaleIn">
                   <div className="flex justify-between items-center border-b border-slate-100 pb-2">
@@ -1664,7 +1826,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Mobile viewport secondary navigation menu */}
+      {}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
         <button 
           onClick={() => { resetForm(); setActiveTab('dashboard'); }}
@@ -1698,7 +1860,6 @@ export default function App() {
         )}
       </div>
 
-      {}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {/* ========================== GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN ========================== */}
@@ -1782,6 +1943,7 @@ export default function App() {
               </div>
             </div>
 
+            {}
             {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1967,7 +2129,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Quick links footer cards */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
                 <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
@@ -2003,7 +2165,6 @@ export default function App() {
         {activeTab === 'register' && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
-            {}
             <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-md">
               <div>
                 <h2 className="text-base font-black text-slate-955 flex items-center gap-1.5">
@@ -2027,6 +2188,7 @@ export default function App() {
               </div>
             </div>
 
+            {}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
               
               <div className="lg:col-span-2 space-y-6">
@@ -2072,6 +2234,11 @@ export default function App() {
                           <Scan className="w-4 h-4 text-slate-500" /> Quét mã
                         </button>
                       </div>
+                      {matchedPatientProfile && (
+                        <div className="text-emerald-600 font-extrabold text-[11px] animate-fadeIn">
+                          🟢 Đã tìm thấy KH: {matchedPatientProfile.name}
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
@@ -2132,7 +2299,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* SELECT EXAMINATION AREA */}
                     <div className="space-y-1.5 md:col-span-2 animate-fadeIn">
                       <label className="text-xs font-bold text-slate-600 block">Khu Vực Khám</label>
                       <div className="grid grid-cols-2 gap-3">
@@ -2157,7 +2323,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* STATUS SELECT */}
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-600 block">Trạng thái</label>
                       <select
@@ -2171,7 +2336,7 @@ export default function App() {
                       </select>
                     </div>
 
-                    {/* RECIPIENTS DESIGNATED ASSIGNMENT - Pre-arrival setup widget */}
+                    {}
                     {['Scheduled', 'Preparing', 'ReceivedInfo'].includes(formData.status) && (
                       <div className="space-y-2 md:col-span-2 p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl animate-fadeIn">
                         <label className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
@@ -2253,7 +2418,6 @@ export default function App() {
                 </div>
 
                 {}
-                {/* Lịch sử tiếp đón & Timeline block directly placed below administrative details */}
                 {(patientVisitHistory.length > 0 || (formData.history && formData.history.length > 0)) && (
                   <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
                     <div className="flex border-b border-slate-100 pb-2 overflow-x-auto gap-2">
@@ -2359,7 +2523,7 @@ export default function App() {
                         <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
                           {formData.history?.map((log, index) => (
                             <div key={index} className="relative">
-                              <span className="absolute -left-[22px] top-1 bg-indigo-65 text-indigo-600 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
+                              <span className="absolute -left-[22px] top-1 bg-indigo-65 text-indigo-600 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-55"></span>
                               <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
                               <div className="text-[9px] text-slate-400 mt-1 flex justify-between font-bold">
                                 <span>Bởi: {log.user}</span>
@@ -2514,7 +2678,6 @@ export default function App() {
               {}
               <div className="space-y-6">
                 
-                {/* Financial overview card displayed exclusively for VVIP */}
                 {formData.tier === 'VVIP' && (
                   <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
                     <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800">
@@ -2610,7 +2773,6 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Upload attachment card block */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -2667,7 +2829,7 @@ export default function App() {
               </button>
             </div>
 
-            {/* Segmented controls for List view, Week view, Month view */}
+            {}
             <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex justify-between items-center flex-wrap gap-3">
               <div className="flex bg-slate-100 p-1 rounded-xl">
                 <button 
@@ -2690,7 +2852,6 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Navigation buttons for calendar grids */}
               {calendarMode !== 'list' && (
                 <div className="flex items-center gap-2">
                   <button 
@@ -2716,7 +2877,6 @@ export default function App() {
               )}
             </div>
 
-            {}
             {calendarMode === 'list' && (
               <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                 <div className="flex flex-col md:flex-row gap-3">
@@ -2784,7 +2944,7 @@ export default function App() {
               </div>
             )}
 
-            {/* WEEK VIEW CALENDAR GRID */}
+            {}
             {calendarMode === 'week' && (
               <div className="grid grid-cols-1 md:grid-cols-7 gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm overflow-x-auto min-w-full">
                 {weekDays.map((day, idx) => {
@@ -2839,7 +2999,7 @@ export default function App() {
               </div>
             )}
 
-            {/* MONTH VIEW CALENDAR GRID */}
+            {}
             {calendarMode === 'month' && (
               <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                 <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-black uppercase text-slate-400 pb-2 border-b border-slate-100">
@@ -2922,7 +3082,7 @@ export default function App() {
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
-                            <tr className="bg-slate-50 border-b border-slate-200 text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                            <tr className="bg-slate-55 border-b border-slate-200 text-[10px] text-slate-400 font-black uppercase tracking-wider">
                               <th className="py-4 px-5">PID / Khách Hàng</th>
                               <th className="py-4 px-3">Phân hạng</th>
                               <th className="py-4 px-3">Ngày Khám / Site / Khu vực</th>
@@ -3059,7 +3219,6 @@ export default function App() {
                     </div>
 
                     {}
-                    {/* Mobile cards rendering */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
                       {filteredPatients.map((p) => {
                         const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
@@ -3100,7 +3259,7 @@ export default function App() {
                               ))}
                             </div>
 
-                            <div className="bg-slate-50 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-655">
+                            <div className="bg-slate-55 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-655">
                               <div>Phê duyệt/Chỉ đạo: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
                               {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
                             </div>
@@ -3274,6 +3433,7 @@ export default function App() {
 
               </div>
 
+              {}
               <div className="space-y-6">
                 
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
@@ -3420,6 +3580,7 @@ export default function App() {
 
       </main>
 
+      {}
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
           <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.7</p>
