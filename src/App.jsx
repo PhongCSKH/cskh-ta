@@ -65,6 +65,8 @@ import {
   ChevronLeft
 } from 'lucide-react';
 
+const WEBPUSH_VAPID_KEY = "BFjwAUlwacxhmYk0TiQdDTDYJKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQIAcSuG3iAAqtNnkPtJAW_s"; 
+
 const defaultFirebaseConfig = {
   apiKey: "AIzaSyBMmXRbUFvXRsUH6anb22sKlY8JlqiF7Lk",
   authDomain: "cskh-ta.firebaseapp.com",
@@ -286,7 +288,7 @@ export default function App() {
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
+    setTimeout(() => setNotification(null), 3500);
   };
 
   const triggerPushAlert = (title, message, dataRecipients = [], type = 'info') => {
@@ -351,7 +353,7 @@ export default function App() {
     if (!db || !messaging) return;
     try {
       const token = await getToken(messaging, {
-        vapidKey: "BFjwAUlwacxhmYk0TiQdDTDYJKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQIAcSuG3iAAqtNnkPtJAW_s"
+        vapidKey: WEBPUSH_VAPID_KEY
       });
       if (token) {
         const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userId);
@@ -361,6 +363,10 @@ export default function App() {
       }
     } catch (err) {
       console.warn("Lỗi đồng bộ mã thông báo FCM thiết bị:", err);
+      // Nâng cấp: Hiển thị cảnh báo trực quan hướng dẫn cập nhật VAPID Key để người dùng dễ kiểm soát
+      if (err.message && err.message.includes('authentication credential')) {
+        showNotification("Lỗi FCM: Vui lòng cập nhật đúng VAPID Key của dự án bạn ở dòng số 66 của tệp App.jsx!", "error");
+      }
     }
   };
 
@@ -959,7 +965,6 @@ export default function App() {
     });
   }, [visiblePatients, searchTerm, filterSpecialty, filterTier, filterDate, filterSite]);
 
-  // Bộ tính toán chỉ số (Metrics) chuyên biệt cho Dashboard dựa trên Hôm nay hoặc Khoảng ngày tùy chọn
   const dashMetrics = useMemo(() => {
     const filtered = visiblePatients.filter(p => {
       if (!p) return false;
@@ -1571,7 +1576,7 @@ export default function App() {
             <div className="flex justify-end gap-2 pt-2">
               <button 
                 onClick={() => setCopyConfirmModal({ show: false, visitToCopy: null })}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-605 rounded-xl transition"
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-650 rounded-xl transition"
               >
                 Hủy bỏ
               </button>
@@ -1653,7 +1658,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Header alert notification popups */}
       <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
         {activePushAlerts.map(alert => (
           <div 
@@ -1670,7 +1674,7 @@ export default function App() {
               <BellRing className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-extrabold text-slate-905">{alert.title}</h4>
+              <h4 className="text-xs font-extrabold text-slate-900">{alert.title}</h4>
               <p className="text-[11px] text-slate-605 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
             </div>
             <button 
@@ -1690,7 +1694,7 @@ export default function App() {
               <ShieldAlert className="w-5 h-5 flex-shrink-0 text-rose-500" />
               <h3 className="text-base font-extrabold text-slate-955">{confirmModal.title || "Xác nhận tác vụ"}</h3>
             </div>
-            <p className="text-sm text-slate-505 leading-relaxed font-medium">{confirmModal.message}</p>
+            <p className="text-sm text-slate-555 leading-relaxed font-medium">{confirmModal.message}</p>
             <div className="flex justify-end gap-2 pt-2">
               <button 
                 onClick={() => setConfirmModal({ show: false, action: null, message: '', title: '' })}
@@ -1716,7 +1720,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Navigation Header */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1789,7 +1792,7 @@ export default function App() {
               <button 
                 onClick={() => setShowNotificationCenter(!showNotificationCenter)}
                 className={`p-2 rounded-xl transition-all relative border border-slate-200 ${
-                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-505 hover:bg-slate-100'
+                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-500 hover:bg-slate-100'
                 }`}
                 title="Trung tâm thông báo"
               >
@@ -1810,7 +1813,7 @@ export default function App() {
                   <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                     <div className="flex items-center gap-1.5">
                       <BellRing className="w-4 h-4 text-indigo-600" />
-                      <h4 className="text-xs font-black text-slate-950">Trung tâm thông báo</h4>
+                      <h4 className="text-xs font-black text-slate-900">Trung tâm thông báo</h4>
                     </div>
                     <div className="flex items-center gap-2">
                       <button 
@@ -2399,7 +2402,7 @@ export default function App() {
                             type="button"
                             onClick={() => handleInputChange('site', s.label)}
                             className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center ${
-                              formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-555 hover:bg-slate-55/50'
+                              formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
                             }`}
                           >
                             {s.label}
@@ -2693,7 +2696,7 @@ export default function App() {
                         setIsSpecDropdownOpen(true);
                       }}
                       onFocus={() => setIsSpecDropdownOpen(true)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800"
                     />
                     {isSpecDropdownOpen && (
                       <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-fadeIn">
@@ -3121,7 +3124,7 @@ export default function App() {
                               className="p-2 bg-white border border-slate-200 rounded-xl shadow-3xs hover:border-indigo-400 transition cursor-pointer space-y-1 animate-scaleIn text-left"
                             >
                               <div className="font-extrabold text-[10px] text-slate-800 truncate">{p.name}</div>
-                              <div className="flex items-center justify-between gap-1 text-[8px] text-slate-455">
+                              <div className="flex items-center justify-between gap-1 text-[8px] text-slate-450">
                                 <span className="font-mono">PID: {p.pid}</span>
                                 <span className={`px-1 rounded-sm uppercase font-black text-[7px] ${
                                   p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
@@ -3266,7 +3269,7 @@ export default function App() {
                                   <td className="py-4 px-3">
                                     <div className="flex flex-wrap gap-1 max-w-[180px]">
                                       {p.specialties?.map((s, idx) => (
-                                        <span key={idx} className="text-[9px] bg-slate-50 text-slate-605 border border-slate-200 px-1.5 py-0.5 rounded font-bold">
+                                        <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded font-bold">
                                           {s}
                                         </span>
                                       ))}
@@ -3296,18 +3299,18 @@ export default function App() {
                                     <div className="flex justify-end gap-1.5">
                                       {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
                                         <button 
-                                          type="button"
                                           onClick={() => {
                                             const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
                                             setLightboxImages(imgs);
                                             setLightboxIndex(0);
                                           }}
-                                          className="p-1.5 bg-slate-50 border border-slate-200 text-slate-605 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
+                                          className="p-1.5 bg-slate-50 border border-slate-200 text-slate-605 hover:bg-slate-100 rounded-xl transition" 
+                                          title="Ảnh duyệt"
                                         >
-                                          <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
+                                          <ImageIcon className="w-4 h-4" />
                                         </button>
                                       )}
-                                      <button onClick={() => initiateEdit(p)} className="px-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
+                                      <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
                                         <Edit3 className="w-4 h-4" />
                                       </button>
                                       
@@ -3427,12 +3430,12 @@ export default function App() {
                                     setLightboxImages(imgs);
                                     setLightboxIndex(0);
                                   }}
-                                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-605 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
+                                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
                                 >
                                   <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
                                 </button>
                               )}
-                              <button onClick={() => { initiateEdit(p); }} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
+                              <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
                                 <Edit3 className="w-3.5 h-3.5" /> Sửa
                               </button>
                               
@@ -3448,7 +3451,7 @@ export default function App() {
                                         try {
                                           if (isFirebaseConnected && db) {
                                             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
-                                            showNotification("Đã xóa dữ liệu đám mây!");
+                                            showNotification("Đã xóa dữ liệu dám mây!");
                                           } else {
                                             const updated = patients.filter(item => item.id !== p.id);
                                             setPatients(updated);
@@ -3487,7 +3490,6 @@ export default function App() {
               <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
             </div>
 
-            {/* Config container */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
