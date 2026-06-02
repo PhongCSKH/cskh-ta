@@ -2,6 +2,7 @@
     uses: actions/setup-node@v4
     with:
       node-version: 20
+      cache: 'npm'
 
   - name: Install Frontend Dependencies
     run: npm install
@@ -12,6 +13,9 @@
   - name: Install Functions Dependencies
     run: npm --prefix functions install
 
-  # STREAMING_CHUNK: Performing native deployment to bypass Docker issues
-  - name: Deploy to Firebase (Native CLI)
-    run: npx firebase-tools deploy --token "${{ secrets.FIREBASE_TOKEN }}" --only hosting,functions --force
+  - name: Deploy to Firebase
+    uses: w9jds/firebase-action@v2.0.0
+    with:
+      args: deploy
+    env:
+      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
