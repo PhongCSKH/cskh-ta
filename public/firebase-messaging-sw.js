@@ -1,7 +1,6 @@
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js");
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js");
 
-// Cấu hình Firebase đồng bộ hệ thống CSKH-TA
 const firebaseConfig = {
   apiKey: "AIzaSyBMmXRbUFvXRsUH6anb22sKlY8JlqiF7Lk",
   authDomain: "cskh-ta.firebaseapp.com",
@@ -14,7 +13,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// Lắng nghe và hiển thị thông báo khi trình duyệt đóng hoặc chạy ngầm
 messaging.onBackgroundMessage((payload) => {
   console.log("[Service Worker] Nhận thông báo chạy ngầm:", payload);
 
@@ -24,7 +22,7 @@ messaging.onBackgroundMessage((payload) => {
     icon: "https://iili.io/F66acRs.png",
     badge: "https://iili.io/F66acRs.png",
     tag: "vip-approval-alert",
-    requireInteraction: true, // Ghim thông báo trên màn hình cho đến khi bấm
+    requireInteraction: true,
     data: payload.data
   };
 
