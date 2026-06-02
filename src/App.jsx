@@ -62,7 +62,9 @@ import {
   Smartphone,
   Copy,
   History,
-  ChevronLeft
+  ChevronLeft,
+  MapPin,
+  Globe
 } from 'lucide-react';
 
 const WEBPUSH_VAPID_KEY = "BFjwAUlwacxhmYk0TiQdDTDJYKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQlAcSuG3iAAqtNnkPtJAW_s"; 
@@ -112,12 +114,12 @@ const formatDateVN = (dateStr) => {
 };
 
 const mockStaffAccounts = [
-  { uid: "acc_admin", email: "admin@vip.com", name: "Nguyễn Minh Trí", title: "IT Admin", role: "admin", pass: "CSKH@abc456" },
-  { uid: "acc_lanhdao", email: "lanhdao@vip.com", name: "Trần Thế Phương", title: "Thành viên HĐQT", role: "lanhdao", pass: "CSKH@abc456" },
-  { uid: "acc_quanly", email: "quanly@vip.com", name: "Lê Thu Thảo", title: "Quản Lý Chăm Sóc VIP", role: "quanly", pass: "CSKH@abc456" },
-  { uid: "acc_qlsite_tsh", email: "qlsite_tsh@vip.com", name: "Trần Tuấn Kiệt", title: "Quản Lý Site Sơn Hòa", role: "quanly_site", pass: "CSKH@abc456" },
-  { uid: "acc_qlsite_th", email: "qlsite_th@vip.com", name: "Lâm Thùy Dương", title: "Quản Lý Site Tân Hưng", role: "quanly_site", pass: "CSKH@abc456" },
-  { uid: "acc_nhanvien", email: "nhanvien@vip.com", name: "Phạm Hoàng Nam", title: "Lễ Tân Phòng Khám VIP", role: "nhanvien", pass: "CSKH@abc456" }
+  { uid: "acc_admin", email: "admin@vip.com", name: "Nguyễn Minh Trí", title: "IT Admin", role: "admin", pass: "CSKH@abc456", assignedSite: "Tất cả" },
+  { uid: "acc_lanhdao", email: "lanhdao@vip.com", name: "Trần Thế Phương", title: "Thành viên HĐQT", role: "lanhdao", pass: "CSKH@abc456", assignedSite: "Tất cả" },
+  { uid: "acc_quanly", email: "quanly@vip.com", name: "Lê Thu Thảo", title: "Quản Lý Chăm Sóc VIP", role: "quanly", pass: "CSKH@abc456", assignedSite: "Tất cả" },
+  { uid: "acc_qlsite_tsh", email: "qlsite_tsh@vip.com", name: "Trần Tuấn Kiệt", title: "Quản Lý Site Sơn Hòa", role: "quanly_site", pass: "CSKH@abc456", assignedSite: "BV Tâm Anh - Tân Sơn Hòa" },
+  { uid: "acc_qlsite_th", email: "qlsite_th@vip.com", name: "Lâm Thùy Dương", title: "Quản Lý Site Tân Hưng", role: "quanly_site", pass: "CSKH@abc456", assignedSite: "PK Tâm Anh - Tân Hưng" },
+  { uid: "acc_nhanvien", email: "nhanvien@vip.com", name: "Phạm Hoàng Nam", title: "Lễ Tân Phòng Khám VIP", role: "nhanvien", pass: "CSKH@abc456", assignedSite: "BV Tâm Anh - Tân Sơn Hòa" }
 ];
 
 const defaultSpecialties = [
@@ -177,7 +179,15 @@ const defaultSystemSettings = {
     clsCdha: true,
     thuocVacxin: true
   },
-  discountFormulaType: 'total_minus_insurance_advance'
+  discountFormulaType: 'total_minus_insurance_advance',
+  permissions: {
+    'patients:view': { nhanvien: 'write_assigned', quanly_site: 'write_assigned', quanly: 'all', lanhdao: 'all', admin: 'all' },
+    'patients:create': { nhanvien: 'write_assigned', quanly_site: 'write_assigned', quanly: 'all', lanhdao: 'none', admin: 'all' },
+    'patients:update': { nhanvien: 'write_assigned', quanly_site: 'write_assigned', quanly: 'all', lanhdao: 'none', admin: 'all' },
+    'patients:delete': { nhanvien: 'none', quanly_site: 'none', quanly: 'all', lanhdao: 'none', admin: 'all' },
+    'billing:view': { nhanvien: 'none', quanly_site: 'write_assigned', quanly: 'all', lanhdao: 'all', admin: 'all' },
+    'billing:discount': { nhanvien: 'none', quanly_site: 'write_assigned', quanly: 'all', lanhdao: 'all', admin: 'all' }
+  }
 };
 
 const workflowStatuses = [
@@ -223,7 +233,7 @@ export default function App() {
   const [scannerError, setScannerError] = useState('');
   const html5QrCodeRef = useRef(null);
 
-  const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'nhanvien', uid: '', title: '' });
+  const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'nhanvien', uid: '', title: '', assignedSite: 'Tất cả' });
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSpecialty, setFilterSpecialty] = useState('');
@@ -239,8 +249,7 @@ export default function App() {
   const [leftFormTab, setLeftFormTab] = useState('visitHistory');
   const [isHistoryPanelExpanded, setIsHistoryPanelExpanded] = useState(false);
 
-  // States cho bộ lọc Thống kê Báo cáo ở Dashboard
-  const [dashFilterMode, setDashFilterMode] = useState('today'); // 'today' hoặc 'range'
+  const [dashFilterMode, setDashFilterMode] = useState('today'); 
   const [dashStartDate, setDashStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [dashEndDate, setDashEndDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -285,6 +294,32 @@ export default function App() {
   const [specSearch, setSpecSearch] = useState('');
   const [isSpecDropdownOpen, setIsSpecDropdownOpen] = useState(false);
   const specRef = useRef(null);
+
+  const canShowTab = (tabName) => {
+    if (!currentUser) return false;
+    const role = currentUser.role || 'nhanvien';
+    if (role === 'admin') return true;
+    if (role === 'lanhdao') {
+      return ['dashboard', 'monitoring'].includes(tabName);
+    }
+    return ['dashboard', 'register', 'monitoring'].includes(tabName);
+  };
+
+  const hasAccessToPatient = (patient, action) => {
+    if (!currentUser) return false;
+    const role = currentUser.role || 'nhanvien';
+    const userSite = currentUser.assignedSite || 'Tất cả';
+    
+    const permLevel = systemSettings?.permissions?.[action]?.[role] || 'none';
+    if (permLevel === 'none') return false;
+    if (permLevel === 'all') return true;
+    
+    if (permLevel === 'write_assigned' || permLevel === 'view_assigned') {
+      if (userSite === 'Tất cả') return true;
+      return patient?.site === userSite;
+    }
+    return false;
+  };
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
@@ -363,7 +398,6 @@ export default function App() {
       }
     } catch (err) {
       console.warn("Lỗi đồng bộ mã thông báo FCM thiết bị:", err);
-      // Nâng cấp: Hiển thị cảnh báo trực quan hướng dẫn cập nhật VAPID Key để người dùng dễ kiểm soát
       if (err.message && err.message.includes('authentication credential')) {
         showNotification("Lỗi FCM: Vui lòng cập nhật đúng VAPID Key của dự án bạn ở dòng số 66 của tệp App.jsx!", "error");
       }
@@ -420,6 +454,10 @@ export default function App() {
     setCurrentId(null);
     setFormRightTab('billing');
     setIsHistoryPanelExpanded(false);
+
+    const userSite = currentUser?.assignedSite || 'Tất cả';
+    const defaultSite = userSite !== 'Tất cả' ? userSite : 'BV Tâm Anh - Tân Sơn Hòa';
+
     setFormData({
       name: '',
       tier: 'VIP',
@@ -428,7 +466,7 @@ export default function App() {
       pid: '',
       date: new Date().toISOString().split('T')[0],
       specialties: [],
-      site: 'BV Tâm Anh - Tân Sơn Hòa',
+      site: defaultSite,
       examinationArea: 'Khu VIP',
       ngoaiTru: true,
       capCuu: false,
@@ -487,7 +525,8 @@ export default function App() {
             email: user.email,
             role: 'nhanvien',
             name: user.email ? user.email.split('@')[0] : 'Nhân viên',
-            title: 'Nhân viên chuyên ban'
+            title: 'Nhân viên chuyên ban',
+            assignedSite: 'Tất cả'
           };
           if (userDoc.exists()) {
             userData = userDoc.data();
@@ -522,6 +561,23 @@ export default function App() {
       }
     }
   };
+
+  useEffect(() => {
+    if (currentUser) {
+      if (!canShowTab(activeTab)) {
+        setActiveTab('dashboard');
+      }
+    }
+  }, [currentUser, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'register' && !currentId) {
+      const userSite = currentUser?.assignedSite || 'Tất cả';
+      if (userSite !== 'Tất cả') {
+        setFormData(prev => ({ ...prev, site: userSite }));
+      }
+    }
+  }, [activeTab, currentId, currentUser]);
 
   useEffect(() => {
     function handleClickOutsideSpec(event) {
@@ -688,7 +744,8 @@ export default function App() {
                 email: firebaseUser.email, 
                 role: 'nhanvien', 
                 name: firebaseUser.email ? firebaseUser.email.split('@')[0] : 'Nhân viên',
-                title: 'Nhân viên chuyên ban'
+                title: 'Nhân viên chuyên ban',
+                assignedSite: 'Tất cả'
               };
               setCurrentUser(fallbackUser);
               setUserRole('nhanvien');
@@ -860,8 +917,8 @@ export default function App() {
   }, [matchedPatientProfile, currentId]);
 
   const handleInputChange = (field, val) => {
-    if (field === 'discountRate' && userRole === 'nhanvien') {
-      showNotification("Tài khoản nhân viên không có quyền duyệt chiết khấu!", "error");
+    if (field === 'discountRate' && !hasAccessToPatient(formData, 'billing:discount')) {
+      showNotification("Tài khoản không có quyền duyệt chiết khấu!", "error");
       return;
     }
     setFormData(prev => ({ ...prev, [field]: val }));
@@ -938,6 +995,10 @@ export default function App() {
   const visiblePatients = useMemo(() => {
     return patients.filter(p => {
       if (!p) return false;
+      
+      const canView = hasAccessToPatient(p, 'patients:view');
+      if (!canView) return false;
+
       if (currentUser && ['nhanvien', 'quanly_site'].includes(currentUser?.role)) {
         if (isFutureOrPreArrival(p)) {
           return isUserAssignedToPatient(p);
@@ -945,7 +1006,7 @@ export default function App() {
       }
       return true;
     });
-  }, [patients, currentUser]);
+  }, [patients, currentUser, systemSettings?.permissions]);
 
   const filteredPatients = useMemo(() => {
     return visiblePatients.filter(p => {
@@ -1083,6 +1144,13 @@ export default function App() {
       return;
     }
 
+    const action = currentId ? 'patients:update' : 'patients:create';
+    const isAllowed = hasAccessToPatient(formData, action);
+    if (!isAllowed) {
+      showNotification("Lỗi: Tài khoản không có quyền đăng ký hoặc chỉnh sửa hồ sơ trên Site này!", "error");
+      return;
+    }
+
     const currentHistory = formData?.history || [];
     let newLog = {};
     if (currentId) {
@@ -1172,6 +1240,13 @@ export default function App() {
 
   const initiateEdit = (patient) => {
     if (!patient) return;
+
+    const canEdit = hasAccessToPatient(patient, 'patients:update');
+    if (!canEdit) {
+      showNotification("Lỗi: Tài khoản không được cấp quyền chỉnh sửa hồ sơ chi nhánh này!", "error");
+      return;
+    }
+
     setCurrentId(patient.id);
     setFormRightTab(patient.tier === 'VIP' ? 'timeline' : 'billing');
     setIsHistoryPanelExpanded(false);
@@ -1214,6 +1289,12 @@ export default function App() {
   const handleUpdateStatus = async (patientId, newStatus) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
+
+    const canUpdate = hasAccessToPatient(patient, 'patients:update');
+    if (!canUpdate) {
+      showNotification("Lỗi: Bạn không có quyền chỉnh sửa trạng thái cho ca khám thuộc chi nhánh này!", "error");
+      return;
+    }
 
     if (userRole === 'nhanvien') {
       const currentStatus = patient?.status || 'Waiting';
@@ -1272,10 +1353,14 @@ export default function App() {
   const executeCopyVisit = (visit) => {
     if (!visit) return;
     const previousImages = visit?.approvalImages || (visit?.approvalImage ? [visit?.approvalImage] : []);
+    
+    const userSite = currentUser?.assignedSite || 'Tất cả';
+    const finalSite = userSite !== 'Tất cả' ? userSite : (visit?.site || 'BV Tâm Anh - Tân Sơn Hòa');
+
     setFormData(prev => ({
       ...prev,
       specialties: visit?.specialties || [],
-      site: visit?.site || 'BV Tâm Anh - Tân Sơn Hòa',
+      site: finalSite,
       examinationArea: visit?.examinationArea || 'Khu VIP',
       boardApproval: visit?.boardApproval || '',
       notes: visit?.notes || '',
@@ -1307,7 +1392,8 @@ export default function App() {
       name: newStaff?.name?.trim(),
       email: newStaff?.email?.trim(),
       role: newStaff?.role || 'nhanvien',
-      title: newStaff?.title?.trim() || 'Nhân viên chuyên ban'
+      title: newStaff?.title?.trim() || 'Nhân viên chuyên ban',
+      assignedSite: newStaff?.assignedSite || 'Tất cả'
     };
 
     if (isFirebaseConnected && db) {
@@ -1326,7 +1412,7 @@ export default function App() {
       showNotification("Đã lưu tài khoản nhân viên cục bộ!");
     }
 
-    setNewStaff({ name: '', email: '', role: 'nhanvien', uid: '', title: '' });
+    setNewStaff({ name: '', email: '', role: 'nhanvien', uid: '', title: '', assignedSite: 'Tất cả' });
   };
 
   const handleDeleteStaff = (uid) => {
@@ -1370,6 +1456,21 @@ export default function App() {
     } else {
       localStorage.setItem('local_settings', JSON.stringify(newSettings));
     }
+  };
+
+  const handlePermissionChange = (permKey, roleKey, newLevel) => {
+    const updatedPermissions = {
+      ...(systemSettings.permissions || {}),
+      [permKey]: {
+        ...(systemSettings.permissions?.[permKey] || {}),
+        [roleKey]: newLevel
+      }
+    };
+    saveSettingsOnDb({
+      ...systemSettings,
+      permissions: updatedPermissions
+    });
+    showNotification("Đã cập nhật cấu hình phân quyền hệ thống!");
   };
 
   const handleAddSpecialty = () => {
@@ -1576,7 +1677,7 @@ export default function App() {
             <div className="flex justify-end gap-2 pt-2">
               <button 
                 onClick={() => setCopyConfirmModal({ show: false, visitToCopy: null })}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-650 rounded-xl transition"
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-655 rounded-xl transition"
               >
                 Hủy bỏ
               </button>
@@ -1591,6 +1692,7 @@ export default function App() {
         </div>
       )}
 
+      {}
       {isScanning && (
         <div className="fixed inset-0 z-50 bg-slate-955/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
           <style>{`
@@ -1658,6 +1760,7 @@ export default function App() {
         </div>
       )}
 
+      {}
       <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
         {activePushAlerts.map(alert => (
           <div 
@@ -1720,6 +1823,7 @@ export default function App() {
         </div>
       )}
 
+      {}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1739,39 +1843,47 @@ export default function App() {
                     {userRole}
                   </span>
                 </h1>
-                <p className="text-[10px] text-slate-400 font-semibold">Tiếp nhận khách hàng VIP-VVIP</p>
+                <p className="text-[10px] text-slate-400 font-semibold">
+                  {currentUser?.assignedSite && currentUser.assignedSite !== 'Tất cả' ? `📍 Chi nhánh: ${currentUser.assignedSite}` : '🌐 Toàn hệ thống'}
+                </p>
               </div>
             </div>
 
             <nav className="hidden md:flex items-center gap-1">
-              <button 
-                onClick={() => { resetForm(); setActiveTab('dashboard'); }}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  activeTab === 'dashboard' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <LayoutDashboard className="w-4 h-4" /> Bảng điều khiển
-              </button>
+              {canShowTab('dashboard') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('dashboard'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'dashboard' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <LayoutDashboard className="w-4 h-4" /> Bảng điều khiển
+                </button>
+              )}
               
-              <button 
-                onClick={() => { resetForm(); setActiveTab('register'); }}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  activeTab === 'register' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ
-              </button>
+              {canShowTab('register') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('register'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'register' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ
+                </button>
+              )}
 
-              <button 
-                onClick={() => { resetForm(); setActiveTab('monitoring'); }}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  activeTab === 'monitoring' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <ClipboardList className="w-4 h-4" /> Theo dõi hồ sơ
-              </button>
+              {canShowTab('monitoring') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'monitoring' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <ClipboardList className="w-4 h-4" /> Theo dõi hồ sơ
+                </button>
+              )}
 
-              {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
+              {userRole === 'admin' && (
                 <button 
                   onClick={() => setActiveTab('settings')}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
@@ -1880,30 +1992,36 @@ export default function App() {
         </div>
       </header>
 
-      {/* Mobile navigation */}
+      {}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
-        <button 
-          onClick={() => { resetForm(); setActiveTab('dashboard'); }}
-          className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
-        >
-          <LayoutDashboard className="w-5 h-5" />
-          <span>Bảng điều khiển</span>
-        </button>
-        <button 
-          onClick={() => { resetForm(); setActiveTab('register'); }}
-          className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'register' ? 'text-indigo-600' : 'text-slate-400'}`}
-        >
-          <Plus className="w-5 h-5" />
-          <span>Tiếp nhận VIP</span>
-        </button>
-        <button 
-          onClick={() => { resetForm(); setActiveTab('monitoring'); }}
-          className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'monitoring' ? 'text-indigo-600' : 'text-slate-400'}`}
-        >
-          <ClipboardList className="w-5 h-5" />
-          <span>Theo dõi hồ sơ</span>
-        </button>
-        {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
+        {canShowTab('dashboard') && (
+          <button 
+            onClick={() => { resetForm(); setActiveTab('dashboard'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            <span>Bảng điều khiển</span>
+          </button>
+        )}
+        {canShowTab('register') && (
+          <button 
+            onClick={() => { resetForm(); setActiveTab('register'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'register' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <Plus className="w-5 h-5" />
+            <span>Tiếp nhận VIP</span>
+          </button>
+        )}
+        {canShowTab('monitoring') && (
+          <button 
+            onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'monitoring' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <ClipboardList className="w-5 h-5" />
+            <span>Theo dõi hồ sơ</span>
+          </button>
+        )}
+        {userRole === 'admin' && (
           <button 
             onClick={() => setActiveTab('settings')}
             className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'}`}
@@ -1918,7 +2036,7 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {/* ========================== GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN ========================== */}
-        {activeTab === 'dashboard' && (
+        {activeTab === 'dashboard' && canShowTab('dashboard') && (
           <div className="space-y-8 animate-fadeIn">
             
             {/* Smart Daily Briefing - Virtual assistant scheduling widget */}
@@ -1988,14 +2106,16 @@ export default function App() {
                   Công cụ hỗ trợ quản lý và theo dõi việc tiếp đón và chi phí của nhóm Khách hàng VIP, VVIP, Ngoại giao của Ban giám đốc.
                 </p>
               </div>
-              <div className="shrink-0 relative z-10">
-                <button 
-                  onClick={() => { resetForm(); setActiveTab('register'); }}
-                  className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-955 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-1.5 transition transform active:scale-95 whitespace-nowrap"
-                >
-                  <Plus className="w-4 h-4 stroke-[3px]" /> Tiếp nhận hồ sơ mới <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              {canShowTab('register') && (
+                <div className="shrink-0 relative z-10">
+                  <button 
+                    onClick={() => { resetForm(); setActiveTab('register'); }}
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-955 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-1.5 transition transform active:scale-95 whitespace-nowrap"
+                  >
+                    <Plus className="w-4 h-4 stroke-[3px]" /> Tiếp nhận hồ sơ mới <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Metrics Dashboard */}
@@ -2102,7 +2222,7 @@ export default function App() {
               </div>
             )}
 
-            {/* Kanban section */}
+            {}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
@@ -2246,7 +2366,7 @@ export default function App() {
                 </button>
               </div>
 
-              {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
+              {userRole === 'admin' && (
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
                   <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                     <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống
@@ -2265,7 +2385,7 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI ========================== */}
-        {activeTab === 'register' && (
+        {activeTab === 'register' && canShowTab('register') && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
             {/* Sticky Header */}
@@ -2392,22 +2512,26 @@ export default function App() {
                       />
                     </div>
 
-                    {/* Site thăm khám */}
+                    {}
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-605 block">Site thăm khám</label>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                        {sites.map(s => (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => handleInputChange('site', s.label)}
-                            className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center ${
-                              formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
-                            }`}
-                          >
-                            {s.label}
-                          </button>
-                        ))}
+                        {sites.map(s => {
+                          const isAssigned = (currentUser?.assignedSite || 'Tất cả') === 'Tất cả' || currentUser?.assignedSite === s.label;
+                          return (
+                            <button
+                              key={s.id}
+                              type="button"
+                              disabled={!isAssigned}
+                              onClick={() => handleInputChange('site', s.label)}
+                              className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center ${
+                                formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
+                              } ${!isAssigned ? 'opacity-30 cursor-not-allowed' : ''}`}
+                            >
+                              {s.label} {!isAssigned && '🔒'}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -2696,7 +2820,7 @@ export default function App() {
                         setIsSpecDropdownOpen(true);
                       }}
                       onFocus={() => setIsSpecDropdownOpen(true)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800"
                     />
                     {isSpecDropdownOpen && (
                       <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-fadeIn">
@@ -2744,75 +2868,83 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Block 4: Chi Phí Điều Trị & Lâm Sàng Thực Tế */}
+                {}
                 {formData.tier === 'VVIP' && (
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
-                      <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                      Chi Phí Điều Trị & Lâm Sàng Thực Tế
-                    </h3>
+                  hasAccessToPatient(formData, 'billing:view') ? (
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
+                      <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
+                        <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                        Chi Phí Điều Trị & Lâm Sàng Thực Tế
+                      </h3>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      
-                      <div className="space-y-1.5 md:col-span-2">
-                        <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
-                        <select
-                          value={formData.treatmentType || 'Ngoại trú'}
-                          onChange={(e) => handleTreatmentTypeChange(e.target.value)}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 cursor-pointer"
-                        >
-                          <option value="Ngoại trú">Ngoại trú</option>
-                          <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
-                          <option value="Nội trú/ICU">Nội trú/ICU</option>
-                          <option value="Ngoài viện">Ngoài viện</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
-                        <div className="relative">
-                          <input 
-                            type="text" 
-                            value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
-                            onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
-                            placeholder="0"
-                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
-                          />
-                          <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        
+                        <div className="space-y-1.5 md:col-span-2">
+                          <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
+                          <select
+                            value={formData.treatmentType || 'Ngoại trú'}
+                            onChange={(e) => handleTreatmentTypeChange(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 cursor-pointer"
+                          >
+                            <option value="Ngoại trú">Ngoại trú</option>
+                            <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
+                            <option value="Nội trú/ICU">Nội trú/ICU</option>
+                            <option value="Ngoài viện">Ngoài viện</option>
+                          </select>
                         </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
+                              onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
+                              placeholder="0"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
+                              onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
+                              placeholder="0"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5 md:col-span-2">
+                          <label className="text-xs font-bold text-slate-655 block">Thuốc/vacxin</label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
+                              onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
+                              placeholder="0"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                          </div>
+                        </div>
+
                       </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
-                        <div className="relative">
-                          <input 
-                            type="text" 
-                            value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
-                            onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
-                            placeholder="0"
-                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
-                          />
-                      <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
                     </div>
-                  </div>
-
-                  <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-655 block">Thuốc/vacxin</label>
-                    <div className="relative">
-                      <input 
-                        type="text" 
-                        value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
-                        onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
-                        placeholder="0"
-                        className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
-                      />
-                      <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                  ) : (
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center py-8 space-y-2">
+                      <Lock className="w-8 h-8 text-rose-400 mx-auto" />
+                      <p className="text-xs font-bold text-slate-550">Chi phí điều trị bị khóa</p>
+                      <p className="text-[10px] text-slate-400 leading-normal">Tài khoản này không được phân quyền xem dữ liệu tài chính của chi nhánh.</p>
                     </div>
-                  </div>
-
-                </div>
-              </div>
-            )}
+                  )
+                )}
 
               </div>
 
@@ -2821,98 +2953,106 @@ export default function App() {
                 
                 {/* Bảng chi phí/duyệt giảm */}
                 {formData.tier === 'VVIP' && (
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
-                    <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800">
-                      <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
-                      
-                      <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
-                        <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
-                        Bảng chi phí/duyệt giảm
-                      </h3>
+                  hasAccessToPatient(formData, 'billing:view') ? (
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
+                      <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800">
+                        <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
+                        
+                        <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
+                          <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
+                          Bảng chi phí/duyệt giảm
+                        </h3>
 
-                      <div className="space-y-1.5 pt-2 relative z-10">
-                        <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
-                        <div className="relative">
-                          <input 
-                            type="text" 
-                            value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
-                            onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
-                            placeholder="0"
-                            className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-505 font-mono"
-                          />
-                          <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">VNĐ</span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3 relative z-10">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
-                            Duyệt giảm (%) {userRole === 'nhanvien' && '🔒'}
-                          </label>
+                        <div className="space-y-1.5 pt-2 relative z-10">
+                          <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
                           <div className="relative">
                             <input 
-                              type="number" 
-                              min="0"
-                              max="100"
-                              value={formData.discountRate || ''}
-                              disabled={userRole === 'nhanvien'} 
-                              onChange={(e) => handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                              type="text" 
+                              value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
+                              onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
                               placeholder="0"
-                              className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-505 ${
-                                userRole === 'nhanvien'
-                                  ? 'bg-slate-800 border-slate-700 text-slate-550 cursor-not-allowed'
-                                  : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
-                              }`}
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-505 font-mono"
                             />
-                            <span className="absolute right-3 top-3 text-[10px] text-slate-550 font-bold font-mono">%</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
-                        
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Tổng phí tự động:</span>
-                          <div className="flex items-center gap-1">
-                            <input 
-                              type="text"
-                              value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
-                              onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
-                              className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
-                            />
-                            <span>đ</span>
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-550 font-bold font-mono">VNĐ</span>
                           </div>
                         </div>
 
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
-                          <div className="flex items-center gap-1">
-                            <span className="text-rose-400">-</span>
-                            <input 
-                              type="text"
-                              value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
-                              onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
-                              className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
-                            />
-                            <span className="text-rose-400">đ</span>
+                        {}
+                        <div className="grid grid-cols-1 gap-3 relative z-10">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
+                              Duyệt giảm (%) {!hasAccessToPatient(formData, 'billing:discount') && '🔒'}
+                            </label>
+                            <div className="relative">
+                              <input 
+                                type="number" 
+                                min="0"
+                                max="100"
+                                value={formData.discountRate || ''}
+                                disabled={!hasAccessToPatient(formData, 'billing:discount')} 
+                                onChange={(e) => handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                                placeholder="0"
+                                className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-505 ${
+                                  !hasAccessToPatient(formData, 'billing:discount')
+                                    ? 'bg-slate-800 border-slate-700 text-slate-550 cursor-not-allowed'
+                                    : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
+                                }`}
+                              />
+                              <span className="absolute right-3 top-3 text-[10px] text-slate-550 font-bold font-mono">%</span>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
-                          <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
-                        </div>
+                        <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
+                          
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400">Tổng phí tự động:</span>
+                            <div className="flex items-center gap-1">
+                              <input 
+                                type="text"
+                                value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
+                                onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
+                                className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
+                              />
+                              <span>đ</span>
+                            </div>
+                          </div>
 
-                        <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
-                          <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
-                          <span className="text-lg font-black text-emerald-400 font-mono">
-                            {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
-                          </span>
-                        </div>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-rose-400">-</span>
+                              <input 
+                                type="text"
+                                value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
+                                onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
+                                className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
+                              />
+                              <span className="text-rose-400">đ</span>
+                            </div>
+                          </div>
 
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
+                            <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
+                          </div>
+
+                          <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
+                            <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
+                            <span className="text-lg font-black text-emerald-400 font-mono">
+                              {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
+                            </span>
+                          </div>
+
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center py-8 space-y-2">
+                      <Lock className="w-8 h-8 text-rose-400 mx-auto" />
+                      <p className="text-xs font-bold text-slate-555">Bảng chi phí bị khóa</p>
+                    </div>
+                  )
                 )}
 
                 {/* Ảnh Phê Duyệt Gửi Kèm */}
@@ -2957,7 +3097,7 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ & BỘ LỊCH ========================== */}
-        {activeTab === 'monitoring' && (
+        {activeTab === 'monitoring' && canShowTab('monitoring') && (
           <div className="space-y-6 animate-fadeIn">
             
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -2966,12 +3106,14 @@ export default function App() {
                   <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo Dõi Hồ Sơ Khách Hàng VIP-VVIP
                 </h2>
               </div>
-              <button 
-                onClick={() => { resetForm(); setActiveTab('register'); }}
-                className="px-4 py-2.5 bg-slate-900 text-white hover:bg-slate-850 rounded-xl text-xs font-black flex items-center gap-1.5 border border-slate-900 transition transform active:scale-95"
-              >
-                <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ mới
-              </button>
+              {canShowTab('register') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('register'); }}
+                  className="px-4 py-2.5 bg-slate-900 text-white hover:bg-slate-850 rounded-xl text-xs font-black flex items-center gap-1.5 border border-slate-900 transition transform active:scale-95"
+                >
+                  <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ mới
+                </button>
+              )}
             </div>
 
             <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex justify-between items-center flex-wrap gap-3">
@@ -3088,6 +3230,7 @@ export default function App() {
               </div>
             )}
 
+            {}
             {calendarMode === 'week' && (
               <div className="grid grid-cols-1 md:grid-cols-7 gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm overflow-x-auto min-w-full">
                 {weekDays.map((day, idx) => {
@@ -3200,6 +3343,7 @@ export default function App() {
               </div>
             )}
 
+            {}
             {calendarMode === 'list' && (
               <>
                 {isLoading ? (
@@ -3237,6 +3381,7 @@ export default function App() {
                           </thead>
                           <tbody className="divide-y divide-slate-200 text-xs">
                             {filteredPatients.map((p) => {
+                              const canViewBilling = hasAccessToPatient(p, 'billing:view');
                               const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
                               const pSite = sites.find(s => s.label === p.site) || sites[0];
                               return (
@@ -3280,20 +3425,34 @@ export default function App() {
                                     {p.notes && <div className="text-[10px] text-slate-400 max-w-[150px] truncate" title={p.notes}>{p.notes}</div>}
                                   </td>
                                   <td className="py-4 px-3 text-right font-bold text-slate-900 font-mono">
-                                    {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Thanh toán quầy</span> : formatCurrency(p.totalAmount)}
+                                    {p.tier === 'VIP' ? (
+                                      <span className="text-slate-400 font-sans text-[10px]">Thanh toán quầy</span>
+                                    ) : canViewBilling ? (
+                                      formatCurrency(p.totalAmount)
+                                    ) : (
+                                      <span className="text-slate-400">🔒 Khóa</span>
+                                    )}
                                   </td>
                                   <td className="py-4 px-3 text-right">
                                     {p.tier === 'VIP' ? (
                                       <span className="text-slate-400 font-sans text-[10px]">---</span>
-                                    ) : (
+                                    ) : canViewBilling ? (
                                       <>
                                         <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
                                         <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
                                       </>
+                                    ) : (
+                                      <span className="text-slate-400">🔒 Khóa</span>
                                     )}
                                   </td>
                                   <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
-                                    {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Hóa đơn gốc</span> : formatCurrency(realCollected)}
+                                    {p.tier === 'VIP' ? (
+                                      <span className="text-slate-400 font-sans text-[10px]">Hóa đơn gốc</span>
+                                    ) : canViewBilling ? (
+                                      formatCurrency(realCollected)
+                                    ) : (
+                                      <span className="text-slate-400">🔒 Khóa</span>
+                                    )}
                                   </td>
                                   <td className="py-4 px-5 text-right whitespace-nowrap">
                                     <div className="flex justify-end gap-1.5">
@@ -3359,8 +3518,10 @@ export default function App() {
                       </div>
                     </div>
 
+                    {}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
                       {filteredPatients.map((p) => {
+                        const canViewBilling = hasAccessToPatient(p, 'billing:view');
                         const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
                         const pSite = sites.find(s => s.label === p.site) || sites[0];
                         return (
@@ -3405,20 +3566,26 @@ export default function App() {
                             </div>
 
                             {p.tier === 'VVIP' ? (
-                              <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
-                                <div>
-                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
-                                  <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
+                              canViewBilling ? (
+                                <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
+                                  <div>
+                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
+                                    <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
+                                    <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
+                                    <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
+                                  </div>
                                 </div>
-                                <div>
-                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
-                                  <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
+                              ) : (
+                                <div className="bg-slate-50 p-2 text-center rounded-xl text-xs text-slate-400 flex items-center justify-center gap-1">
+                                  <Lock className="w-3.5 h-3.5" /> Chi phí tài chính bị khóa bảo mật
                                 </div>
-                                <div>
-                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
-                                  <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
-                                </div>
-                              </div>
+                              )
                             ) : null}
 
                             <div className="flex justify-end gap-2 pt-1">
@@ -3483,11 +3650,67 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 4: CẤU HÌNH THAM SỐ ========================== */}
-        {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
+        {activeTab === 'settings' && userRole === 'admin' && (
           <div className="space-y-6 animate-fadeIn">
             
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
               <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
+            </div>
+
+            {}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                  Ma Trận Phân Quyền Theo Chi Nhánh (Dynamic Site Permission Matrix)
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">Cấu hình chi tiết quyền hạn tác vụ của từng vai trò nhân sự trên các site chi nhánh:</p>
+              </div>
+
+              <div className="overflow-x-auto border border-slate-150 rounded-2xl">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-55 border-b border-slate-150 text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                      <th className="p-4">Quyền hạn / Chức năng</th>
+                      <th className="p-4 text-center">nhanvien</th>
+                      <th className="p-4 text-center">quanly_site</th>
+                      <th className="p-4 text-center">quanly</th>
+                      <th className="p-4 text-center">lanhdao</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-150">
+                    {[
+                      { key: 'patients:view', label: 'Xem danh sách hồ sơ' },
+                      { key: 'patients:create', label: 'Đăng ký tiếp đón VIP' },
+                      { key: 'patients:update', label: 'Cập nhật hành trình' },
+                      { key: 'patients:delete', label: 'Xóa vĩnh viễn hồ sơ' },
+                      { key: 'billing:view', label: 'Xem chi phí VVIP' },
+                      { key: 'billing:discount', label: 'Duyệt % giảm chi phí' }
+                    ].map((perm) => (
+                      <tr key={perm.key} className="hover:bg-slate-50/50">
+                        <td className="p-4 font-bold text-slate-800">{perm.label} <code className="text-[9px] bg-slate-100 text-slate-500 px-1 py-0.5 rounded font-mono font-normal ml-1">{perm.key}</code></td>
+                        {['nhanvien', 'quanly_site', 'quanly', 'lanhdao'].map((role) => {
+                          const currentLevel = systemSettings.permissions?.[perm.key]?.[role] || 'none';
+                          return (
+                            <td key={role} className="p-4 text-center">
+                              <select
+                                value={currentLevel}
+                                onChange={(e) => handlePermissionChange(perm.key, role, e.target.value)}
+                                className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-700 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                              >
+                                <option value="none">❌ Không quyền</option>
+                                <option value="view_assigned">👁️ Xem Site gán</option>
+                                <option value="write_assigned">📍 Ghi Site gán</option>
+                                <option value="all">🌐 Toàn hệ thống</option>
+                              </select>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -3514,7 +3737,7 @@ export default function App() {
                     <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-150 hover:bg-slate-50 cursor-pointer transition">
                       <input 
                         type="checkbox"
-                        checked={systemSettings.totalFormulaFields[field.key] || false}
+                        checked={systemSettings.totalFormulaFields?.[field.key] || false}
                         onChange={() => handleFormulaCheckboxChange(field.key)}
                         className="w-4 h-4 rounded-md text-indigo-600 focus:ring-indigo-500 border-slate-300"
                       />
@@ -3598,7 +3821,7 @@ export default function App() {
                   </div>
 
                   <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                    {systemSettings.specialties.map((spec, idx) => (
+                    {systemSettings.specialties?.map((spec, idx) => (
                       <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition animate-fadeIn">
                         <span className="text-xs font-bold text-slate-700">{spec}</span>
                         <button
@@ -3613,6 +3836,7 @@ export default function App() {
                   </div>
                 </div>
 
+                {}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -3659,6 +3883,19 @@ export default function App() {
                         />
                       </div>
                       <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Site Giao Việc (Phân Chi Nhánh)</label>
+                        <select 
+                          value={newStaff.assignedSite || 'Tất cả'}
+                          onChange={(e) => setNewStaff({ ...newStaff, assignedSite: e.target.value })}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold cursor-pointer"
+                        >
+                          <option value="Tất cả">Tất cả (Toàn hệ thống)</option>
+                          <option value="BV Tâm Anh - Tân Sơn Hòa">BV Tâm Anh - Tân Sơn Hòa</option>
+                          <option value="PK Tâm Anh - Tân Hưng">PK Tâm Anh - Tân Hưng</option>
+                          <option value="BV Tâm Anh - Chánh Hưng">BV Tâm Anh - Chánh Hưng</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
                         <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Vai trò phân quyền</label>
                         <select 
                           value={newStaff.role}
@@ -3687,7 +3924,8 @@ export default function App() {
                         <div>
                           <div className="text-xs font-bold text-slate-800">{staff.name}</div>
                           <div className="text-[9px] text-slate-400 font-mono">{staff.email}</div>
-                          <div className="text-[9px] text-slate-400 italic">UID: {staff.uid} | {staff.title}</div>
+                          <div className="text-[9px] text-slate-400 font-semibold text-indigo-600 mt-0.5">📍 Chi nhánh được gán: {staff.assignedSite || 'Tất cả'}</div>
+                          <div className="text-[9px] text-slate-405 italic">UID: {staff.uid} | {staff.title}</div>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-[9px] font-black px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-sm uppercase">
@@ -3719,7 +3957,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.9</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.1.0</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
