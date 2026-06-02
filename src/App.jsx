@@ -234,6 +234,7 @@ export default function App() {
   const html5QrCodeRef = useRef(null);
 
   const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'nhanvien', uid: '', title: '', assignedSite: 'Tất cả' });
+  const [editingStaffUid, setEditingStaffUid] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSpecialty, setFilterSpecialty] = useState('');
@@ -1376,6 +1377,18 @@ export default function App() {
     setCopyConfirmModal({ show: false, visitToCopy: null });
   };
 
+  const handleEditStaff = (staff) => {
+    setEditingStaffUid(staff.uid);
+    setNewStaff({
+      name: staff.name || '',
+      email: staff.email || '',
+      role: staff.role || 'nhanvien',
+      uid: staff.uid || '',
+      title: staff.title || '',
+      assignedSite: staff.assignedSite || 'Tất cả'
+    });
+  };
+
   const handleCreateStaff = async (e) => {
     e.preventDefault();
     if (userRole !== 'admin') {
@@ -1400,19 +1413,26 @@ export default function App() {
       try {
         const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', created.uid);
         await setDoc(userDocRef, created);
-        showNotification("Đã đăng ký và đẩy phân quyền lên Firebase Cloud!");
+        showNotification(editingStaffUid ? "Đã cập nhật thông tin nhân viên!" : "Đã đăng ký và đẩy phân quyền lên Firebase Cloud!");
       } catch (err) {
         console.error(err);
         showNotification("Lỗi đồng bộ phân quyền lên Firebase Cloud!", "error");
       }
     } else {
-      const updatedList = [...staffList, created];
+      let updatedList;
+      if (editingStaffUid) {
+        updatedList = staffList.map(s => s.uid === editingStaffUid ? created : s);
+        showNotification("Đã cập nhật tài khoản nhân viên cục bộ!");
+      } else {
+        updatedList = [...staffList, created];
+        showNotification("Đã lưu tài khoản nhân viên cục bộ!");
+      }
       setStaffList(updatedList);
       localStorage.setItem('crm_staff_accounts', JSON.stringify(updatedList));
-      showNotification("Đã lưu tài khoản nhân viên cục bộ!");
     }
 
     setNewStaff({ name: '', email: '', role: 'nhanvien', uid: '', title: '', assignedSite: 'Tất cả' });
+    setEditingStaffUid(null);
   };
 
   const handleDeleteStaff = (uid) => {
@@ -1692,7 +1712,6 @@ export default function App() {
         </div>
       )}
 
-      {}
       {isScanning && (
         <div className="fixed inset-0 z-50 bg-slate-955/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
           <style>{`
@@ -1760,7 +1779,6 @@ export default function App() {
         </div>
       )}
 
-      {}
       <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
         {activePushAlerts.map(alert => (
           <div 
@@ -1823,7 +1841,6 @@ export default function App() {
         </div>
       )}
 
-      {}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1992,7 +2009,6 @@ export default function App() {
         </div>
       </header>
 
-      {}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
         {canShowTab('dashboard') && (
           <button 
@@ -2222,7 +2238,6 @@ export default function App() {
               </div>
             )}
 
-            {}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
@@ -2512,7 +2527,6 @@ export default function App() {
                       />
                     </div>
 
-                    {}
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-605 block">Site thăm khám</label>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -2543,7 +2557,7 @@ export default function App() {
                           type="button"
                           onClick={() => handleInputChange('examinationArea', 'Khu Tiêu Chuẩn')}
                           className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center ${
-                            formData.examinationArea === 'Khu Tiêu Chuẩn' ? 'bg-teal-50 border-teal-500 text-teal-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                            formData.examinationArea === 'Khu Tiêu Chuẩn' ? 'bg-teal-50 border-teal-500 text-teal-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-50'
                           }`}
                         >
                           Khu Tiêu Chuẩn
@@ -2730,7 +2744,7 @@ export default function App() {
                                       
                                       <button
                                         type="button"
-                                        onClick={() => setCopyConfirmModal({ show: true, visitToCopy: visit })}
+                                        onClick={() => setCopyConfirmModal({ show: false, visitToCopy: visit })}
                                         className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-lg text-[9px] font-black flex items-center gap-1 transition shadow-2xs"
                                         title="Sao chép toàn bộ thông tin chỉ định này sang lượt mới"
                                       >
@@ -2868,7 +2882,6 @@ export default function App() {
                   )}
                 </div>
 
-                {}
                 {formData.tier === 'VVIP' && (
                   hasAccessToPatient(formData, 'billing:view') ? (
                     <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
@@ -2971,13 +2984,12 @@ export default function App() {
                               value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
                               onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
                               placeholder="0"
-                              className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-505 font-mono"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-850 border border-slate-750 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-505 font-mono"
                             />
                             <span className="absolute right-3 top-3 text-[10px] text-slate-550 font-bold font-mono">VNĐ</span>
                           </div>
                         </div>
 
-                        {}
                         <div className="grid grid-cols-1 gap-3 relative z-10">
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
@@ -3230,7 +3242,6 @@ export default function App() {
               </div>
             )}
 
-            {}
             {calendarMode === 'week' && (
               <div className="grid grid-cols-1 md:grid-cols-7 gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm overflow-x-auto min-w-full">
                 {weekDays.map((day, idx) => {
@@ -3343,7 +3354,6 @@ export default function App() {
               </div>
             )}
 
-            {}
             {calendarMode === 'list' && (
               <>
                 {isLoading ? (
@@ -3518,7 +3528,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
                       {filteredPatients.map((p) => {
                         const canViewBilling = hasAccessToPatient(p, 'billing:view');
@@ -3657,7 +3666,6 @@ export default function App() {
               <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
             </div>
 
-            {}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -3836,7 +3844,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
                   <div>
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -3877,8 +3884,9 @@ export default function App() {
                           type="text" 
                           placeholder="Mã UID (Lấy từ Firebase Authentication)..." 
                           value={newStaff.uid}
+                          disabled={editingStaffUid !== null}
                           onChange={(e) => setNewStaff({ ...newStaff, uid: e.target.value })}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-mono font-bold animate-fadeIn"
+                          className={`px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-mono font-bold animate-fadeIn ${editingStaffUid !== null ? 'bg-slate-100 text-slate-450 cursor-not-allowed' : ''}`}
                           required
                         />
                       </div>
@@ -3909,12 +3917,27 @@ export default function App() {
                           <option value="admin">admin</option>
                         </select>
                       </div>
-                      <button 
-                        type="submit"
-                        className="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center justify-center gap-1"
-                      >
-                        <UserPlus className="w-4 h-4" /> Đăng ký tài khoản nhân viên
-                      </button>
+                      <div className="flex gap-2">
+                        {editingStaffUid && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingStaffUid(null);
+                              setNewStaff({ name: '', email: '', role: 'nhanvien', uid: '', title: '', assignedSite: 'Tất cả' });
+                            }}
+                            className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition"
+                          >
+                            Hủy
+                          </button>
+                        )}
+                        <button 
+                          type="submit"
+                          className="flex-1 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center justify-center gap-1"
+                        >
+                          {editingStaffUid ? <Check className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                          {editingStaffUid ? "Cập nhật tài khoản" : "Đăng ký tài khoản nhân viên"}
+                        </button>
+                      </div>
                     </form>
                   ) : null}
 
@@ -3927,18 +3950,28 @@ export default function App() {
                           <div className="text-[9px] text-slate-400 font-semibold text-indigo-600 mt-0.5">📍 Chi nhánh được gán: {staff.assignedSite || 'Tất cả'}</div>
                           <div className="text-[9px] text-slate-405 italic">UID: {staff.uid} | {staff.title}</div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <span className="text-[9px] font-black px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-sm uppercase">
                             {staff.role}
                           </span>
+                          {userRole === 'admin' && (
+                            <button
+                              type="button"
+                              onClick={() => handleEditStaff(staff)}
+                              className="p-1 border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 rounded transition"
+                              title="Chỉnh sửa thông tin"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           {userRole === 'admin' && staff.uid !== "acc_admin" && (
                             <button
                               type="button"
                               onClick={() => handleDeleteStaff(staff.uid)}
-                              className="p-1 border border-slate-200 text-slate-400 hover:text-red-500 rounded transition"
+                              className="p-1 border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 rounded transition"
                               title="Xóa"
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
