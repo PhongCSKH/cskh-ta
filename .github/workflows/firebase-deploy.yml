@@ -30,6 +30,7 @@ jobs:
       - name: Deploy to Firebase
         uses: w9jds/firebase-action@master
         with:
-          args: deploy --only hosting,functions
+          # Đã thêm tham số --force để bỏ qua lỗi cảnh báo thiết lập dọn dẹp container ảnh của Artifact Registry
+          args: deploy --only hosting,functions --force
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
