@@ -64,7 +64,8 @@ import {
   History,
   ChevronLeft,
   MapPin,
-  Globe
+  Globe,
+  Unlock
 } from 'lucide-react';
 
 const WEBPUSH_VAPID_KEY = "BFjwAUlwacxhmYk0TiQdDTDJYKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQlAcSuG3iAAqtNnkPtJAW_s"; 
@@ -181,11 +182,11 @@ const defaultSystemSettings = {
   },
   discountFormulaType: 'total_minus_insurance_advance',
   permissions: {
-    'patients:view': { nhanvien: 'write_assigned', quanly_site: 'write_assigned', quanly: 'all', lanhdao: 'all', admin: 'all' },
+    'patients:view': { nhanvien: 'view_assigned', quanly_site: 'view_assigned', quanly: 'all', lanhdao: 'all', admin: 'all' },
     'patients:create': { nhanvien: 'write_assigned', quanly_site: 'write_assigned', quanly: 'all', lanhdao: 'none', admin: 'all' },
     'patients:update': { nhanvien: 'write_assigned', quanly_site: 'write_assigned', quanly: 'all', lanhdao: 'none', admin: 'all' },
     'patients:delete': { nhanvien: 'none', quanly_site: 'none', quanly: 'all', lanhdao: 'none', admin: 'all' },
-    'billing:view': { nhanvien: 'none', quanly_site: 'write_assigned', quanly: 'all', lanhdao: 'all', admin: 'all' },
+    'billing:view': { nhanvien: 'none', quanly_site: 'view_assigned', quanly: 'all', lanhdao: 'all', admin: 'all' },
     'billing:discount': { nhanvien: 'none', quanly_site: 'write_assigned', quanly: 'all', lanhdao: 'all', admin: 'all' }
   }
 };
@@ -296,6 +297,9 @@ export default function App() {
   const [isSpecDropdownOpen, setIsSpecDropdownOpen] = useState(false);
   const specRef = useRef(null);
 
+  const [isReadOnly, setIsReadOnly] = useState(true);
+  const appStartTime = useRef(new Date());
+
   const canShowTab = (tabName) => {
     if (!currentUser) return false;
     const role = currentUser.role || 'nhanvien';
@@ -327,7 +331,7 @@ export default function App() {
     setTimeout(() => setNotification(null), 3500);
   };
 
-  const triggerPushAlert = (title, message, dataRecipients = [], type = 'info') => {
+  const triggerPushAlert = (title, message, dataRecipients = [], type = 'info', patientId = null) => {
     const hasTargetedRecipients = Array.isArray(dataRecipients) && dataRecipients.length > 0;
 
     if (currentUser) {
@@ -340,7 +344,7 @@ export default function App() {
     }
 
     const id = Date.now() + Math.random().toString(36).substr(2, 9);
-    const newAlert = { id, title, message, type };
+    const newAlert = { id, title, message, type, patientId };
 
     setActivePushAlerts(prev => [newAlert, ...prev]);
 
@@ -351,7 +355,8 @@ export default function App() {
         message,
         type,
         timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        read: false
+        read: false,
+        patientId
       },
       ...prev
     ]);
@@ -377,6 +382,14 @@ export default function App() {
     setTimeout(() => {
       setActivePushAlerts(prev => prev.filter(alert => alert.id !== id));
     }, 6000);
+  };
+
+  const handleNotificationClick = (patientId) => {
+    if (!patientId) return;
+    const targetPatient = patients.find(p => p.id === patientId);
+    if (targetPatient) {
+      initiateView(targetPatient);
+    }
   };
 
   const checkIosPermissionStatus = () => {
@@ -455,6 +468,7 @@ export default function App() {
     setCurrentId(null);
     setFormRightTab('billing');
     setIsHistoryPanelExpanded(false);
+    setIsReadOnly(false);
 
     const userSite = currentUser?.assignedSite || 'Tất cả';
     const defaultSite = userSite !== 'Tất cả' ? userSite : 'BV Tâm Anh - Tân Sơn Hòa';
@@ -801,13 +815,42 @@ export default function App() {
         } else {
           snapshot.docChanges().forEach((change) => {
             const data = change.doc.data();
+            const docTime = data.updatedAt ? new Date(data.updatedAt) : (data.createdAt ? new Date(data.createdAt) : null);
+            const isRecent = docTime && docTime.getTime() > appStartTime.current.getTime();
+            if (!isRecent) return;
+
+            let shouldNotify = true;
+            const userSite = currentUser.assignedSite || 'Tất cả';
+
+            if (userSite !== 'Tất cả' && data.site !== userSite) {
+              shouldNotify = false;
+            }
+
+            if (currentUser.role === 'nhanvien') {
+              if (data.recipients && data.recipients.length > 0 && !data.recipients.includes(currentUser.uid)) {
+                shouldNotify = false;
+              }
+            }
+
+            if (currentUser.role === 'lanhdao') {
+              const bossKeyword = data.boardApproval ? data.boardApproval.replace("Sếp ", "").trim().toLowerCase() : "";
+              const isTargetBoss = bossKeyword && currentUser.name.toLowerCase().includes(bossKeyword);
+              const isTargetStatus = ['Waiting', 'Completed'].includes(data.status);
+              if (!isTargetBoss || !isTargetStatus) {
+                shouldNotify = false;
+              }
+            }
+
+            if (!shouldNotify) return;
+
             const statusLabel = workflowStatuses.find(s => s.id === data.status)?.label || data.status;
             if (change.type === "added") {
               triggerPushAlert(
                 `🆕 Tiếp nhận khách ${data?.tier || 'VIP'}`,
                 `Bệnh nhân: ${data?.name || '---'} (PID: ${data?.pid || '---'}) đã được xếp trạng thái: ${statusLabel}.`,
                 data?.recipients || [],
-                'info'
+                'info',
+                change.doc.id
               );
             }
             if (change.type === "modified") {
@@ -815,7 +858,8 @@ export default function App() {
                 `🔄 Cập nhật hành trình`,
                 `Hồ sơ khách hàng ${data?.name || '---'} (PID: ${data?.pid || '---'}) vừa đổi trạng thái sang: ${statusLabel}.`,
                 data?.recipients || [],
-                'success'
+                'success',
+                change.doc.id
               );
             }
             if (change.type === "removed") {
@@ -823,7 +867,8 @@ export default function App() {
                 `⚠️ Gỡ bỏ hồ sơ`,
                 `Hồ sơ của một bệnh nhân VIP vừa bị gỡ khỏi hệ thống.`,
                 data?.recipients || [],
-                'error'
+                'error',
+                change.doc.id
               );
             }
           });
@@ -932,6 +977,7 @@ export default function App() {
   };
 
   const toggleSpecialtySelection = (spec) => {
+    if (isReadOnly) return;
     setFormData(prev => {
       const exists = prev?.specialties?.includes(spec);
       if (exists) {
@@ -1239,18 +1285,17 @@ export default function App() {
     handleLogin(e);
   };
 
-  const initiateEdit = (patient) => {
-    if (!patient) return;
+  const initiateView = (patient) => {
+    initiateEdit(patient, true);
+  };
 
-    const canEdit = hasAccessToPatient(patient, 'patients:update');
-    if (!canEdit) {
-      showNotification("Lỗi: Tài khoản không được cấp quyền chỉnh sửa hồ sơ chi nhánh này!", "error");
-      return;
-    }
+  const initiateEdit = (patient, forceReadOnly = false) => {
+    if (!patient) return;
 
     setCurrentId(patient.id);
     setFormRightTab(patient.tier === 'VIP' ? 'timeline' : 'billing');
     setIsHistoryPanelExpanded(false);
+    setIsReadOnly(forceReadOnly);
     let initTreatmentType = 'Ngoại trú';
     if (patient.capCuu) initTreatmentType = 'Cấp cứu/Daycare';
     else if (patient.noiTru) initTreatmentType = 'Nội trú/ICU';
@@ -1342,7 +1387,7 @@ export default function App() {
         });
         setPatients(updatedList);
         localStorage.setItem('local_patients', JSON.stringify(updatedList));
-        triggerPushAlert("🔄 Cập nhật hành trình (Cục bộ)", `Khách hàng ${patient?.name || 'VIP'} đã được cập nhật trạng thái mới.`, patient?.recipients || [], "success");
+        triggerPushAlert("🔄 Cập nhật hành trình (Cục bộ)", `Khách hàng ${patient?.name || 'VIP'} đã được cập nhật trạng thái mới.`, patient?.recipients || [], "success", patientId);
       }
       showNotification("Đã cập nhật trạng thái hành trình khám!");
     } catch (err) {
@@ -1538,6 +1583,7 @@ export default function App() {
   };
 
   const handleToggleRecipient = (uid) => {
+    if (isReadOnly) return;
     setFormData(prev => {
       const exist = prev?.recipients || [];
       const updated = exist.includes(uid) ? exist.filter(id => id !== uid) : [...exist, uid];
@@ -1613,7 +1659,7 @@ export default function App() {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => { setShowPassword(!showPassword); }}
                   className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -1641,7 +1687,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 animate-fadeIn">
           <div className="absolute top-4 right-4 z-50 flex gap-2">
             <button 
-              onClick={() => setLightboxImages([])}
+              onClick={() => { setLightboxImages([]); }}
               className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition"
             >
               <X className="w-5 h-5" />
@@ -1696,13 +1742,13 @@ export default function App() {
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button 
-                onClick={() => setCopyConfirmModal({ show: false, visitToCopy: null })}
+                onClick={() => { setCopyConfirmModal({ show: false, visitToCopy: null }); }}
                 className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-655 rounded-xl transition"
               >
                 Hủy bỏ
               </button>
               <button 
-                onClick={() => executeCopyVisit(copyConfirmModal.visitToCopy)}
+                onClick={() => { executeCopyVisit(copyConfirmModal.visitToCopy); }}
                 className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white rounded-xl transition shadow-xs"
               >
                 Xác nhận sao chép
@@ -1743,7 +1789,7 @@ export default function App() {
                   onClick={() => {
                     setScannerError('');
                     setIsScanning(false);
-                    setTimeout(() => setIsScanning(true), 200);
+                    setTimeout(() => { setIsScanning(true); }, 200);
                   }}
                   className="px-3 py-1 bg-rose-600 text-white rounded-lg font-bold"
                 >
@@ -1783,7 +1829,8 @@ export default function App() {
         {activePushAlerts.map(alert => (
           <div 
             key={alert.id}
-            className={`pointer-events-auto p-4 rounded-2xl shadow-xl border flex gap-3 items-start transition-all transform duration-300 bg-white ${
+            onClick={() => { handleNotificationClick(alert.patientId); }}
+            className={`pointer-events-auto p-4 rounded-2xl shadow-xl border flex gap-3 items-start transition-all transform duration-300 bg-white cursor-pointer hover:shadow-2xl ${
               alert.type === 'success' ? 'border-emerald-100 bg-emerald-50/95' :
               alert.type === 'error' ? 'border-rose-100 bg-rose-50/95' : 'border-indigo-100 bg-indigo-50/95'
             }`}
@@ -1799,7 +1846,10 @@ export default function App() {
               <p className="text-[11px] text-slate-605 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
             </div>
             <button 
-              onClick={() => setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id))}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id));
+              }}
               className="text-slate-400 hover:text-slate-650 p-0.5 transition"
             >
               <X className="w-3.5 h-3.5" />
@@ -1818,7 +1868,7 @@ export default function App() {
             <p className="text-sm text-slate-555 leading-relaxed font-medium">{confirmModal.message}</p>
             <div className="flex justify-end gap-2 pt-2">
               <button 
-                onClick={() => setConfirmModal({ show: false, action: null, message: '', title: '' })}
+                onClick={() => { setConfirmModal({ show: false, action: null, message: '', title: '' }); }}
                 className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 rounded-xl transition"
               >
                 Hủy bỏ
@@ -1902,7 +1952,7 @@ export default function App() {
 
               {userRole === 'admin' && (
                 <button 
-                  onClick={() => setActiveTab('settings')}
+                  onClick={() => { setActiveTab('settings'); }}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                     activeTab === 'settings' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
                   }`}
@@ -1919,7 +1969,7 @@ export default function App() {
               </div>
 
               <button 
-                onClick={() => setShowNotificationCenter(!showNotificationCenter)}
+                onClick={() => { setShowNotificationCenter(!showNotificationCenter); }}
                 className={`p-2 rounded-xl transition-all relative border border-slate-200 ${
                   showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-500 hover:bg-slate-100'
                 }`}
@@ -1970,7 +2020,8 @@ export default function App() {
                       notifications.map(n => (
                         <div 
                           key={n.id}
-                          className={`p-3 rounded-2xl border text-xs transition flex gap-2 items-start ${
+                          onClick={() => { handleNotificationClick(n.patientId); setShowNotificationCenter(false); }}
+                          className={`p-3 rounded-2xl border text-xs transition flex gap-2 items-start cursor-pointer hover:bg-slate-50 ${
                             n.read ? 'border-slate-200 bg-slate-50/50' : 'border-indigo-100 bg-indigo-50/30'
                           }`}
                         >
@@ -2039,7 +2090,7 @@ export default function App() {
         )}
         {userRole === 'admin' && (
           <button 
-            onClick={() => setActiveTab('settings')}
+            onClick={() => { setActiveTab('settings'); }}
             className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'}`}
           >
             <Settings className="w-5 h-5" />
@@ -2151,7 +2202,7 @@ export default function App() {
                     <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                       <button
                         type="button"
-                        onClick={() => setDashFilterMode('today')}
+                        onClick={() => { setDashFilterMode('today'); }}
                         className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition ${
                           dashFilterMode === 'today' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-500 hover:text-slate-850'
                         }`}
@@ -2160,7 +2211,7 @@ export default function App() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDashFilterMode('range')}
+                        onClick={() => { setDashFilterMode('range'); }}
                         className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
                           dashFilterMode === 'range' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-500 hover:text-slate-850'
                         }`}
@@ -2176,7 +2227,7 @@ export default function App() {
                           <input 
                             type="date" 
                             value={dashStartDate}
-                            onChange={(e) => setDashStartDate(e.target.value)}
+                            onChange={(e) => { setDashStartDate(e.target.value); }}
                             className="bg-transparent border-none text-[11px] font-black text-slate-800 focus:outline-hidden cursor-pointer"
                           />
                         </div>
@@ -2186,7 +2237,7 @@ export default function App() {
                           <input 
                             type="date" 
                             value={dashEndDate}
-                            onChange={(e) => setDashEndDate(e.target.value)}
+                            onChange={(e) => { setDashEndDate(e.target.value); }}
                             className="bg-transparent border-none text-[11px] font-black text-slate-800 focus:outline-hidden cursor-pointer"
                           />
                         </div>
@@ -2223,7 +2274,7 @@ export default function App() {
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
-                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-100">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-605 border border-rose-100">
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
@@ -2252,7 +2303,7 @@ export default function App() {
                   <span className="text-[10px] font-bold text-slate-400 uppercase">Lọc nhanh:</span>
                   <select 
                     value={filterSite}
-                    onChange={(e) => setFilterSite(e.target.value)}
+                    onChange={(e) => { setFilterSite(e.target.value); }}
                     className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white cursor-pointer"
                   >
                     <option value="">Tất cả các Site</option>
@@ -2264,7 +2315,7 @@ export default function App() {
                   <input 
                     type="date"
                     value={filterDate}
-                    onChange={(e) => setFilterDate(e.target.value)}
+                    onChange={(e) => { setFilterDate(e.target.value); }}
                     className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white cursor-pointer"
                   />
 
@@ -2293,7 +2344,7 @@ export default function App() {
                         title={`Trống: ${col.label}`}
                       >
                         <span className={`w-2 h-2 rounded-full ${col.dot} mb-2`}></span>
-                        <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-550 mb-2 font-mono">
+                        <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-555 mb-2 font-mono">
                           0
                         </span>
                         <span className="text-[9px] font-extrabold text-slate-400 whitespace-nowrap [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
@@ -2324,7 +2375,8 @@ export default function App() {
                           return (
                             <div 
                               key={p.id}
-                              className={`p-3 rounded-xl border shadow-2xs hover:shadow-xs transition duration-150 space-y-2.5 relative group ${patientSite.cardBg}`}
+                              onClick={() => { initiateView(p); }}
+                              className={`p-3 rounded-xl border shadow-2xs hover:shadow-xs transition duration-150 space-y-2.5 relative group cursor-pointer ${patientSite.cardBg}`}
                             >
                               <div className="flex justify-between items-start gap-1">
                                 <span className="text-[8px] text-slate-555 font-mono font-black truncate">PID: {p.pid}</span>
@@ -2346,10 +2398,10 @@ export default function App() {
                                 {p.name}
                               </div>
 
-                              <div className="space-y-1">
+                              <div className="space-y-1" onClick={(e) => { e.stopPropagation(); }}>
                                 <select
                                   value={p.status || 'Waiting'}
-                                  onChange={(e) => handleUpdateStatus(p.id, e.target.value)}
+                                  onChange={(e) => { handleUpdateStatus(p.id, e.target.value); }}
                                   className="w-full px-1.5 py-1 text-[9px] font-black border border-slate-200 rounded-md bg-white text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-indigo-500 cursor-pointer"
                                 >
                                   {workflowStatuses.map(st => (
@@ -2387,7 +2439,7 @@ export default function App() {
                     <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống
                   </h4>
                   <button 
-                    onClick={() => setActiveTab('settings')}
+                    onClick={() => { setActiveTab('settings'); }}
                     className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
                   >
                     Đến trang cấu hình <ChevronRight className="w-4 h-4" />
@@ -2405,10 +2457,20 @@ export default function App() {
             
             {/* Sticky Header */}
             <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-md">
-              <div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <h2 className="text-base font-black text-slate-955 flex items-center gap-1.5">
-                  {currentId ? "Cập Nhật Tiến Độ" : "Tạo lượt Tiếp Đón VIP/VVIP"}
+                  {currentId ? (isReadOnly ? "Chi tiết hồ sơ bệnh nhân" : "Cập Nhật Tiến Độ") : "Tạo lượt Tiếp Đón VIP/VVIP"}
                 </h2>
+                {currentId && isReadOnly && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-100 border border-slate-200 text-slate-500 uppercase tracking-wider">
+                    <Lock className="w-3 h-3" /> Chế độ chỉ xem
+                  </span>
+                )}
+                {currentId && !isReadOnly && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-50 border border-amber-200 text-amber-700 uppercase tracking-wider">
+                    <Unlock className="w-3 h-3 text-amber-600" /> Chế độ chỉnh sửa
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 <button 
@@ -2418,12 +2480,24 @@ export default function App() {
                 >
                   Hủy bỏ
                 </button>
-                <button 
-                  type="submit"
-                  className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
-                >
-                  <Check className="w-4 h-4" /> {currentId ? "Cập nhật" : "Đăng ký"}
-                </button>
+                {currentId && isReadOnly ? (
+                  hasAccessToPatient(formData, 'patients:update') ? (
+                    <button
+                      type="button"
+                      onClick={() => { setIsReadOnly(false); }}
+                      className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95 animate-scaleIn"
+                    >
+                      <Edit3 className="w-4 h-4" /> Sửa hồ sơ
+                    </button>
+                  ) : null
+                ) : (
+                  <button 
+                    type="submit"
+                    className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
+                  >
+                    <Check className="w-4 h-4" /> {currentId ? "Cập nhật" : "Đăng ký"}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -2450,20 +2524,23 @@ export default function App() {
                           type="text" 
                           placeholder="Nhập/Quét mã bệnh nhân PID..."
                           value={formData.pid}
-                          onChange={(e) => handleInputChange('pid', e.target.value)}
-                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-mono font-black bg-white text-slate-800 animate-fadeIn"
+                          disabled={isReadOnly}
+                          onChange={(e) => { handleInputChange('pid', e.target.value); }}
+                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-mono font-black bg-white text-slate-800 animate-fadeIn disabled:bg-slate-50 disabled:text-slate-500"
                           required
                         />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setScannerError('');
-                            setIsScanning(true);
-                          }}
-                          className="px-3 bg-slate-100 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs border border-slate-200/80"
-                        >
-                          <Scan className="w-4 h-4 text-slate-500" /> Quét mã
-                        </button>
+                        {!isReadOnly && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setScannerError('');
+                              setIsScanning(true);
+                            }}
+                            className="px-3 bg-slate-100 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs"
+                          >
+                            <Scan className="w-4 h-4 text-slate-500" /> Quét mã
+                          </button>
+                        )}
                       </div>
                       {matchedPatientProfile && (
                         <div className="text-emerald-600 font-extrabold text-[11px] animate-fadeIn">
@@ -2479,8 +2556,9 @@ export default function App() {
                         type="text" 
                         placeholder="Nhập họ và tên Khách hàng"
                         value={formData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 animate-fadeIn"
+                        disabled={isReadOnly}
+                        onChange={(e) => { handleInputChange('name', e.target.value); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 animate-fadeIn disabled:bg-slate-50 disabled:text-slate-500"
                         required
                       />
                     </div>
@@ -2491,11 +2569,12 @@ export default function App() {
                       <div className="grid grid-cols-2 gap-3">
                         <button
                           type="button"
+                          disabled={isReadOnly}
                           onClick={() => {
                             handleInputChange('tier', 'VIP');
                             setFormRightTab('timeline');
                           }}
-                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 ${
+                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 disabled:opacity-80 ${
                             formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
@@ -2503,11 +2582,12 @@ export default function App() {
                         </button>
                         <button
                           type="button"
+                          disabled={isReadOnly}
                           onClick={() => {
                             handleInputChange('tier', 'VVIP');
                             setFormRightTab('billing');
                           }}
-                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 ${
+                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 disabled:opacity-80 ${
                             formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
@@ -2522,8 +2602,9 @@ export default function App() {
                       <input 
                         type="date" 
                         value={formData.date}
-                        onChange={(e) => handleInputChange('date', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white"
+                        disabled={isReadOnly}
+                        onChange={(e) => { handleInputChange('date', e.target.value); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white disabled:bg-slate-50 disabled:text-slate-500"
                       />
                     </div>
 
@@ -2536,11 +2617,11 @@ export default function App() {
                             <button
                               key={s.id}
                               type="button"
-                              disabled={!isAssigned}
-                              onClick={() => handleInputChange('site', s.label)}
-                              className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center ${
+                              disabled={!isAssigned || isReadOnly}
+                              onClick={() => { handleInputChange('site', s.label); }}
+                              className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center disabled:opacity-80 ${
                                 formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
-                              } ${!isAssigned ? 'opacity-30 cursor-not-allowed' : ''}`}
+                              }`}
                             >
                               {s.label} {!isAssigned && '🔒'}
                             </button>
@@ -2555,17 +2636,19 @@ export default function App() {
                       <div className="grid grid-cols-2 gap-3">
                         <button
                           type="button"
-                          onClick={() => handleInputChange('examinationArea', 'Khu Tiêu Chuẩn')}
-                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center ${
-                            formData.examinationArea === 'Khu Tiêu Chuẩn' ? 'bg-teal-50 border-teal-500 text-teal-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-50'
+                          disabled={isReadOnly}
+                          onClick={() => { handleInputChange('examinationArea', 'Khu Tiêu Chuẩn'); }}
+                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center disabled:opacity-80 ${
+                            formData.examinationArea === 'Khu Tiêu Chuẩn' ? 'bg-teal-50 border-teal-500 text-teal-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
                           }`}
                         >
                           Khu Tiêu Chuẩn
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleInputChange('examinationArea', 'Khu VIP')}
-                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center ${
+                          disabled={isReadOnly}
+                          onClick={() => { handleInputChange('examinationArea', 'Khu VIP'); }}
+                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center disabled:opacity-80 ${
                             formData.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
                           }`}
                         >
@@ -2579,8 +2662,9 @@ export default function App() {
                       <label className="text-xs font-bold text-slate-600 block">Trạng thái</label>
                       <select
                         value={formData.status}
-                        onChange={(e) => handleInputChange('status', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white cursor-pointer"
+                        disabled={isReadOnly}
+                        onChange={(e) => { handleInputChange('status', e.target.value); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white cursor-pointer disabled:bg-slate-50 disabled:text-slate-500"
                       >
                         {workflowStatuses.map(status => (
                           <option key={status.id} value={status.id}>{status.label}</option>
@@ -2604,8 +2688,9 @@ export default function App() {
                               <button
                                 key={staff.uid}
                                 type="button"
-                                onClick={() => handleToggleRecipient(staff.uid)}
-                                className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition ${
+                                disabled={isReadOnly}
+                                onClick={() => { handleToggleRecipient(staff.uid); }}
+                                className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition disabled:opacity-80 ${
                                   isAssigned 
                                     ? 'bg-white border-indigo-600 text-indigo-900 shadow-2xs font-extrabold' 
                                     : 'bg-white/40 border-slate-200 text-slate-600 hover:bg-white'
@@ -2631,28 +2716,31 @@ export default function App() {
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-600 block">HĐQT Phê Duyệt/Chỉ đạo</label>
                       <div className="space-y-2">
-                        <div className="flex flex-wrap gap-1.5">
-                          {["Sếp Dũng", "Sếp Hoa", "Sếp Nga", "Sếp Thông"].map((boss) => (
-                            <button
-                              key={boss}
-                              type="button"
-                              onClick={() => handleInputChange('boardApproval', boss)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
-                                formData.boardApproval === boss 
-                                  ? 'bg-slate-900 border-slate-900 text-white shadow-xs font-extrabold' 
-                                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                              }`}
-                            >
-                              {boss}
-                            </button>
-                          ))}
-                        </div>
+                        {!isReadOnly && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {["Sếp Dũng", "Sếp Hoa", "Sếp Nga", "Sếp Thông"].map((boss) => (
+                              <button
+                                key={boss}
+                                type="button"
+                                onClick={() => { handleInputChange('boardApproval', boss); }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                                  formData.boardApproval === boss 
+                                    ? 'bg-slate-900 border-slate-900 text-white shadow-xs font-extrabold' 
+                                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                                }`}
+                              >
+                                {boss}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                         <input 
                           type="text" 
                           placeholder="Thành viên hội đồng quản trị chỉ đạo..."
                           value={formData.boardApproval}
-                          onChange={(e) => handleInputChange('boardApproval', e.target.value)}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-semibold bg-white text-slate-800 animate-fadeIn"
+                          disabled={isReadOnly}
+                          onChange={(e) => { handleInputChange('boardApproval', e.target.value); }}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-semibold bg-white text-slate-800 animate-fadeIn disabled:bg-slate-50 disabled:text-slate-500"
                         />
                       </div>
                     </div>
@@ -2664,8 +2752,9 @@ export default function App() {
                         rows="5"
                         placeholder="Mô tả ghi chú nếu có..."
                         value={formData.notes}
-                        onChange={(e) => handleInputChange('notes', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-medium bg-white text-slate-800"
+                        disabled={isReadOnly}
+                        onChange={(e) => { handleInputChange('notes', e.target.value); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-medium bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
                       ></textarea>
                     </div>
 
@@ -2679,7 +2768,7 @@ export default function App() {
                     {/* Header đóng mở linh hoạt */}
                     <button
                       type="button"
-                      onClick={() => setIsHistoryPanelExpanded(!isHistoryPanelExpanded)}
+                      onClick={() => { setIsHistoryPanelExpanded(!isHistoryPanelExpanded); }}
                       className="w-full flex justify-between items-center text-xs font-black text-slate-800 hover:text-indigo-600 transition focus:outline-hidden"
                     >
                       <span className="flex items-center gap-2">
@@ -2701,7 +2790,7 @@ export default function App() {
                           {patientVisitHistory.length > 0 && (
                             <button
                               type="button"
-                              onClick={() => setLeftFormTab('visitHistory')}
+                              onClick={() => { setLeftFormTab('visitHistory'); }}
                               className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 flex items-center gap-1 ${
                                 leftFormTab === 'visitHistory' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-655'
                               }`}
@@ -2714,7 +2803,7 @@ export default function App() {
                           {formData.history && formData.history.length > 0 && (
                             <button
                               type="button"
-                              onClick={() => setLeftFormTab('timeline')}
+                              onClick={() => { setLeftFormTab('timeline'); }}
                               className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 ${
                                 leftFormTab === 'timeline' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-655'
                               }`}
@@ -2742,14 +2831,16 @@ export default function App() {
                                         </span>
                                       </div>
                                       
-                                      <button
-                                        type="button"
-                                        onClick={() => setCopyConfirmModal({ show: false, visitToCopy: visit })}
-                                        className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-lg text-[9px] font-black flex items-center gap-1 transition shadow-2xs"
-                                        title="Sao chép toàn bộ thông tin chỉ định này sang lượt mới"
-                                      >
-                                        <Copy className="w-3 h-3" /> Sao chép nhanh
-                                      </button>
+                                      {!isReadOnly && (
+                                        <button
+                                          type="button"
+                                          onClick={() => { setCopyConfirmModal({ show: true, visitToCopy: visit }); }}
+                                          className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-lg text-[9px] font-black flex items-center gap-1 transition shadow-2xs"
+                                          title="Sao chép toàn bộ thông tin chỉ định này sang lượt mới"
+                                        >
+                                          <Copy className="w-3 h-3" /> Sao chép nhanh
+                                        </button>
+                                      )}
                                     </div>
 
                                     <div className="space-y-1 text-[10px] text-slate-655 font-semibold">
@@ -2824,43 +2915,45 @@ export default function App() {
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
                     Chuyên khoa thăm khám
                   </h3>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Tìm kiếm chuyên khoa..."
-                      value={specSearch}
-                      onChange={(e) => {
-                        setSpecSearch(e.target.value);
-                        setIsSpecDropdownOpen(true);
-                      }}
-                      onFocus={() => setIsSpecDropdownOpen(true)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800"
-                    />
-                    {isSpecDropdownOpen && (
-                      <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-fadeIn">
-                        {filteredSpecialties.length === 0 ? (
-                          <div className="text-xs text-slate-400 font-bold text-center py-4">Không tìm thấy chuyên khoa phù hợp</div>
-                        ) : (
-                          filteredSpecialties.map((spec) => {
-                            const isSelected = formData.specialties.includes(spec);
-                            return (
-                              <button
-                                key={spec}
-                                type="button"
-                                onClick={() => toggleSpecialtySelection(spec)}
-                                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${
-                                  isSelected ? 'bg-indigo-50 text-indigo-750' : 'hover:bg-slate-50 text-slate-700'
-                                }`}
-                              >
-                                <span>{spec}</span>
-                                {isSelected && <Check className="w-4 h-4 text-indigo-650" />}
-                              </button>
-                            );
-                          })
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  {!isReadOnly && (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Tìm kiếm chuyên khoa..."
+                        value={specSearch}
+                        onChange={(e) => {
+                          setSpecSearch(e.target.value);
+                          setIsSpecDropdownOpen(true);
+                        }}
+                        onFocus={() => { setIsSpecDropdownOpen(true); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800"
+                      />
+                      {isSpecDropdownOpen && (
+                        <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-fadeIn">
+                          {filteredSpecialties.length === 0 ? (
+                            <div className="text-xs text-slate-400 font-bold text-center py-4">Không tìm thấy chuyên khoa phù hợp</div>
+                          ) : (
+                            filteredSpecialties.map((spec) => {
+                              const isSelected = formData.specialties.includes(spec);
+                              return (
+                                <button
+                                  key={spec}
+                                  type="button"
+                                  onClick={() => { toggleSpecialtySelection(spec); }}
+                                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${
+                                    isSelected ? 'bg-indigo-50 text-indigo-750' : 'hover:bg-slate-50 text-slate-700'
+                                  }`}
+                                >
+                                  <span>{spec}</span>
+                                  {isSelected && <Check className="w-4 h-4 text-indigo-650" />}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {formData.specialties.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
                       {formData.specialties.map((spec) => (
@@ -2869,13 +2962,15 @@ export default function App() {
                           className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold animate-scaleIn"
                         >
                           {spec}
-                          <button
-                            type="button"
-                            onClick={() => toggleSpecialtySelection(spec)}
-                            className="p-0.5 hover:bg-slate-850 rounded-full transition"
-                          >
-                            <X className="w-3 h-3 text-slate-400 hover:text-white" />
-                          </button>
+                          {!isReadOnly && (
+                            <button
+                              type="button"
+                              onClick={() => { toggleSpecialtySelection(spec); }}
+                              className="p-0.5 hover:bg-slate-850 rounded-full transition"
+                            >
+                              <X className="w-3 h-3 text-slate-400 hover:text-white" />
+                            </button>
+                          )}
                         </span>
                       ))}
                     </div>
@@ -2896,8 +2991,9 @@ export default function App() {
                           <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
                           <select
                             value={formData.treatmentType || 'Ngoại trú'}
-                            onChange={(e) => handleTreatmentTypeChange(e.target.value)}
-                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 cursor-pointer"
+                            disabled={isReadOnly}
+                            onChange={(e) => { handleTreatmentTypeChange(e.target.value); }}
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 cursor-pointer disabled:bg-slate-50 disabled:text-slate-500"
                           >
                             <option value="Ngoại trú">Ngoại trú</option>
                             <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
@@ -2912,9 +3008,10 @@ export default function App() {
                             <input 
                               type="text" 
                               value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
-                              onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
+                              disabled={isReadOnly}
+                              onChange={(e) => { handleCurrencyChange('phiKham', e.target.value); }}
                               placeholder="0"
-                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white disabled:bg-slate-50 disabled:text-slate-500"
                             />
                             <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
                           </div>
@@ -2926,9 +3023,10 @@ export default function App() {
                             <input 
                               type="text" 
                               value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
-                              onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
+                              disabled={isReadOnly}
+                              onChange={(e) => { handleCurrencyChange('clsCdha', e.target.value); }}
                               placeholder="0"
-                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white disabled:bg-slate-50 disabled:text-slate-500"
                             />
                             <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
                           </div>
@@ -2940,9 +3038,10 @@ export default function App() {
                             <input 
                               type="text" 
                               value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
-                              onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
+                              disabled={isReadOnly}
+                              onChange={(e) => { handleCurrencyChange('thuocVacxin', e.target.value); }}
                               placeholder="0"
-                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white disabled:bg-slate-50 disabled:text-slate-500"
                             />
                             <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
                           </div>
@@ -2982,9 +3081,10 @@ export default function App() {
                             <input 
                               type="text" 
                               value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
-                              onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
+                              disabled={isReadOnly}
+                              onChange={(e) => { handleCurrencyChange('insuranceAdvance', e.target.value); }}
                               placeholder="0"
-                              className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-850 border border-slate-750 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-505 font-mono"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-850 border border-slate-750 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-505 font-mono disabled:opacity-80"
                             />
                             <span className="absolute right-3 top-3 text-[10px] text-slate-550 font-bold font-mono">VNĐ</span>
                           </div>
@@ -3001,11 +3101,11 @@ export default function App() {
                                 min="0"
                                 max="100"
                                 value={formData.discountRate || ''}
-                                disabled={!hasAccessToPatient(formData, 'billing:discount')} 
-                                onChange={(e) => handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                                disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly} 
+                                onChange={(e) => { handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0))); }}
                                 placeholder="0"
                                 className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-505 ${
-                                  !hasAccessToPatient(formData, 'billing:discount')
+                                  !hasAccessToPatient(formData, 'billing:discount') || isReadOnly
                                     ? 'bg-slate-800 border-slate-700 text-slate-550 cursor-not-allowed'
                                     : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
                                 }`}
@@ -3023,8 +3123,9 @@ export default function App() {
                               <input 
                                 type="text"
                                 value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
-                                onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
-                                className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
+                                disabled={isReadOnly}
+                                onChange={(e) => { handleCurrencyChange('totalAmount', e.target.value); }}
+                                className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono disabled:opacity-80"
                               />
                               <span>đ</span>
                             </div>
@@ -3037,8 +3138,9 @@ export default function App() {
                               <input 
                                 type="text"
                                 value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
-                                onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
-                                className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
+                                disabled={isReadOnly}
+                                onChange={(e) => { handleCurrencyChange('approvedDiscountAmount', e.target.value); }}
+                                className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono disabled:opacity-80"
                               />
                               <span className="text-rose-400">đ</span>
                             </div>
@@ -3079,24 +3181,28 @@ export default function App() {
                       {formData.approvalImages?.map((img, index) => (
                         <div key={index} className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-50 animate-fadeIn">
                           <img src={img} alt="Công văn" className="w-full h-full object-cover" />
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              const updated = formData.approvalImages.filter((_, i) => i !== index);
-                              handleInputChange('approvalImages', updated);
-                            }}
-                            className="absolute right-1.5 top-1.5 p-1 bg-red-655 hover:bg-red-700 text-white rounded-full transition shadow-md"
-                            title="Gỡ bỏ"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
+                          {!isReadOnly && (
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const updated = formData.approvalImages.filter((_, i) => i !== index);
+                                handleInputChange('approvalImages', updated);
+                              }}
+                              className="absolute right-1.5 top-1.5 p-1 bg-red-655 hover:bg-red-700 text-white rounded-full transition shadow-md"
+                              title="Gỡ bỏ"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
                       ))}
-                      <label className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition duration-200 aspect-video">
-                        <Upload className="w-5 h-5 text-slate-400" />
-                        <span className="text-[10px] font-bold text-slate-700">Tải thêm ảnh</span>
-                        <input type="file" accept="image/*" multiple onChange={handleMultipleImagesUpload} className="hidden" />
-                      </label>
+                      {!isReadOnly && (
+                        <label className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition duration-200 aspect-video">
+                          <Upload className="w-5 h-5 text-slate-400" />
+                          <span className="text-[10px] font-bold text-slate-700">Tải thêm ảnh</span>
+                          <input type="file" accept="image/*" multiple onChange={handleMultipleImagesUpload} className="hidden" />
+                        </label>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -3131,7 +3237,7 @@ export default function App() {
             <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex justify-between items-center flex-wrap gap-3">
               <div className="flex bg-slate-100 p-1 rounded-xl">
                 <button 
-                  onClick={() => setCalendarMode('list')}
+                  onClick={() => { setCalendarMode('list'); }}
                   className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'list' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
                 >
                   Dạng Danh Sách
@@ -3153,7 +3259,7 @@ export default function App() {
               {calendarMode !== 'list' && (
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => handleCalendarNavigate('prev')}
+                    onClick={() => { handleCalendarNavigate('prev'); }}
                     className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
                   >
                     <ChevronLeft className="w-4 h-4" />
@@ -3166,7 +3272,7 @@ export default function App() {
                     )}
                   </span>
                   <button 
-                    onClick={() => handleCalendarNavigate('next')}
+                    onClick={() => { handleCalendarNavigate('next'); }}
                     className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -3184,7 +3290,7 @@ export default function App() {
                       type="text" 
                       placeholder="Tìm theo tên, mã PID, ghi chú..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => { setSearchTerm(e.target.value); }}
                       className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-xs font-bold bg-white"
                     />
                   </div>
@@ -3192,7 +3298,7 @@ export default function App() {
                   <div className="flex flex-wrap gap-2">
                     <select 
                       value={filterTier}
-                      onChange={(e) => setFilterTier(e.target.value)}
+                      onChange={(e) => { setFilterTier(e.target.value); }}
                       className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
                     >
                       <option value="">Tất cả hạng</option>
@@ -3202,7 +3308,7 @@ export default function App() {
 
                     <select 
                       value={filterSpecialty}
-                      onChange={(e) => setFilterSpecialty(e.target.value)}
+                      onChange={(e) => { setFilterSpecialty(e.target.value); }}
                       className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
                     >
                       <option value="">Tất cả chuyên khoa</option>
@@ -3213,7 +3319,7 @@ export default function App() {
 
                     <select 
                       value={filterSite}
-                      onChange={(e) => setFilterSite(e.target.value)}
+                      onChange={(e) => { setFilterSite(e.target.value); }}
                       className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
                     >
                       <option value="">Tất cả Site</option>
@@ -3225,7 +3331,7 @@ export default function App() {
                     <input 
                       type="date"
                       value={filterDate}
-                      onChange={(e) => setFilterDate(e.target.value)}
+                      onChange={(e) => { setFilterDate(e.target.value); }}
                       className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
                     />
 
@@ -3274,7 +3380,7 @@ export default function App() {
                           dayPatients.map(p => (
                             <div 
                               key={p.id}
-                              onClick={() => initiateEdit(p)}
+                              onClick={() => { initiateView(p); }}
                               className="p-2 bg-white border border-slate-200 rounded-xl shadow-3xs hover:border-indigo-400 transition cursor-pointer space-y-1 animate-scaleIn text-left"
                             >
                               <div className="font-extrabold text-[10px] text-slate-800 truncate">{p.name}</div>
@@ -3395,7 +3501,7 @@ export default function App() {
                               const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
                               const pSite = sites.find(s => s.label === p.site) || sites[0];
                               return (
-                                <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 animate-fadeIn">
+                                <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 animate-fadeIn cursor-pointer" onClick={() => { initiateView(p); }}>
                                   <td className="py-4 px-5">
                                     <div className="font-extrabold text-slate-955 text-sm">{p.name}</div>
                                     <div className="text-[10px] text-indigo-600 font-mono font-black mt-0.5">PID: {p.pid}</div>
@@ -3464,7 +3570,7 @@ export default function App() {
                                       <span className="text-slate-400">🔒 Khóa</span>
                                     )}
                                   </td>
-                                  <td className="py-4 px-5 text-right whitespace-nowrap">
+                                  <td className="py-4 px-5 text-right whitespace-nowrap" onClick={(e) => { e.stopPropagation(); }}>
                                     <div className="flex justify-end gap-1.5">
                                       {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
                                         <button 
@@ -3479,7 +3585,7 @@ export default function App() {
                                           <ImageIcon className="w-4 h-4" />
                                         </button>
                                       )}
-                                      <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
+                                      <button onClick={() => { initiateView(p); }} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
                                         <Edit3 className="w-4 h-4" />
                                       </button>
                                       
@@ -3534,7 +3640,7 @@ export default function App() {
                         const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
                         const pSite = sites.find(s => s.label === p.site) || sites[0];
                         return (
-                          <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
+                          <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn cursor-pointer" onClick={() => { initiateView(p); }}>
                             <div className="flex justify-between items-start">
                               <div>
                                 <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
@@ -3597,7 +3703,7 @@ export default function App() {
                               )
                             ) : null}
 
-                            <div className="flex justify-end gap-2 pt-1">
+                            <div className="flex justify-end gap-2 pt-1" onClick={(e) => { e.stopPropagation(); }}>
                               {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
                                 <button 
                                   type="button"
@@ -3611,7 +3717,7 @@ export default function App() {
                                   <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
                                 </button>
                               )}
-                              <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
+                              <button onClick={() => { initiateView(p); }} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
                                 <Edit3 className="w-3.5 h-3.5" /> Sửa
                               </button>
                               
@@ -3703,7 +3809,7 @@ export default function App() {
                             <td key={role} className="p-4 text-center">
                               <select
                                 value={currentLevel}
-                                onChange={(e) => handlePermissionChange(perm.key, role, e.target.value)}
+                                onChange={(e) => { handlePermissionChange(perm.key, role, e.target.value); }}
                                 className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-700 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
                               >
                                 <option value="none">❌ Không quyền</option>
@@ -3746,7 +3852,7 @@ export default function App() {
                       <input 
                         type="checkbox"
                         checked={systemSettings.totalFormulaFields?.[field.key] || false}
-                        onChange={() => handleFormulaCheckboxChange(field.key)}
+                        onChange={() => { handleFormulaCheckboxChange(field.key); }}
                         className="w-4 h-4 rounded-md text-indigo-600 focus:ring-indigo-500 border-slate-300"
                       />
                       <span className="text-xs font-bold text-slate-700">{field.label}</span>
@@ -3765,7 +3871,7 @@ export default function App() {
                   <div className="space-y-2.5">
                     <button
                       type="button"
-                      onClick={() => handleDiscountFormulaChange('only_total')}
+                      onClick={() => { handleDiscountFormulaChange('only_total'); }}
                       className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
                         systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
                       }`}
@@ -3783,7 +3889,7 @@ export default function App() {
 
                     <button
                       type="button"
-                      onClick={() => handleDiscountFormulaChange('total_minus_insurance_advance')}
+                      onClick={() => { handleDiscountFormulaChange('total_minus_insurance_advance'); }}
                       className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
                         systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
                       }`}
@@ -3816,7 +3922,7 @@ export default function App() {
                       type="text" 
                       placeholder="Thêm chuyên khoa mới..."
                       value={newSpecialtyInput}
-                      onChange={(e) => setNewSpecialtyInput(e.target.value)}
+                      onChange={(e) => { setNewSpecialtyInput(e.target.value); }}
                       className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
                     />
                     <button
@@ -3834,7 +3940,7 @@ export default function App() {
                         <span className="text-xs font-bold text-slate-700">{spec}</span>
                         <button
                           type="button"
-                          onClick={() => handleRemoveSpecialty(spec)}
+                          onClick={() => { handleRemoveSpecialty(spec); }}
                           className="p-1 text-slate-405 hover:text-red-500 rounded-lg transition"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -3859,7 +3965,7 @@ export default function App() {
                           type="text" 
                           placeholder="Họ tên nhân viên..." 
                           value={newStaff.name}
-                          onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+                          onChange={(e) => { setNewStaff({ ...newStaff, name: e.target.value }); }}
                           className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold animate-fadeIn"
                           required
                         />
@@ -3867,7 +3973,7 @@ export default function App() {
                           type="text" 
                           placeholder="Chức danh" 
                           value={newStaff.title}
-                          onChange={(e) => setNewStaff({ ...newStaff, title: e.target.value })}
+                          onChange={(e) => { setNewStaff({ ...newStaff, title: e.target.value }); }}
                           className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
                         />
                       </div>
@@ -3876,7 +3982,7 @@ export default function App() {
                           type="email" 
                           placeholder="Email đăng nhập..." 
                           value={newStaff.email}
-                          onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
+                          onChange={(e) => { setNewStaff({ ...newStaff, email: e.target.value }); }}
                           className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
                           required
                         />
@@ -3885,7 +3991,7 @@ export default function App() {
                           placeholder="Mã UID (Lấy từ Firebase Authentication)..." 
                           value={newStaff.uid}
                           disabled={editingStaffUid !== null}
-                          onChange={(e) => setNewStaff({ ...newStaff, uid: e.target.value })}
+                          onChange={(e) => { setNewStaff({ ...newStaff, uid: e.target.value }); }}
                           className={`px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-mono font-bold animate-fadeIn ${editingStaffUid !== null ? 'bg-slate-100 text-slate-450 cursor-not-allowed' : ''}`}
                           required
                         />
@@ -3894,7 +4000,7 @@ export default function App() {
                         <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Site Giao Việc (Phân Chi Nhánh)</label>
                         <select 
                           value={newStaff.assignedSite || 'Tất cả'}
-                          onChange={(e) => setNewStaff({ ...newStaff, assignedSite: e.target.value })}
+                          onChange={(e) => { setNewStaff({ ...newStaff, assignedSite: e.target.value }); }}
                           className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold cursor-pointer"
                         >
                           <option value="Tất cả">Tất cả (Toàn hệ thống)</option>
@@ -3907,7 +4013,7 @@ export default function App() {
                         <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Vai trò phân quyền</label>
                         <select 
                           value={newStaff.role}
-                          onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
+                          onChange={(e) => { setNewStaff({ ...newStaff, role: e.target.value }); }}
                           className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold cursor-pointer"
                         >
                           <option value="nhanvien">nhanvien</option>
@@ -3957,7 +4063,7 @@ export default function App() {
                           {userRole === 'admin' && (
                             <button
                               type="button"
-                              onClick={() => handleEditStaff(staff)}
+                              onClick={() => { handleEditStaff(staff); }}
                               className="p-1 border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 rounded transition"
                               title="Chỉnh sửa thông tin"
                             >
@@ -3967,7 +4073,7 @@ export default function App() {
                           {userRole === 'admin' && staff.uid !== "acc_admin" && (
                             <button
                               type="button"
-                              onClick={() => handleDeleteStaff(staff.uid)}
+                              onClick={() => { handleDeleteStaff(staff.uid); }}
                               className="p-1 border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 rounded transition"
                               title="Xóa"
                             >
@@ -3990,7 +4096,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.1.0</p>
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.1.2</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
