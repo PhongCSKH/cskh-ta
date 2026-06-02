@@ -1,36 +1,17 @@
-name: Deploy to Firebase
+  - name: Setup Node.js
+    uses: actions/setup-node@v4
+    with:
+      node-version: 20
 
-on:
-  push:
-    branches:
-      - main # Tự động chạy mỗi khi push code lên nhánh main
+  - name: Install Frontend Dependencies
+    run: npm install
 
-jobs:
-  build_and_deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
+  - name: Build Frontend
+    run: npm run build
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          # Đã lược bỏ hoàn toàn 'cache: npm' để khắc phục triệt để lỗi "Dependencies lock file is not found"
+  - name: Install Functions Dependencies
+    run: npm --prefix functions install
 
-      - name: Install Frontend Dependencies
-        run: npm install
-
-      - name: Build Frontend
-        run: npm run build
-
-      - name: Install Functions Dependencies
-        run: npm --prefix functions install
-
-      - name: Deploy to Firebase
-        uses: w9jds/firebase-action@master
-        with:
-          # Đã thêm tham số --force để bỏ qua lỗi cảnh báo thiết lập dọn dẹp container ảnh của Artifact Registry
-          args: deploy --only hosting,functions --force
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+  # STREAMING_CHUNK: Performing native deployment to bypass Docker issues
+  - name: Deploy to Firebase (Native CLI)
+    run: npx firebase-tools deploy --token "${{ secrets.FIREBASE_TOKEN }}" --only hosting,functions --force
