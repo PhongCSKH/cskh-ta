@@ -119,48 +119,48 @@ const mockStaffAccounts = [
 ];
 
 const defaultSpecialties = [
-  "CK Chấn thương chỉnh hình",
-  "CK Cơ xương khớp",
-  "CK Da Liễu",
-  "CK Dinh dưỡng",
-  "CK Đầu - Mặt - Cổ",
-  "CK Điều trị béo phì",
-  "CK HEP-D",
-  "CK Hô Hấp",
-  "CK Hỗ trợ sinh sản",
-  "CK Huyết học",
-  "CK Mắt",
-  "CK Miễn dịch lâm sàng",
-  "CK Nam học",
-  "CK Ngoại Lồng ngực - Mạch máu",
-  "CK Ngoại Nhi",
-  "CK Ngoại Thần Kinh",
-  "CK Ngoại Tim Mạch",
-  "CK Ngoại tổng quát",
-  "CK Ngoại Vú",
-  "CK Nhi",
-  "CK Nội soi",
-  "CK Nội Thận",
-  "CK Nội tiết",
-  "CK Nội tổng quát",
-  "CK Phục hồi Chức năng",
-  "CK Răng Hàm Mặt",
-  "CK Sản phụ khoa",
-  "CK Sơ sinh",
-  "CK Tai mũi họng",
-  "CK Tâm thần",
-  "CK Thần kinh",
-  "CK Thần kinh - Cột sống",
-  "CK Tiết Niệu",
-  "CK Tiêu hóa",
-  "CK Tim mạch",
-  "CK Tim mạch can thiệp",
-  "CK Ung Bướu",
-  "CK Viêm gan và gan nhiễm mỡ",
-  "CK Vista",
-  "CK Xạ trị",
-  "CK Y học bào thai",
-  "Khác",
+  "CK Chấn thương chỉnh hình", 
+  "CK Cơ xương khớp", 
+  "CK Da Liễu", 
+  "CK Dinh dưỡng", 
+  "CK Đầu - Mặt - Cổ", 
+  "CK Điều trị béo phì", 
+  "CK HEP-D", 
+  "CK Hô Hấp", 
+  "CK Hỗ trợ sinh sản", 
+  "CK Huyết học", 
+  "CK Mắt", 
+  "CK Miễn dịch lâm sàng", 
+  "CK Nam học", 
+  "CK Ngoại Lồng ngực - Mạch máu", 
+  "CK Ngoại Nhi", 
+  "CK Ngoại Thần Kinh", 
+  "CK Ngoại Tim Mạch", 
+  "CK Ngoại tổng quát", 
+  "CK Ngoại Vú", 
+  "CK Nhi", 
+  "CK Nội soi", 
+  "CK Nội Thận", 
+  "CK Nội tiết", 
+  "CK Nội tổng quát", 
+  "CK Phục hồi Chức năng", 
+  "CK Răng Hàm Mặt", 
+  "CK Sản phụ khoa", 
+  "CK Sơ sinh", 
+  "CK Tai mũi họng", 
+  "CK Tâm thần", 
+  "CK Thần kinh", 
+  "CK Thần kinh - Cột sống", 
+  "CK Tiết Niệu", 
+  "CK Tiêu hóa", 
+  "CK Tim mạch", 
+  "CK Tim mạch can thiệp", 
+  "CK Ung Bướu", 
+  "CK Viêm gan và gan nhiễm mỡ", 
+  "CK Vista", 
+  "CK Xạ trị", 
+  "CK Y học bào thai", 
+  "Khác", 
   "Khám sàng lọc trước tiêm"
 ];
 
@@ -229,7 +229,7 @@ export default function App() {
   const [filterDate, setFilterDate] = useState('');
   const [filterSite, setFilterSite] = useState('');
 
-  const [calendarMode, setCalendarMode] = useState('list');
+  const [calendarMode, setCalendarMode] = useState('list'); 
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
 
   const [currentId, setCurrentId] = useState(null);
@@ -286,12 +286,12 @@ export default function App() {
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3500);
+    setTimeout(() => setNotification(null), 3000);
   };
 
   const triggerPushAlert = (title, message, dataRecipients = [], type = 'info') => {
     const hasTargetedRecipients = Array.isArray(dataRecipients) && dataRecipients.length > 0;
-
+    
     if (currentUser) {
       const isManagerOrAdmin = ['admin', 'lanhdao', 'quanly'].includes(currentUser?.role);
       const isAssigned = hasTargetedRecipients && dataRecipients.includes(currentUser?.uid);
@@ -303,9 +303,9 @@ export default function App() {
 
     const id = Date.now() + Math.random().toString(36).substr(2, 9);
     const newAlert = { id, title, message, type };
-
+    
     setActivePushAlerts(prev => [newAlert, ...prev]);
-
+    
     setNotifications(prev => [
       {
         id,
@@ -350,8 +350,10 @@ export default function App() {
   const saveFcmTokenToDatabase = async (userId) => {
     if (!db || !messaging) return;
     try {
-      const token = await getToken(messaging, {
-        vapidKey: "BFjwAUlwacxhmYk0TiQdDTDYJKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQIAcSuG3iAAqtNnkPtJAW_s"
+      const token = await getToken(messaging, { 
+        vapidKey: "BFjwAUlwacxhmYk0TiQdDTDYJKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQIAcSuG3iAAqtNnkPtJAW_s" 
+      }).catch(err => {
+        return null;
       });
       if (token) {
         const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userId);
@@ -360,7 +362,7 @@ export default function App() {
         });
       }
     } catch (err) {
-      console.warn("Lỗi đồng bộ mã thông báo FCM thiết bị:", err);
+      console.warn(err);
     }
   };
 
@@ -490,7 +492,7 @@ export default function App() {
           setUserRole(userData?.role || 'nhanvien');
           localStorage.setItem('crm_current_user', JSON.stringify(userData));
           setAuthError('');
-          showNotification(`Đăng nhập thành công! Chào ${userData?.name}`);
+          showNotification(`Đăng nhập thành công! Chào ${userData?.name || 'Nhân viên'}`);
         })
         .catch((error) => {
           if (localAccount && localAccount.pass === loginPassword) {
@@ -498,7 +500,7 @@ export default function App() {
             setUserRole(localAccount?.role || 'nhanvien');
             localStorage.setItem('crm_current_user', JSON.stringify(localAccount));
             setAuthError('');
-            showNotification(`Đăng nhập (Chế độ Dự Phòng): Chào ${localAccount?.name}`);
+            showNotification(`Đăng nhập (Chế độ Dự Phòng): Chào ${localAccount?.name || 'Nhân viên'}`);
             return;
           }
           console.error(error);
@@ -510,7 +512,7 @@ export default function App() {
         setUserRole(localAccount?.role || 'nhanvien');
         localStorage.setItem('crm_current_user', JSON.stringify(localAccount));
         setAuthError('');
-        showNotification(`Đăng nhập ngoại tuyến thành công: Chào ${localAccount?.name}`);
+        showNotification(`Đăng nhập ngoại tuyến thành công: Chào ${localAccount?.name || 'Nhân viên'}`);
       } else {
         setAuthError("Sai thông tin tài khoản hoặc hệ thống offline.");
       }
@@ -555,7 +557,7 @@ export default function App() {
             return;
           }
         }
-
+        
         try {
           html5QrCode = new window.Html5Qrcode("reader");
           html5QrCodeRef.current = html5QrCode;
@@ -585,7 +587,7 @@ export default function App() {
       
       startCamera();
     }
-
+    
     return () => {
       if (html5QrCode && html5QrCode.isScanning) {
         html5QrCode.stop().then(() => {
@@ -598,14 +600,8 @@ export default function App() {
   useEffect(() => {
     checkIosPermissionStatus();
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/firebase-messaging-sw.js')
-        .then((registration) => {
-          console.log("Firebase SW registered context scope:", registration.scope);
-        })
-        .catch((err) => {
-          console.warn("Lỗi đăng ký Firebase Service Worker:", err);
-        });
+    if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(e => console.warn(e));
     }
 
     if (!document.getElementById('html5-qrcode-script')) {
@@ -657,10 +653,10 @@ export default function App() {
         const parsedUser = JSON.parse(savedUser);
         if (parsedUser) {
           setCurrentUser(parsedUser);
-          setUserRole(parsedUser?.role || 'nhanvien');
+          setUserRole(parsedUser.role || 'nhanvien');
         }
       } catch (err) {
-        console.error("Error parsing local user:", err);
+        console.error(err);
       }
     }
 
@@ -674,7 +670,7 @@ export default function App() {
             if (userDoc.exists()) {
               const userData = userDoc.data();
               setCurrentUser(userData);
-              setUserRole(userData?.role || 'nhanvien');
+              setUserRole(userData.role || 'nhanvien');
               saveFcmTokenToDatabase(firebaseUser.uid).catch(e => console.warn(e));
             } else {
               const fallbackUser = { 
@@ -741,7 +737,7 @@ export default function App() {
             if (change.type === "added") {
               triggerPushAlert(
                 `🆕 Tiếp nhận khách ${data?.tier || 'VIP'}`,
-                `Bệnh nhân: ${data?.name || 'Chưa rõ'} (PID: ${data?.pid || '---'}) đã được xếp trạng thái: ${statusLabel}.`,
+                `Bệnh nhân: ${data?.name || '---'} (PID: ${data?.pid || '---'}) đã được xếp trạng thái: ${statusLabel}.`,
                 data?.recipients || [],
                 'info'
               );
@@ -749,7 +745,7 @@ export default function App() {
             if (change.type === "modified") {
               triggerPushAlert(
                 `🔄 Cập nhật hành trình`,
-                `Hồ sơ khách hàng ${data?.name || 'Chưa rõ'} (PID: ${data?.pid || '---'}) vừa đổi trạng thái sang: ${statusLabel}.`,
+                `Hồ sơ khách hàng ${data?.name || '---'} (PID: ${data?.pid || '---'}) vừa đổi trạng thái sang: ${statusLabel}.`,
                 data?.recipients || [],
                 'success'
               );
@@ -796,7 +792,7 @@ export default function App() {
     }
     const formulas = systemSettings?.totalFormulaFields || {};
     let total = 0;
-
+    
     if (formulas.phiKham) total += Number(formData?.phiKham || 0);
     if (formulas.clsCdha) total += Number(formData?.clsCdha || 0);
     if (formulas.thuocVacxin) total += Number(formData?.thuocVacxin || 0);
@@ -881,7 +877,7 @@ export default function App() {
   const handleMultipleImagesUpload = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
-
+    
     const readers = files.map(file => {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -944,7 +940,7 @@ export default function App() {
   const filteredPatients = useMemo(() => {
     return visiblePatients.filter(p => {
       if (!p) return false;
-      const matchSearch =
+      const matchSearch = 
         p?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p?.pid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p?.boardApproval?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -959,6 +955,7 @@ export default function App() {
     });
   }, [visiblePatients, searchTerm, filterSpecialty, filterTier, filterDate, filterSite]);
 
+  // Bộ tính toán chỉ số (Metrics) chuyên biệt cho Dashboard dựa trên Hôm nay hoặc Khoảng ngày tùy chọn
   const dashMetrics = useMemo(() => {
     const filtered = visiblePatients.filter(p => {
       if (!p) return false;
@@ -1016,7 +1013,7 @@ export default function App() {
   const weekDays = useMemo(() => {
     const startOfWeek = new Date(currentCalendarDate);
     const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); 
     startOfWeek.setDate(diff);
 
     const days = [];
@@ -1031,7 +1028,7 @@ export default function App() {
   const monthDays = useMemo(() => {
     const year = currentCalendarDate.getFullYear();
     const month = currentCalendarDate.getMonth();
-
+    
     const firstDayIndex = new Date(year, month, 1).getDay();
     const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1; 
     const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
@@ -1052,7 +1049,7 @@ export default function App() {
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
     const tomorrowPatients = visiblePatients.filter(p => p && p?.date === tomorrowStr);
-
+    
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 8);
     const sevenDaysStr = sevenDaysFromNow.toISOString().split('T')[0];
@@ -1434,13 +1431,13 @@ export default function App() {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-tr from-slate-900 via-[#1e293b] to-indigo-950 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-100">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/10 rounded-full filter blur-3xl -translate-x-12 -translate-y-12"></div>
+      <div className="min-h-screen bg-gradient-to-tr from-slate-100 via-indigo-50/20 to-slate-200 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-800">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/5 rounded-full filter blur-3xl -translate-x-12 -translate-y-12"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full filter blur-3xl translate-x-12 translate-y-12"></div>
 
-        <div className="max-w-md w-full bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
+        <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-200 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
           <div className="text-center space-y-3">
-            <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2.5 shadow-sm border border-slate-800 mx-auto">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2.5 shadow-sm border border-slate-200 mx-auto">
               <img 
                 src="https://iili.io/F66acRs.png" 
                 alt="Hospital Logo" 
@@ -1448,15 +1445,15 @@ export default function App() {
               />
             </div>
             <div className="space-y-1">
-              <h1 className="text-2xl font-black tracking-tight text-white uppercase">
+              <h1 className="text-2xl font-black tracking-tight text-slate-900">
                 QL KH VIP-VVIP
               </h1>
-              <p className="text-xs text-amber-500 font-bold tracking-wide uppercase">Phòng Chăm Sóc Khách Hàng</p>
+              <p className="text-xs text-slate-400 font-semibold tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
             </div>
           </div>
 
           {authError && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-450 text-center font-bold flex items-center gap-1.5 justify-center">
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-605 text-center font-bold flex items-center gap-1.5 justify-center">
               <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-500" />
               {authError}
             </div>
@@ -1464,30 +1461,30 @@ export default function App() {
 
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Email </label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email </label>
               <input 
                 type="email" 
                 placeholder="nhập email tại đây"
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-white font-medium shadow-inner"
+                className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
               />
             </div>
             
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Mật khẩu</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu</label>
               <div className="relative">
                 <input 
                   type={showPassword ? "text" : "password"} 
                   placeholder="••••••••"
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full pl-4 pr-10 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-white font-medium shadow-inner"
+                  className="w-full pl-4 pr-10 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
                 />
                 <button
                   type="button"
-                  onClick={() => { setShowPassword(!showPassword); }}
-                  className="absolute right-3 top-3.5 text-slate-550 hover:text-slate-300 transition"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -1496,9 +1493,9 @@ export default function App() {
 
             <button 
               type="submit" 
-              className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-sm transition shadow-lg shadow-amber-950/10 flex items-center justify-center gap-2"
+              className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
             >
-              <Lock className="w-4 h-4" /> Xác thực tài khoản
+              <Lock className="w-4 h-4" /> Xác thực
             </button>
           </form>
 
@@ -1508,13 +1505,13 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased pb-20 md:pb-12 relative">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
       
       {lightboxImages.length > 0 && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 animate-fadeIn">
           <div className="absolute top-4 right-4 z-50 flex gap-2">
             <button 
-              onClick={() => { setLightboxImages([]); }}
+              onClick={() => setLightboxImages([])}
               className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition"
             >
               <X className="w-5 h-5" />
@@ -1529,7 +1526,7 @@ export default function App() {
                 }}
                 className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition z-10"
               >
-                <ChevronLeft className="w-6 h-6" />
+                <ChevronDown className="w-6 h-6 rotate-90" />
               </button>
             )}
             
@@ -1547,7 +1544,7 @@ export default function App() {
                 }}
                 className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition z-10"
               >
-                <ChevronRight className="w-6 h-6" />
+                <ChevronDown className="w-6 h-6 -rotate-90" />
               </button>
             )}
           </div>
@@ -1558,25 +1555,25 @@ export default function App() {
       )}
 
       {copyConfirmModal.show && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-800 space-y-4 animate-scaleIn">
-            <div className="flex items-center gap-2.5 text-amber-500">
-              <Copy className="w-5 h-5 flex-shrink-0 text-amber-500" />
-              <h3 className="text-base font-extrabold text-white">Xác nhận sao chép lịch sử</h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleIn">
+            <div className="flex items-center gap-2.5 text-indigo-600">
+              <Copy className="w-5 h-5 flex-shrink-0 text-indigo-500" />
+              <h3 className="text-base font-extrabold text-slate-955">Xác nhận sao chép lịch sử</h3>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed font-semibold">
+            <p className="text-xs text-slate-505 leading-relaxed font-semibold">
               Hệ thống sẽ tự động điền sẵn các thông tin cũ (gồm Chuyên khoa, Site khám, Khu vực khám, Chỉ đạo phê duyệt, Ghi chú và chứng từ đính kèm) của lượt thăm khám trước vào biểu mẫu hiện tại để bạn có thể xem lại hoặc chỉnh sửa trước khi đăng ký lượt tiếp đón mới. Bạn có chắc chắn muốn thực hiện không?
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button 
-                onClick={() => { setCopyConfirmModal({ show: false, visitToCopy: null }); }}
-                className="px-4 py-2 border border-slate-800 hover:bg-slate-800 text-xs font-bold text-slate-300 rounded-xl transition"
+                onClick={() => setCopyConfirmModal({ show: false, visitToCopy: null })}
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 rounded-xl transition"
               >
                 Hủy bỏ
               </button>
               <button 
-                onClick={() => { executeCopyVisit(copyConfirmModal.visitToCopy); }}
-                className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-xs font-bold text-slate-950 rounded-xl transition shadow-xs"
+                onClick={() => executeCopyVisit(copyConfirmModal.visitToCopy)}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white rounded-xl transition shadow-xs"
               >
                 Xác nhận sao chép
               </button>
@@ -1586,7 +1583,7 @@ export default function App() {
       )}
 
       {isScanning && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
           <style>{`
             #reader video {
               width: 100% !important;
@@ -1598,10 +1595,10 @@ export default function App() {
               border: none !important;
             }
           `}</style>
-          <div className="bg-slate-900 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 border border-slate-800 shadow-2xl animate-scaleIn">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 border border-slate-200 shadow-2xl animate-scaleIn">
             <div>
-              <h4 className="text-sm font-black text-amber-500 uppercase tracking-wide flex items-center justify-center gap-1.5">
-                <Scan className="w-4 h-4 text-amber-500 animate-pulse" /> Trình quét mã camera
+              <h4 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center justify-center gap-1.5">
+                <Scan className="w-4 h-4 text-indigo-600 animate-pulse" /> Trình quét mã camera
               </h4>
               <p className="text-[11px] text-slate-400 font-semibold mt-1">
                 {scannerError ? "Lỗi truy cập thiết bị" : "Đặt mã vạch hoặc mã QR của bệnh nhân vào giữa khung hình"}
@@ -1609,33 +1606,33 @@ export default function App() {
             </div>
 
             {scannerError ? (
-              <div className="p-4 bg-rose-950/30 border border-rose-900/50 rounded-2xl text-[11px] text-rose-300 font-semibold space-y-2">
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-[11px] text-rose-600 font-semibold space-y-2">
                 <p>{scannerError}</p>
                 <button 
                   type="button"
                   onClick={() => {
                     setScannerError('');
                     setIsScanning(false);
-                    setTimeout(() => { setIsScanning(true); }, 200);
+                    setTimeout(() => setIsScanning(true), 200);
                   }}
-                  className="px-3 py-1 bg-rose-650 text-white rounded-lg font-bold"
+                  className="px-3 py-1 bg-rose-600 text-white rounded-lg font-bold"
                 >
                   Thử lại
                 </button>
               </div>
             ) : (
-              <div className="relative w-full aspect-square rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center">
+              <div className="relative w-full aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 flex items-center justify-center">
                 <div id="reader" className="absolute inset-0 w-full h-full"></div>
                 
                 <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 z-10">
                   <div className="flex justify-between">
-                    <div className="w-4 h-4 border-t-4 border-l-4 border-amber-500 rounded-tl-xs"></div>
-                    <div className="w-4 h-4 border-t-4 border-r-4 border-amber-500 rounded-tr-xs"></div>
+                    <div className="w-4 h-4 border-t-4 border-l-4 border-indigo-500 rounded-tl-xs"></div>
+                    <div className="w-4 h-4 border-t-4 border-r-4 border-indigo-500 rounded-tr-xs"></div>
                   </div>
                   <div className="absolute inset-x-0 h-0.5 bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-bounce" style={{ top: '45%' }}></div>
                   <div className="flex justify-between">
-                    <div className="w-4 h-4 border-b-4 border-l-4 border-amber-500 rounded-bl-xs"></div>
-                    <div className="w-4 h-4 border-b-4 border-r-4 border-amber-500 rounded-tr-xs"></div>
+                    <div className="w-4 h-4 border-b-4 border-l-4 border-indigo-500 rounded-bl-xs"></div>
+                    <div className="w-4 h-4 border-b-4 border-r-4 border-indigo-500 rounded-tr-xs"></div>
                   </div>
                 </div>
               </div>
@@ -1644,7 +1641,7 @@ export default function App() {
             <button
               type="button"
               onClick={stopScanner}
-              className="px-4 py-1.5 border border-slate-850 text-slate-300 hover:bg-slate-800 text-[11px] font-bold rounded-xl transition w-full"
+              className="px-4 py-1.5 border border-slate-200 text-slate-550 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition w-full"
             >
               Hủy bỏ quét
             </button>
@@ -1652,29 +1649,29 @@ export default function App() {
         </div>
       )}
 
-      {/* Thông báo góc trên */}
+      {/* Header alert notification popups */}
       <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
         {activePushAlerts.map(alert => (
           <div 
             key={alert.id}
-            className={`pointer-events-auto p-4 rounded-2xl shadow-xl border flex gap-3 items-start transition-all transform duration-300 bg-slate-900/95 ${
-              alert.type === 'success' ? 'border-emerald-500/30' :
-              alert.type === 'error' ? 'border-rose-500/30' : 'border-amber-500/30'
+            className={`pointer-events-auto p-4 rounded-2xl shadow-xl border flex gap-3 items-start transition-all transform duration-300 bg-white ${
+              alert.type === 'success' ? 'border-emerald-100 bg-emerald-50/95' :
+              alert.type === 'error' ? 'border-rose-100 bg-rose-50/95' : 'border-indigo-100 bg-indigo-50/95'
             }`}
           >
-            <div className={`p-1.5 rounded-lg text-slate-950 ${
+            <div className={`p-1.5 rounded-lg text-white ${
               alert.type === 'success' ? 'bg-emerald-500' :
-              alert.type === 'error' ? 'bg-rose-500' : 'bg-amber-500'
+              alert.type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'
             }`}>
               <BellRing className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-extrabold text-white">{alert.title}</h4>
-              <p className="text-[11px] text-slate-300 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
+              <h4 className="text-xs font-extrabold text-slate-900">{alert.title}</h4>
+              <p className="text-[11px] text-slate-605 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
             </div>
             <button 
-              onClick={() => { setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id)); }}
-              className="text-slate-400 hover:text-slate-100 p-0.5 transition"
+              onClick={() => setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id))}
+              className="text-slate-400 hover:text-slate-600 p-0.5 transition"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -1683,23 +1680,23 @@ export default function App() {
       </div>
 
       {confirmModal.show && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-2.5 text-rose-500">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-2.5 text-rose-600">
               <ShieldAlert className="w-5 h-5 flex-shrink-0 text-rose-500" />
-              <h3 className="text-base font-extrabold text-white">{confirmModal.title || "Xác nhận tác vụ"}</h3>
+              <h3 className="text-base font-extrabold text-slate-955">{confirmModal.title || "Xác nhận tác vụ"}</h3>
             </div>
-            <p className="text-sm text-slate-300 leading-relaxed font-medium">{confirmModal.message}</p>
+            <p className="text-sm text-slate-505 leading-relaxed font-medium">{confirmModal.message}</p>
             <div className="flex justify-end gap-2 pt-2">
               <button 
-                onClick={() => { setConfirmModal({ show: false, action: null, message: '', title: '' }); }}
-                className="px-4 py-2 border border-slate-800 hover:bg-slate-800 text-xs font-bold text-slate-300 rounded-xl transition"
+                onClick={() => setConfirmModal({ show: false, action: null, message: '', title: '' })}
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 rounded-xl transition"
               >
                 Hủy bỏ
               </button>
               <button 
                 onClick={confirmModal.action}
-                className="px-5 py-2 bg-rose-600 hover:bg-rose-750 text-xs font-bold text-white rounded-xl transition shadow-xs"
+                className="px-5 py-2 bg-rose-500 hover:bg-rose-600 text-xs font-bold text-white rounded-xl transition shadow-xs"
               >
                 Xác nhận xóa
               </button>
@@ -1709,19 +1706,19 @@ export default function App() {
       )}
 
       {notification && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-xl transition-all transform duration-300 translate-y-0 bg-slate-900 border border-slate-800 text-white">
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-xl transition-all transform duration-300 translate-y-0 bg-slate-900 text-white">
           <Check className="w-4 h-4 flex-shrink-0 text-emerald-400" />
           <span className="font-bold text-xs">{notification.message}</span>
         </div>
       )}
 
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-850 shadow-md">
+      {/* Navigation Header */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-slate-800 bg-white p-1">
+              <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1">
                 <img 
                   src="https://iili.io/F66acRs.png" 
                   alt="Hospital Logo" 
@@ -1729,13 +1726,13 @@ export default function App() {
                 />
               </div>
               <div>
-                <h1 className="text-sm font-black tracking-tight text-white flex items-center gap-1.5 uppercase">
+                <h1 className="text-sm font-black tracking-tight text-slate-900 flex items-center gap-1.5">
                   QL KH VIP-VVIP
-                  <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-wider">
+                  <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-wider">
                     {userRole}
                   </span>
                 </h1>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
+                <p className="text-[10px] text-slate-400 font-semibold">Tiếp nhận khách hàng VIP-VVIP</p>
               </div>
             </div>
 
@@ -1743,7 +1740,7 @@ export default function App() {
               <button 
                 onClick={() => { resetForm(); setActiveTab('dashboard'); }}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  activeTab === 'dashboard' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                  activeTab === 'dashboard' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <LayoutDashboard className="w-4 h-4" /> Bảng điều khiển
@@ -1752,7 +1749,7 @@ export default function App() {
               <button 
                 onClick={() => { resetForm(); setActiveTab('register'); }}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  activeTab === 'register' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                  activeTab === 'register' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ
@@ -1761,7 +1758,7 @@ export default function App() {
               <button 
                 onClick={() => { resetForm(); setActiveTab('monitoring'); }}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  activeTab === 'monitoring' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                  activeTab === 'monitoring' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <ClipboardList className="w-4 h-4" /> Theo dõi hồ sơ
@@ -1769,9 +1766,9 @@ export default function App() {
 
               {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
                 <button 
-                  onClick={() => { setActiveTab('settings'); }}
+                  onClick={() => setActiveTab('settings')}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    activeTab === 'settings' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-300 hover:bg-slate-800'
+                    activeTab === 'settings' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
                   }`}
                 >
                   <Settings className="w-4 h-4" /> Cấu hình hệ thống
@@ -1780,57 +1777,78 @@ export default function App() {
             </nav>
 
             <div className="flex items-center gap-3 relative" ref={notificationCenterRef}>
-              <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-850 text-slate-300 text-xs font-semibold">
+              <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold">
                 <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
-                {isFirebaseConnected ? 'Live Connection' : 'Local Offline'}
+                {isFirebaseConnected ? 'Live' : 'Offline'}
               </div>
 
               <button 
-                onClick={() => { setShowNotificationCenter(!showNotificationCenter); }}
-                className={`p-2 rounded-xl transition-all relative border ${
-                  showNotificationCenter ? 'bg-slate-800 border-amber-500 text-amber-500' : 'border-slate-800 text-slate-300 hover:bg-slate-800'
+                onClick={() => setShowNotificationCenter(!showNotificationCenter)}
+                className={`p-2 rounded-xl transition-all relative border border-slate-200 ${
+                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-500 hover:bg-slate-100'
                 }`}
+                title="Trung tâm thông báo"
               >
-                <Bell className="w-5 h-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-bounce">
-                    {unreadCount}
-                  </span>
+                {unreadCount > 0 ? (
+                  <>
+                    <BellRing className="w-5 h-5 text-indigo-600 animate-pulse" />
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-600 text-white font-black text-[9px] rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                      {unreadCount}
+                    </span>
+                  </>
+                ) : (
+                  <Bell className="w-5 h-5" />
                 )}
               </button>
 
               {showNotificationCenter && (
-                <div className="absolute right-0 top-12 w-80 bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl p-4 space-y-3 z-50 animate-scaleIn text-slate-105">
-                  <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                    <h4 className="text-xs font-black uppercase tracking-wider text-white">Trung tâm thông báo</h4>
-                    <div className="flex gap-2">
-                      <button onClick={markAllAsRead} className="text-[10px] text-amber-500 font-bold hover:underline">Đọc hết</button>
-                      <span className="text-slate-600">|</span>
-                      <button onClick={clearAllNotifications} className="text-[10px] text-slate-400 font-bold hover:underline">Xóa hết</button>
+                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 p-4 space-y-3 animate-scaleIn">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                    <div className="flex items-center gap-1.5">
+                      <BellRing className="w-4 h-4 text-indigo-600" />
+                      <h4 className="text-xs font-black text-slate-900">Trung tâm thông báo</h4>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={markAllAsRead}
+                        className="text-[10px] text-indigo-600 hover:text-indigo-800 font-extrabold transition"
+                      >
+                        Đã đọc tất cả
+                      </button>
+                      <button 
+                        onClick={clearAllNotifications}
+                        className="text-[10px] text-rose-500 hover:text-rose-700 font-extrabold transition"
+                      >
+                        Xóa tất cả
+                      </button>
                     </div>
                   </div>
-                  <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+
+                  <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                     {notifications.length === 0 ? (
-                      <div className="py-8 text-center text-slate-500 space-y-1">
-                        <Bell className="w-8 h-8 mx-auto stroke-1 text-slate-600" />
-                        <p className="text-[11px] font-semibold">Không có thông báo mới nào</p>
+                      <div className="text-center py-8 text-slate-400 space-y-2">
+                        <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400" />
+                        <p className="text-[11px] font-bold">Hệ thống chưa ghi nhận thông báo mới.</p>
                       </div>
                     ) : (
                       notifications.map(n => (
-                        <div key={n.id} className={`p-2.5 rounded-xl border text-[11px] transition-all relative ${n.read ? 'border-slate-800 bg-slate-950/50' : 'border-indigo-900/30 bg-indigo-950/10'}`}>
-                          <div className="flex justify-between items-start gap-1">
-                            <span className="font-extrabold text-white leading-tight block">{n.title}</span>
-                            <span className="text-[9px] text-slate-450 font-bold flex-shrink-0">{n.timestamp}</span>
+                        <div 
+                          key={n.id}
+                          className={`p-3 rounded-2xl border text-xs transition flex gap-2 items-start ${
+                            n.read ? 'border-slate-200 bg-slate-50/50' : 'border-indigo-100 bg-indigo-50/30'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                            n.type === 'success' ? 'bg-emerald-500' :
+                            n.type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'
+                          }`} />
+                          <div className="flex-1 space-y-0.5">
+                            <strong className="text-slate-800 block leading-tight">{n.title}</strong>
+                            <p className="text-[11px] text-slate-555 leading-normal font-medium">{n.message}</p>
+                            <span className="text-[9px] text-slate-400 font-bold block flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3" /> {n.timestamp}
+                            </span>
                           </div>
-                          <p className="text-slate-300 mt-1 font-semibold leading-relaxed">{n.message}</p>
-                          {!n.read && (
-                            <button 
-                              onClick={() => { setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item)); }}
-                              className="absolute top-1.5 right-1.5 text-amber-500 hover:text-amber-400"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
                         </div>
                       ))
                     )}
@@ -1838,9 +1856,13 @@ export default function App() {
                 </div>
               )}
 
+              <div className="hidden sm:block text-right">
+                <div className="text-xs font-extrabold text-slate-955">{currentUser?.name || ''}</div>
+                <div className="text-[10px] text-indigo-600 font-extrabold uppercase tracking-wide">{currentUser?.title || userRole}</div>
+              </div>
               <button 
                 onClick={handleLogout}
-                className="p-2 border border-slate-800 hover:bg-rose-950/30 hover:border-rose-900/50 hover:text-rose-500 rounded-xl transition-all"
+                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl border border-slate-200 transition-all"
                 title="Đăng xuất"
               >
                 <LogOut className="w-5 h-5" />
@@ -1851,1275 +1873,1849 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Container */}
+      {/* Mobile navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
+        <button 
+          onClick={() => { resetForm(); setActiveTab('dashboard'); }}
+          className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
+        >
+          <LayoutDashboard className="w-5 h-5" />
+          <span>Bảng điều khiển</span>
+        </button>
+        <button 
+          onClick={() => { resetForm(); setActiveTab('register'); }}
+          className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'register' ? 'text-indigo-600' : 'text-slate-400'}`}
+        >
+          <Plus className="w-5 h-5" />
+          <span>Tiếp nhận VIP</span>
+        </button>
+        <button 
+          onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+          className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'monitoring' ? 'text-indigo-600' : 'text-slate-400'}`}
+        >
+          <ClipboardList className="w-5 h-5" />
+          <span>Theo dõi hồ sơ</span>
+        </button>
+        {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <Settings className="w-5 h-5" />
+            <span>Cấu hình</span>
+          </button>
+        )}
+      </div>
+
+      {/* Main container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
-        {/* Tab Dashboard */}
+        {/* ========================== GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN ========================== */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-6">
+          <div className="space-y-8 animate-fadeIn">
             
-            {/* Bộ lọc Thống kê Báo cáo */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <h3 className="text-sm font-black text-white uppercase tracking-wide flex items-center gap-1.5">
-                  <TrendingUp className="w-4 h-4 text-amber-500" /> Báo cáo thống kê tổng hợp
-                </h3>
-                <p className="text-[11px] text-slate-400 font-semibold">Tự động tổng hợp và cập nhật dữ liệu tiếp đón thời gian thực</p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex border border-slate-800 rounded-lg p-0.5 bg-slate-950">
-                  <button 
-                    onClick={() => setDashFilterMode('today')}
-                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${dashFilterMode === 'today' ? 'bg-slate-800 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-300'}`}
-                  >
-                    Hôm nay
-                  </button>
-                  <button 
-                    onClick={() => setDashFilterMode('range')}
-                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${dashFilterMode === 'range' ? 'bg-slate-800 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-300'}`}
-                  >
-                    Khoảng ngày
-                  </button>
-                </div>
-
-                {dashFilterMode === 'range' && (
-                  <div className="flex items-center gap-2 animate-scaleIn">
-                    <input 
-                      type="date" 
-                      value={dashStartDate}
-                      onChange={(e) => setDashStartDate(e.target.value)}
-                      className="px-2 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-semibold focus:outline-hidden text-slate-200"
-                    />
-                    <span className="text-slate-500 text-xs">đến</span>
-                    <input 
-                      type="date" 
-                      value={dashEndDate}
-                      onChange={(e) => setDashEndDate(e.target.value)}
-                      className="px-2 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-semibold focus:outline-hidden text-slate-200"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Dashboard Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fadeIn">
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-md relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/5 rounded-bl-full"></div>
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Tổng lượt đón tiếp</span>
-                    <span className="text-2xl font-black text-white block">{dashMetrics?.totalPatients}</span>
-                  </div>
-                  <div className="p-2 bg-indigo-550/10 rounded-xl text-indigo-400">
-                    <Users className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="mt-4 flex gap-1.5 flex-wrap">
-                  <span className="px-2 py-0.5 bg-sky-950/40 border border-sky-900/30 text-sky-400 text-[9px] font-extrabold rounded-md">
-                    {dashMetrics?.vipCount} VIP
-                  </span>
-                  <span className="px-2 py-0.5 bg-amber-950/40 border border-amber-900/30 text-amber-400 text-[9px] font-extrabold rounded-md">
-                    {dashMetrics?.vvipCount} VVIP
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-md relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-bl-full"></div>
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Doanh thu tạm tính</span>
-                    <span className="text-lg sm:text-2xl font-black text-emerald-450 block">{formatCurrency(dashMetrics?.totalRevenue)}</span>
-                  </div>
-                  <div className="p-2 bg-emerald-550/10 rounded-xl text-emerald-400">
-                    <DollarSign className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="mt-4 text-[9px] text-slate-450 font-bold flex items-center gap-1">
-                  <Info className="w-3.5 h-3.5" /> Chưa khấu trừ bảo hiểm & miễn giảm
-                </div>
-              </div>
-
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-md relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/5 rounded-bl-full"></div>
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Tổng tiền miễn giảm</span>
-                    <span className="text-lg sm:text-2xl font-black text-rose-500 block">{formatCurrency(dashMetrics?.totalDiscount)}</span>
-                  </div>
-                  <div className="p-2 bg-rose-550/10 rounded-xl text-rose-450">
-                    <CreditCard className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="mt-4 text-[9px] text-slate-450 font-bold flex items-center gap-1">
-                  <Info className="w-3.5 h-3.5" /> Chỉ tính trên hồ sơ thuộc nhóm VVIP
-                </div>
-              </div>
-
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-md relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/5 rounded-bl-full"></div>
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Thực thu dự kiến</span>
-                    <span className="text-lg sm:text-2xl font-black text-amber-550 block">{formatCurrency(dashMetrics?.totalCollected)}</span>
-                  </div>
-                  <div className="p-2 bg-amber-550/10 rounded-xl text-amber-500">
-                    <Activity className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="mt-4 text-[9px] text-slate-400 font-black flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5 text-emerald-455" /> Đã cập nhật dòng tiền sạch
-                </div>
-              </div>
-            </div>
-
-            {/* Phân tích kế hoạch ngày mai & Tuần tới */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Smart Daily Briefing - Virtual assistant scheduling widget */}
+            <div className="bg-gradient-to-tr from-[#312e81] via-[#4338ca] to-[#6d28d9] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-indigo-500/30">
+              <div className="absolute right-0 top-0 w-96 h-96 bg-white/5 rounded-full filter blur-3xl opacity-20 translate-x-24 -translate-y-24"></div>
               
-              {/* Lịch trình ngày mai */}
-              <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-md space-y-4">
-                <div className="flex justify-between items-center pb-3 border-b border-slate-800">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-black text-white uppercase tracking-wide flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-sky-400" /> Kế hoạch đón tiếp ngày mai ({briefingStats?.tomorrowDateFormatted})
-                    </h3>
-                    <p className="text-[11px] text-slate-400 font-semibold">Danh sách đã lên lịch, chuẩn bị trước hồ sơ chuyên khoa</p>
-                  </div>
-                  <span className="px-3 py-1 bg-sky-950/40 border border-sky-900/30 text-sky-400 text-xs font-black rounded-xl">
-                    {briefingStats?.tomorrowPatients.length} ca đón tiếp
+              <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="space-y-3 max-w-xl">
+                  <span className="px-3 py-1 bg-amber-400 text-[#1e1b4b] rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse">
+                    Trợ lý ảo đón tiếp VIP
                   </span>
+                  <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight">
+                    Kế Hoạch Chủ Động Cho Ngày Mai & Tuần Tới
+                  </h3>
+                  <div className="space-y-2 text-xs text-indigo-100 font-semibold pt-1">
+                    <p className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                      Ngày mai ({briefingStats.tomorrowDateFormatted}): 
+                      <strong className="text-white ml-1"> {briefingStats.tomorrowPatients.length} ca tiếp đón </strong>
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-sky-400"></span>
+                      Tuần tới: 
+                      <strong className="text-white ml-1"> {briefingStats.nextWeekCount} ca đón tiếp đã lên lịch </strong>
+                    </p>
+                  </div>
                 </div>
 
-                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                  {briefingStats?.tomorrowPatients.length === 0 ? (
-                    <div className="py-12 text-center text-slate-500 space-y-2">
-                      <Clock className="w-10 h-10 mx-auto stroke-1 text-slate-600" />
-                      <p className="text-xs font-semibold">Chưa ghi nhận ca đăng ký lịch trước cho ngày mai</p>
+                <div className="flex gap-2 w-full md:w-auto">
+                  <button 
+                    onClick={() => {
+                      const tomorrow = new Date();
+                      tomorrow.setDate(tomorrow.getDate() + 1);
+                      setFilterDate(tomorrow.toISOString().split('T')[0]);
+                      setCalendarMode('list');
+                      setActiveTab('monitoring');
+                    }}
+                    className="flex-1 md:flex-none px-5 py-3 bg-white text-indigo-900 hover:bg-indigo-50 text-xs font-black rounded-xl shadow-md transition transform active:scale-95 whitespace-nowrap"
+                  >
+                    Xem lịch ngày mai
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setFilterDate('');
+                      setCalendarMode('week');
+                      setActiveTab('monitoring');
+                    }}
+                    className="flex-1 md:flex-none px-5 py-3 bg-indigo-950/30 border border-indigo-400/30 hover:bg-indigo-950/50 text-white text-xs font-black rounded-xl transition transform active:scale-95 whitespace-nowrap"
+                  >
+                    Mở lịch tuần
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Compact Greeting Card */}
+            <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-5 text-white relative overflow-hidden shadow-md border border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20 pointer-events-none"></div>
+              <div className="relative z-10 space-y-1.5 max-w-2xl">
+                <span className="px-2.5 py-0.5 bg-amber-400 text-slate-955 rounded-md text-[9px] font-black uppercase tracking-wider inline-block">
+                  Phòng Chăm Sóc Khách Hàng
+                </span>
+                <h2 className="text-lg sm:text-xl font-black tracking-tight leading-snug">
+                  Chào, {currentUser?.name || 'Nhân viên'}!
+                </h2>
+                <p className="text-[11px] sm:text-xs text-slate-300 leading-normal font-semibold">
+                  Công cụ hỗ trợ quản lý và theo dõi việc tiếp đón và chi phí của nhóm Khách hàng VIP, VVIP, Ngoại giao của Ban giám đốc.
+                </p>
+              </div>
+              <div className="shrink-0 relative z-10">
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('register'); }}
+                  className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-955 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-1.5 transition transform active:scale-95 whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4 stroke-[3px]" /> Tiếp nhận hồ sơ mới <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Metrics Dashboard */}
+            {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
+              <div className="space-y-4">
+                
+                {/* Metrics Date Filtering Panel */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-3xs animate-fadeIn">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                    <h3 className="text-xs font-black text-slate-850 uppercase tracking-wider">
+                      {dashFilterMode === 'today' ? "Nhật ký chỉ số của ngày hôm nay" : "Chỉ số thống kê theo khoảng ngày"}
+                    </h3>
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setDashFilterMode('today')}
+                        className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition ${
+                          dashFilterMode === 'today' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-500 hover:text-slate-850'
+                        }`}
+                      >
+                        Hôm nay
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDashFilterMode('range')}
+                        className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                          dashFilterMode === 'range' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-500 hover:text-slate-850'
+                        }`}
+                      >
+                        Tùy chọn 📅
+                      </button>
                     </div>
-                  ) : (
-                    briefingStats?.tomorrowPatients.map(p => (
-                      <div key={p.id} className="p-4 border border-slate-800 hover:border-slate-700 bg-slate-950/30 rounded-2xl space-y-3 relative flex items-center justify-between gap-4">
-                        <div className="space-y-1 min-w-0">
-                          <span className="text-xs font-extrabold text-white hover:text-amber-500 cursor-pointer block truncate" onClick={() => initiateEdit(p)}>
-                            {p?.name}
-                          </span>
-                          <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-400 font-semibold">
-                            <span className="font-bold text-slate-200">PID: {p?.pid || '---'}</span>
-                            <span>•</span>
-                            <span className="text-amber-500 truncate max-w-[200px]">{p?.specialties?.join(', ') || 'Chưa chọn khoa'}</span>
-                          </div>
+
+                    {dashFilterMode === 'range' && (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-655 animate-fadeIn">
+                        <div className="flex items-center gap-1">
+                          <span>Từ:</span>
+                          <input 
+                            type="date" 
+                            value={dashStartDate}
+                            onChange={(e) => setDashStartDate(e.target.value)}
+                            className="bg-transparent border-none text-[11px] font-black text-slate-800 focus:outline-hidden cursor-pointer"
+                          />
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className={`px-2 py-0.5 text-[9px] font-black rounded-md ${p?.tier === 'VVIP' ? 'bg-amber-950 text-amber-400 border border-amber-900/30' : 'bg-sky-950 text-sky-400 border border-sky-900/30'}`}>
-                            {p?.tier}
-                          </span>
-                          <button 
-                            onClick={() => initiateEdit(p)}
-                            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 transition"
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </button>
+                        <span className="hidden sm:inline text-slate-300">➔</span>
+                        <div className="flex items-center gap-1">
+                          <span>Đến:</span>
+                          <input 
+                            type="date" 
+                            value={dashEndDate}
+                            onChange={(e) => setDashEndDate(e.target.value)}
+                            className="bg-transparent border-none text-[11px] font-black text-slate-800 focus:outline-hidden cursor-pointer"
+                          />
                         </div>
                       </div>
-                    ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
+                    <div className="p-3.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+                      <Users className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Khách hàng</span>
+                      <span className="text-xl font-black text-slate-900">{dashMetrics.totalPatients}</span>
+                      <span className="text-[11px] text-slate-500 block">
+                        VIP: {dashMetrics.vipCount} | VVIP: {dashMetrics.vvipCount}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
+                    <div className="p-3.5 rounded-xl bg-indigo-50 text-indigo-600 border-indigo-100">
+                      <Activity className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Tổng chi phí</span>
+                      <span className="text-xl font-black text-slate-900">{formatCurrency(dashMetrics.totalRevenue)}</span>
+                      <span className="text-[11px] text-slate-500 block">
+                        Tổng chi phí sử dụng (VVIP)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
+                      <CreditCard className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Tổng duyệt giảm</span>
+                      <span className="text-xl font-black text-rose-605">-{formatCurrency(dashMetrics.totalDiscount)}</span>
+                      <span className="text-[11px] text-rose-400 block font-bold">
+                        Ban lãnh đạo duyệt
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Kanban section */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn">
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
+                    Hành Trình Khách Hàng (Realtime Kanban)
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng.</p>
+                </div>
+                
+                <div className="flex flex-wrap gap-2 items-center w-full lg:w-auto">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Lọc nhanh:</span>
+                  <select 
+                    value={filterSite}
+                    onChange={(e) => setFilterSite(e.target.value)}
+                    className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white cursor-pointer"
+                  >
+                    <option value="">Tất cả các Site</option>
+                    {sites.map(s => (
+                      <option key={s.id} value={s.label}>{s.label}</option>
+                    ))}
+                  </select>
+                  
+                  <input 
+                    type="date"
+                    value={filterDate}
+                    onChange={(e) => setFilterDate(e.target.value)}
+                    className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white cursor-pointer"
+                  />
+
+                  {(filterSite || filterDate) && (
+                    <button 
+                      onClick={() => { setFilterSite(''); setFilterDate(''); }}
+                      className="px-2.5 py-1 text-rose-500 hover:bg-rose-50 rounded-xl text-[11px] font-black transition"
+                    >
+                      Xóa bộ lọc
+                    </button>
                   )}
                 </div>
               </div>
 
-              {/* Tóm tắt tuần tới & Phím nhanh */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-md space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-sm font-black text-white uppercase tracking-wide">Tóm tắt tuần kế tiếp</h3>
-                  
-                  <div className="p-4 rounded-2xl bg-indigo-950/20 border border-indigo-900/30 flex items-center justify-between">
-                    <div className="space-y-1">
-                      <span className="text-xs font-bold text-slate-400 block">Đăng ký mới (7 ngày tới)</span>
-                      <span className="text-3xl font-black text-white block">{briefingStats?.nextWeekCount}</span>
-                    </div>
-                    <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-950/40">
-                      <Calendar className="w-6 h-6" />
-                    </div>
-                  </div>
-                </div>
+              {/* Kanban columns */}
+              <div className="flex gap-4 overflow-x-auto pb-4 items-stretch select-none">
+                {workflowStatuses.map(col => {
+                  const colPatients = kanbanPatients.filter(p => (p.status || 'Waiting') === col.id);
+                  const isEmpty = colPatients.length === 0;
 
-                <div className="space-y-3 pt-2">
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500">Tác vụ nhanh hệ thống</h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    <button 
-                      onClick={() => { resetForm(); setActiveTab('register'); }}
-                      className="w-full p-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-955 text-xs font-black uppercase tracking-wide rounded-2xl transition flex items-center justify-between shadow-md"
+                  if (isEmpty) {
+                    return (
+                      <div 
+                        key={col.id} 
+                        className="w-12 bg-slate-100/40 rounded-2xl py-3 px-1 border border-slate-200 flex flex-col items-center justify-start transition-all duration-300 ease-in-out shrink-0 select-none cursor-pointer"
+                        title={`Trống: ${col.label}`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${col.dot} mb-2`}></span>
+                        <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-550 mb-2 font-mono">
+                          0
+                        </span>
+                        <span className="text-[9px] font-extrabold text-slate-400 whitespace-nowrap [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
+                          {col.label}
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div 
+                      key={col.id} 
+                      className="bg-slate-50/60 rounded-2xl p-3 border border-slate-200 flex flex-col min-w-[180px] flex-1 transition-all duration-300 ease-in-out shrink-0"
                     >
-                      <span>Tiếp đón hồ sơ mới</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => { resetForm(); setActiveTab('monitoring'); }}
-                      className="w-full p-3 border border-slate-800 hover:bg-slate-800 text-slate-250 text-xs font-bold rounded-2xl transition flex items-center justify-between"
-                    >
-                      <span>Mở bảng theo dõi Kanban</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
+                      <div className="flex justify-between items-center pb-3 border-b border-slate-200 mb-3">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className={`w-2 h-2 rounded-full ${col.dot}`}></span>
+                          <span className="text-[10px] font-black text-slate-700 truncate">{col.label}</span>
+                        </div>
+                        <span className="text-[10px] font-black bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-555 font-mono">
+                          {colPatients.length}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 space-y-3 overflow-y-auto max-h-[350px]">
+                        {colPatients.map(p => {
+                          const patientSite = sites.find(s => s.label === p.site) || sites[0];
+                          return (
+                            <div 
+                              key={p.id}
+                              className={`p-3 rounded-xl border shadow-2xs hover:shadow-xs transition duration-150 space-y-2.5 relative group ${patientSite.cardBg}`}
+                            >
+                              <div className="flex justify-between items-start gap-1">
+                                <span className="text-[8px] text-slate-500 font-mono font-black truncate">PID: {p.pid}</span>
+                                <div className="flex gap-1">
+                                  <span className={`px-1 py-0.5 rounded-xs text-[7px] font-bold uppercase ${
+                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-100 text-indigo-800' : 'bg-teal-100 text-teal-800'
+                                  }`}>
+                                    {p.examinationArea === 'Khu VIP' ? 'VIP' : 'TC'}
+                                  </span>
+                                  <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
+                                    p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                                  }`}>
+                                    {p.tier}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="font-extrabold text-[11px] text-slate-800 leading-tight truncate" title={p.name}>
+                                {p.name}
+                              </div>
+
+                              <div className="space-y-1">
+                                <select
+                                  value={p.status || 'Waiting'}
+                                  onChange={(e) => handleUpdateStatus(p.id, e.target.value)}
+                                  className="w-full px-1.5 py-1 text-[9px] font-black border border-slate-200 rounded-md bg-white text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                                >
+                                  {workflowStatuses.map(st => (
+                                    <option key={st.id} value={st.id}>{st.label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Quick navigations */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
+                <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo dõi hồ sơ
+                </h4>
+                <button 
+                  onClick={() => { setCalendarMode('list'); setActiveTab('monitoring'); }}
+                  className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
+                >
+                  Đến bảng giám sát <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
 
+              {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
+                  <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống
+                  </h4>
+                  <button 
+                    onClick={() => setActiveTab('settings')}
+                    className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
+                  >
+                    Đến trang cấu hình <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
 
           </div>
         )}
 
-        {/* Tab Register */}
+        {/* ========================== GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI ========================== */}
         {activeTab === 'register' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-scaleIn">
+          <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
-            {/* Cột Trái: Lịch sử & Đơn vị liên kết */}
-            <div className="lg:col-span-1 space-y-6">
-              
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-md space-y-4">
-                <div className="flex border-b border-slate-800 pb-0.5">
-                  <button 
-                    onClick={() => setLeftFormTab('visitHistory')}
-                    className={`flex-1 pb-2 text-xs font-black uppercase tracking-wider border-b-2 transition ${leftFormTab === 'visitHistory' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500'}`}
-                  >
-                    Lịch sử ({patientVisitHistory.length})
-                  </button>
-                  <button 
-                    onClick={() => setLeftFormTab('timeline')}
-                    className={`flex-1 pb-2 text-xs font-black uppercase tracking-wider border-b-2 transition ${leftFormTab === 'timeline' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500'}`}
-                  >
-                    Tiến trình
-                  </button>
-                </div>
-
-                {leftFormTab === 'visitHistory' && (
-                  <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                    {patientVisitHistory.length === 0 ? (
-                      <div className="py-12 text-center text-slate-500 space-y-2">
-                        <History className="w-10 h-10 mx-auto stroke-1 text-slate-600" />
-                        <p className="text-xs font-semibold leading-relaxed">
-                          {!formData?.pid ? "Nhập PID để tìm kiếm" : "Không tìm thấy dữ liệu lượt khám cũ"}
-                        </p>
-                      </div>
-                    ) : (
-                      patientVisitHistory.map(visit => (
-                        <div key={visit.id} className="p-3.5 border border-slate-800 rounded-2xl bg-slate-950/30 space-y-3">
-                          <div className="flex justify-between items-start gap-2">
-                            <div className="space-y-0.5">
-                              <span className="text-xs font-extrabold text-white block">Ngày khám: {formatDateVN(visit?.date)}</span>
-                              <span className="text-[10px] text-amber-500 font-bold block truncate max-w-[150px]">
-                                {visit?.specialties?.join(', ') || 'Chưa chọn khoa'}
-                              </span>
-                            </div>
-                            <button 
-                              type="button"
-                              onClick={() => { setCopyConfirmModal({ show: true, visitToCopy: visit }); }}
-                              className="p-1.5 hover:bg-slate-800 hover:text-amber-500 text-slate-400 rounded-lg transition"
-                              title="Sao chép dữ liệu lượt khám này"
-                            >
-                              <Copy className="w-4 h-4" />
-                            </button>
-                          </div>
-                          
-                          {(visit?.boardApproval || visit?.notes) && (
-                            <div className="p-2 bg-slate-950 rounded-xl border border-slate-850 text-[10px] space-y-1 text-slate-300 font-semibold leading-relaxed">
-                              {visit?.boardApproval && <p className="text-slate-100">📌 Phê duyệt: {visit?.boardApproval}</p>}
-                              {visit?.notes && <p className="text-slate-400">✍️ Ghi chú: {visit?.notes}</p>}
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-
-                {leftFormTab === 'timeline' && (
-                  <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
-                    {(!formData?.history || formData?.history.length === 0) ? (
-                      <div className="py-12 text-center text-slate-500 space-y-2">
-                        <Activity className="w-10 h-10 mx-auto stroke-1 text-slate-600" />
-                        <p className="text-xs font-semibold">Chưa ghi nhận tiến trình hoạt động của lượt khám này</p>
-                      </div>
-                    ) : (
-                      <div className="relative pl-4 border-l border-slate-800 space-y-4 py-2 ml-2 text-slate-200">
-                        {formData?.history.map((log, idx) => (
-                          <div key={idx} className="relative text-[11px] space-y-1">
-                            <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 bg-amber-500 border-2 border-slate-900 rounded-full"></div>
-                            <div className="flex justify-between items-start gap-1">
-                              <span className="font-bold text-white leading-tight block">{log.action}</span>
-                              <span className="text-[9px] text-slate-450 font-semibold flex-shrink-0">
-                                {new Date(log.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                            <p className="text-slate-400 font-bold">Thực hiện: {log.user}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+            {/* Sticky Header */}
+            <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-md">
+              <div>
+                <h2 className="text-base font-black text-slate-955 flex items-center gap-1.5">
+                  {currentId ? "Cập Nhật Tiến Độ" : "Tạo lượt Tiếp Đón VIP/VVIP"}
+                </h2>
               </div>
-
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button 
+                  type="button" 
+                  onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+                  className="px-4 py-2 border border-slate-200 text-slate-605 hover:bg-slate-50 text-xs font-bold rounded-xl transition"
+                >
+                  Hủy bỏ
+                </button>
+                <button 
+                  type="submit"
+                  className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
+                >
+                  <Check className="w-4 h-4" /> {currentId ? "Cập nhật" : "Đăng ký"}
+                </button>
+              </div>
             </div>
 
-            {/* Cột Phải: Biểu mẫu Tiếp đón */}
-            <div className="lg:col-span-2">
-              <form onSubmit={savePatient} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-md space-y-6">
+            {/* Form Body - Grid Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
+              
+              {/* Left Column (lg:col-span-2) */}
+              <div className="lg:col-span-2 space-y-6">
                 
-                <div className="flex justify-between items-center pb-4 border-b border-slate-850">
-                  <div className="space-y-1">
-                    <h2 className="text-base font-black text-white uppercase tracking-wide">
-                      {currentId ? "📝 Hiệu chỉnh hành trình tiếp đón" : "🆕 Đăng ký lượt tiếp đón mới"}
-                    </h2>
-                    <p className="text-xs text-slate-400 font-semibold">
-                      {currentId ? "Cập nhật thông tin chi tiết và chứng từ hành trình" : "Điền đầy đủ thông tin hoặc quét mã để ghi nhận khách hàng"}
-                    </p>
-                  </div>
-                  {currentId && (
-                    <button 
-                      type="button" 
-                      onClick={resetForm}
-                      className="px-3 py-1.5 border border-slate-800 hover:bg-slate-800 text-slate-300 text-xs font-black rounded-xl transition"
-                    >
-                      Hủy cập nhật
-                    </button>
-                  )}
-                </div>
+                {/* Block 1: Thông Tin Hành Chính */}
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Thông Tin Hành Chính
+                  </h3>
 
-                {/* Hạng & Mã PID */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 block">Hạng phân lớp khách hàng</label>
-                    <div className="flex border border-slate-800 rounded-xl p-1 bg-slate-950">
-                      <button 
-                        type="button"
-                        onClick={() => handleInputChange('tier', 'VIP')}
-                        className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all ${formData?.tier === 'VIP' ? 'bg-slate-850 text-sky-400 border border-sky-900/30' : 'text-slate-500'}`}
-                      >
-                        Khách VIP
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => handleInputChange('tier', 'VVIP')}
-                        className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all ${formData?.tier === 'VVIP' ? 'bg-slate-850 text-amber-500 border border-amber-900/30' : 'text-slate-500'}`}
-                      >
-                        Khách VVIP
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 block">Mã định danh bệnh nhân (PID)</label>
-                    <div className="relative">
-                      <input 
-                        type="text" 
-                        required
-                        placeholder="nhập mã PID hoặc bấm quét"
-                        value={formData?.pid}
-                        onChange={(e) => handleInputChange('pid', e.target.value)}
-                        className="w-full pl-4 pr-12 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs focus:outline-hidden text-white font-semibold"
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => setIsScanning(true)}
-                        className="absolute right-3 top-3 text-slate-400 hover:text-amber-500 transition"
-                        title="Quét mã vạch qua Camera"
-                      >
-                        <Scan className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Họ tên & Ngày khám */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 block">Họ & Tên khách hàng</label>
-                    <input 
-                      type="text" 
-                      required
-                      placeholder="Họ & Tên in hoa viết dấu"
-                      value={formData?.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs focus:outline-hidden text-white font-semibold"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 block">Ngày tiếp đón chuyên khoa</label>
-                    <input 
-                      type="date" 
-                      required
-                      value={formData?.date}
-                      onChange={(e) => handleInputChange('date', e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs focus:outline-hidden text-white font-semibold"
-                    />
-                  </div>
-                </div>
-
-                {/* Site khám & Khu vực khám */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 block">Site cơ sở tiếp đón</label>
-                    <select 
-                      value={formData?.site}
-                      onChange={(e) => handleInputChange('site', e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs focus:outline-hidden text-slate-300 font-semibold"
-                    >
-                      {sites.map(s => (
-                        <option key={s.id} value={s.label}>{s.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 block">Phân vùng đón tiếp</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ví dụ: Khu VIP tầng 1"
-                      value={formData?.examinationArea}
-                      onChange={(e) => handleInputChange('examinationArea', e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs focus:outline-hidden text-white font-semibold"
-                    />
-                  </div>
-                </div>
-
-                {/* Chọn chuyên khoa */}
-                <div className="space-y-1.5" ref={specRef}>
-                  <label className="text-xs font-bold text-slate-400 block">Các chuyên khoa tiếp nhận</label>
-                  <div className="relative">
-                    <div 
-                      onClick={() => setIsSpecDropdownOpen(true)}
-                      className="w-full px-4 py-3 bg-slate-950 border border-slate-800 focus-within:border-indigo-500 rounded-xl text-xs text-slate-200 cursor-pointer min-h-[42px] flex items-center justify-between"
-                    >
-                      <span className="font-semibold truncate">
-                        {formData?.specialties && formData?.specialties.length > 0 ? formData?.specialties.join(', ') : "Bấm để chọn chuyên khoa"}
-                      </span>
-                      <ChevronDown className="w-4 h-4 text-slate-500" />
-                    </div>
-
-                    {isSpecDropdownOpen && (
-                      <div className="absolute left-0 right-0 top-12 mt-1 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-4 space-y-3 z-30 animate-scaleIn text-slate-105">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    {/* Mã PID ở dòng đầu tiên */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-600 block">Mã PID *</label>
+                      <div className="flex gap-2">
                         <input 
                           type="text" 
-                          placeholder="Tìm nhanh chuyên khoa..."
-                          value={specSearch}
-                          onChange={(e) => setSpecSearch(e.target.value)}
-                          className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs focus:outline-hidden font-semibold"
+                          placeholder="Nhập/Quét mã bệnh nhân PID..."
+                          value={formData.pid}
+                          onChange={(e) => handleInputChange('pid', e.target.value)}
+                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-mono font-black bg-white text-slate-800 animate-fadeIn"
+                          required
                         />
-                        <div className="max-h-48 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                          {filteredSpecialties.map(spec => {
-                            const isSelected = formData?.specialties?.includes(spec);
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setScannerError('');
+                            setIsScanning(true);
+                          }}
+                          className="px-3 bg-slate-100 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs border border-slate-200/80"
+                        >
+                          <Scan className="w-4 h-4 text-slate-500" /> Quét mã
+                        </button>
+                      </div>
+                      {matchedPatientProfile && (
+                        <div className="text-emerald-600 font-extrabold text-[11px] animate-fadeIn">
+                          🟢 Đã tìm thấy KH: {matchedPatientProfile.name}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Họ & Tên khách hàng bên dưới Mã PID */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách hàng *</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nhập họ và tên Khách hàng"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 animate-fadeIn"
+                        required
+                      />
+                    </div>
+
+                    {/* Phân hạng */}
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-600 block">Phân Hạng Tiếp Đón</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleInputChange('tier', 'VIP');
+                            setFormRightTab('timeline');
+                          }}
+                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 ${
+                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span className="font-black text-sm">VIP</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleInputChange('tier', 'VVIP');
+                            setFormRightTab('billing');
+                          }}
+                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 ${
+                            formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span className="font-black text-sm text-amber-600">VVIP</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Ngày khám */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-600 block">Ngày khám / Điều trị</label>
+                      <input 
+                        type="date" 
+                        value={formData.date}
+                        onChange={(e) => handleInputChange('date', e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white"
+                      />
+                    </div>
+
+                    {/* Site thăm khám */}
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-605 block">Site thăm khám</label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        {sites.map(s => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => handleInputChange('site', s.label)}
+                            className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center ${
+                              formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
+                            }`}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Khu vực khám */}
+                    <div className="space-y-1.5 md:col-span-2 animate-fadeIn">
+                      <label className="text-xs font-bold text-slate-605 block">Khu Vực Khám</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange('examinationArea', 'Khu Tiêu Chuẩn')}
+                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center ${
+                            formData.examinationArea === 'Khu Tiêu Chuẩn' ? 'bg-teal-50 border-teal-500 text-teal-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          Khu Tiêu Chuẩn
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInputChange('examinationArea', 'Khu VIP')}
+                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center ${
+                            formData.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-50'
+                          }`}
+                        >
+                          Khu VIP
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Trạng thái */}
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-600 block">Trạng thái</label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) => handleInputChange('status', e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white cursor-pointer"
+                      >
+                        {workflowStatuses.map(status => (
+                          <option key={status.id} value={status.id}>{status.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Chỉ định nhân viên tiếp đón */}
+                    {['Scheduled', 'Preparing', 'ReceivedInfo'].includes(formData.status) && (
+                      <div className="space-y-2 md:col-span-2 p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl animate-fadeIn">
+                        <label className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+                          <UserCheck className="w-4.5 h-4.5 text-indigo-600" /> Nhân Sự Đón Tiếp Chỉ Định *
+                        </label>
+                        <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                          Chọn lễ tân hoặc quản lý site chịu trách nhiệm chuẩn bị và nắm thông tin hành trình đón khách này:
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                          {registrableStaffList.map(staff => {
+                            const isAssigned = (formData.recipients || []).includes(staff.uid);
                             return (
-                              <div 
-                                key={spec}
-                                onClick={() => toggleSpecialtySelection(spec)}
-                                className={`p-2 rounded-xl text-[11px] font-bold cursor-pointer transition flex items-center justify-between ${isSelected ? 'bg-indigo-950 text-indigo-400 border border-indigo-900/30' : 'hover:bg-slate-800 text-slate-400'}`}
+                              <button
+                                key={staff.uid}
+                                type="button"
+                                onClick={() => handleToggleRecipient(staff.uid)}
+                                className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition ${
+                                  isAssigned 
+                                    ? 'bg-white border-indigo-600 text-indigo-900 shadow-2xs font-extrabold' 
+                                    : 'bg-white/40 border-slate-200 text-slate-600 hover:bg-white'
+                                }`}
                               >
-                                <span>{spec}</span>
-                                {isSelected && <Check className="w-4 h-4 text-indigo-400" />}
-                              </div>
+                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                  isAssigned ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                                }`}>
+                                  {isAssigned && <Check className="w-2.5 h-2.5 text-white stroke-[3px]" />}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-xs truncate">{staff.name}</div>
+                                  <div className="text-[9px] text-slate-400 font-medium truncate uppercase">{staff.role} • {staff.title}</div>
+                                </div>
+                              </button>
                             );
                           })}
                         </div>
                       </div>
                     )}
+
+                    {/* HĐQT Phê duyệt */}
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-600 block">HĐQT Phê Duyệt/Chỉ đạo</label>
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-1.5">
+                          {["Sếp Dũng", "Sếp Hoa", "Sếp Nga", "Sếp Thông"].map((boss) => (
+                            <button
+                              key={boss}
+                              type="button"
+                              onClick={() => handleInputChange('boardApproval', boss)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                                formData.boardApproval === boss 
+                                  ? 'bg-slate-900 border-slate-900 text-white shadow-xs font-extrabold' 
+                                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                              }`}
+                            >
+                              {boss}
+                            </button>
+                          ))}
+                        </div>
+                        <input 
+                          type="text" 
+                          placeholder="Thành viên hội đồng quản trị chỉ đạo..."
+                          value={formData.boardApproval}
+                          onChange={(e) => handleInputChange('boardApproval', e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-semibold bg-white text-slate-800 animate-fadeIn"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Ghi chú */}
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-600 block">Ghi chú</label>
+                      <textarea 
+                        rows="5"
+                        placeholder="Mô tả ghi chú nếu có..."
+                        value={formData.notes}
+                        onChange={(e) => handleInputChange('notes', e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-medium bg-white text-slate-800"
+                      ></textarea>
+                    </div>
+
                   </div>
                 </div>
 
-                {/* Loại hình điều trị */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 block">Phương án điều trị chuyên ban</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {['Ngoại trú', 'Cấp cứu/Daycare', 'Nội trú/ICU', 'Ngoài viện'].map(type => {
-                      const isSelected = formData?.treatmentType === type;
-                      return (
-                        <button 
-                          key={type}
-                          type="button"
-                          onClick={() => handleTreatmentTypeChange(type)}
-                          className={`py-2.5 px-3 border rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${isSelected ? 'bg-amber-500 border-amber-500 text-slate-950 shadow-md' : 'border-slate-800 text-slate-400 hover:bg-slate-800'}`}
-                        >
-                          {isSelected && <Check className="w-3.5 h-3.5" />}
-                          {type}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                {/* Block 2: Bảng Nhật ký & Lịch sử tiếp đón thu gọn mặc định */}
+                {(patientVisitHistory.length > 0 || (formData.history && formData.history.length > 0)) && (
+                  <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
+                    
+                    {/* Header đóng mở linh hoạt */}
+                    <button
+                      type="button"
+                      onClick={() => setIsHistoryPanelExpanded(!isHistoryPanelExpanded)}
+                      className="w-full flex justify-between items-center text-xs font-black text-slate-800 hover:text-indigo-600 transition focus:outline-hidden"
+                    >
+                      <span className="flex items-center gap-2">
+                        <History className="w-4.5 h-4.5 text-indigo-600" />
+                        Lịch sử & Nhật ký hoạt động ({patientVisitHistory.length} lượt khám cũ)
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-slate-400 font-bold">
+                          {isHistoryPanelExpanded ? "Thu nhỏ" : "Bấm để xem"}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-250 ${isHistoryPanelExpanded ? 'rotate-180' : ''}`} />
+                      </div>
+                    </button>
 
-                {/* Phân quyền Nhân viên: Chọn người phân công hỗ trợ */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 block">Chỉ định nhân sự đón tiếp trực tiếp (FCM Push Target)</label>
-                  <div className="p-3 border border-slate-800 rounded-2xl max-h-36 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-950/20">
-                    {registrableStaffList.length === 0 ? (
-                      <div className="col-span-2 py-6 text-center text-slate-500 text-[11px] font-semibold">Chưa có danh sách nhân viên tiếp đón</div>
-                    ) : (
-                      registrableStaffList.map(staff => {
-                        const isAssigned = formData?.recipients?.includes(staff.uid);
-                        return (
-                          <div 
-                            key={staff.uid}
-                            onClick={() => handleToggleRecipient(staff.uid)}
-                            className={`p-2 border rounded-xl flex items-center justify-between cursor-pointer transition text-[11px] font-semibold ${isAssigned ? 'border-amber-500/30 bg-amber-500/10 text-amber-500 font-extrabold' : 'border-slate-800 hover:bg-slate-800 text-slate-400'}`}
-                          >
-                            <div className="space-y-0.5">
-                              <span>{staff.name}</span>
-                              <span className="text-[9px] text-slate-500 block font-normal">{staff.title}</span>
+                    {/* Nội dung chỉ hiển thị khi expand */}
+                    {isHistoryPanelExpanded && (
+                      <div className="space-y-4 pt-4 border-t border-slate-100 animate-fadeIn">
+                        <div className="flex border-b border-slate-100 pb-2 overflow-x-auto gap-2">
+                          {patientVisitHistory.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setLeftFormTab('visitHistory')}
+                              className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 flex items-center gap-1 ${
+                                leftFormTab === 'visitHistory' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-655'
+                              }`}
+                            >
+                              <History className="w-3.5 h-3.5" />
+                              Lịch sử tiếp đón ({patientVisitHistory.length})
+                            </button>
+                          )}
+
+                          {formData.history && formData.history.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setLeftFormTab('timeline')}
+                              className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 ${
+                                leftFormTab === 'timeline' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-655'
+                              }`}
+                            >
+                              Lịch sử Timeline
+                            </button>
+                          )}
+                        </div>
+
+                        {leftFormTab === 'visitHistory' && patientVisitHistory.length > 0 && (
+                          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1 animate-fadeIn">
+                            <div className="space-y-3">
+                              {patientVisitHistory.map((visit) => {
+                                const vSite = sites.find(s => s.label === visit.site) || sites[0];
+                                return (
+                                  <div key={visit.id} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-3 relative hover:shadow-xs transition duration-150">
+                                    
+                                    <div className="flex justify-between items-start gap-1">
+                                      <div>
+                                        <div className="font-bold text-[11px] text-slate-900">
+                                          {visit.date ? formatDateVN(visit.date) : "Lượt khám cũ"}
+                                        </div>
+                                        <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1 ${vSite.bg}`}>
+                                          {vSite.label}
+                                        </span>
+                                      </div>
+                                      
+                                      <button
+                                        type="button"
+                                        onClick={() => setCopyConfirmModal({ show: true, visitToCopy: visit })}
+                                        className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-lg text-[9px] font-black flex items-center gap-1 transition shadow-2xs"
+                                        title="Sao chép toàn bộ thông tin chỉ định này sang lượt mới"
+                                      >
+                                        <Copy className="w-3 h-3" /> Sao chép nhanh
+                                      </button>
+                                    </div>
+
+                                    <div className="space-y-1 text-[10px] text-slate-655 font-semibold">
+                                      <div>Khu vực: <strong className="text-slate-800">{visit.examinationArea || 'Khu VIP'}</strong></div>
+                                      {visit.boardApproval && (
+                                        <div>Chỉ đạo: <span className="bg-slate-900 text-white font-black px-1.5 py-0.5 rounded-xs text-[8px]">{visit.boardApproval}</span></div>
+                                      )}
+                                      {visit.notes && <div className="italic text-slate-400 truncate">"{visit.notes}"</div>}
+                                    </div>
+
+                                    {visit.specialties && visit.specialties.length > 0 && (
+                                      <div className="flex flex-wrap gap-1">
+                                        {visit.specialties.map((spec, i) => (
+                                          <span key={i} className="px-1.5 py-0.5 bg-slate-200/60 text-slate-700 rounded-xs text-[8px] font-bold">
+                                            {spec}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {((visit.approvalImages && visit.approvalImages.length > 0) || visit.approvalImage) && (
+                                      <div className="pt-1.5 border-t border-slate-200 flex gap-2 overflow-x-auto">
+                                        {(visit.approvalImages || [visit.approvalImage]).map((img, imgIdx) => (
+                                          <button
+                                            key={imgIdx}
+                                            type="button"
+                                            onClick={() => {
+                                              setLightboxImages(visit.approvalImages || [visit.approvalImage]);
+                                              setLightboxIndex(imgIdx);
+                                            }}
+                                            className="w-12 h-8 rounded-lg overflow-hidden border border-slate-200/80 shrink-0 hover:border-slate-400 transition"
+                                          >
+                                            <img src={img} alt="Văn bản cũ" className="w-full h-full object-cover" />
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                  </div>
+                                );
+                              })}
                             </div>
-                            <input 
-                              type="checkbox" 
-                              checked={isAssigned} 
-                              onChange={() => {}} 
-                              className="rounded-sm border-slate-800 text-amber-500 focus:ring-amber-500 pointer-events-none bg-slate-950" 
-                            />
                           </div>
-                        );
-                      })
+                        )}
+
+                        {leftFormTab === 'timeline' && (
+                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-h-[350px] overflow-y-auto pr-1 animate-fadeIn">
+                            <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
+                              {formData.history?.map((log, index) => (
+                                <div key={index} className="relative">
+                                  <span className="absolute -left-[22px] top-1 bg-indigo-60 text-indigo-655 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
+                                  <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
+                                  <div className="text-[9px] text-slate-400 mt-1 flex justify-between font-bold">
+                                    <span>Bởi: {log.user}</span>
+                                    <span className="font-mono">
+                                      {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'})}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
+                )}
+
+                {/* Block 3: Chuyên khoa thăm khám */}
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4" ref={specRef}>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Chuyên khoa thăm khám
+                  </h3>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Tìm kiếm chuyên khoa..."
+                      value={specSearch}
+                      onChange={(e) => {
+                        setSpecSearch(e.target.value);
+                        setIsSpecDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsSpecDropdownOpen(true)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800"
+                    />
+                    {isSpecDropdownOpen && (
+                      <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-fadeIn">
+                        {filteredSpecialties.length === 0 ? (
+                          <div className="text-xs text-slate-400 font-bold text-center py-4">Không tìm thấy chuyên khoa phù hợp</div>
+                        ) : (
+                          filteredSpecialties.map((spec) => {
+                            const isSelected = formData.specialties.includes(spec);
+                            return (
+                              <button
+                                key={spec}
+                                type="button"
+                                onClick={() => toggleSpecialtySelection(spec)}
+                                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${
+                                  isSelected ? 'bg-indigo-50 text-indigo-750' : 'hover:bg-slate-50 text-slate-700'
+                                }`}
+                              >
+                                <span>{spec}</span>
+                                {isSelected && <Check className="w-4 h-4 text-indigo-650" />}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {formData.specialties.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+                      {formData.specialties.map((spec) => (
+                        <span
+                          key={spec}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold animate-scaleIn"
+                        >
+                          {spec}
+                          <button
+                            type="button"
+                            onClick={() => toggleSpecialtySelection(spec)}
+                            className="p-0.5 hover:bg-slate-850 rounded-full transition"
+                          >
+                            <X className="w-3 h-3 text-slate-400 hover:text-white" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {/* Chỉ đạo và Ghi chú */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 block">Chỉ đạo phê duyệt của Hội Đồng Quản Trị</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ý kiến phê duyệt từ ban giám đốc"
-                      value={formData?.boardApproval}
-                      onChange={(e) => handleInputChange('boardApproval', e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs focus:outline-hidden text-white font-semibold"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 block">Ghi chú hành trình / Hồ sơ bệnh án</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ghi chú quan trọng đón tiếp"
-                      value={formData?.notes}
-                      onChange={(e) => handleInputChange('notes', e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs focus:outline-hidden text-white font-semibold"
-                    />
-                  </div>
-                </div>
-
-                {/* Vùng Chi phí (Ẩn nếu là khách VIP bình thường - Chỉ hiển thị cho VVIP) */}
-                {formData?.tier === 'VVIP' && (
-                  <div className="p-5 bg-slate-950/30 border border-slate-800 rounded-2xl space-y-4 animate-scaleIn text-slate-200">
-                    <h3 className="text-xs font-black text-amber-500 uppercase tracking-wider pb-2 border-b border-slate-800 flex items-center justify-between">
-                      <span>Dự toán & Miễn giảm chi phí điều trị (VVIP)</span>
-                      <span className="text-[9px] text-amber-400 bg-amber-500/10 border border-amber-500/20 font-extrabold px-1.5 py-0.5 rounded-sm">BẢN DỰ TOÁN CHI TIẾT</span>
+                {/* Block 4: Chi Phí Điều Trị & Lâm Sàng Thực Tế */}
+                {formData.tier === 'VVIP' && (
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
+                      <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                      Chi Phí Điều Trị & Lâm Sàng Thực Tế
                     </h3>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-slate-450">Khám lâm sàng (VND)</span>
-                        <input 
-                          type="text" 
-                          value={formData?.phiKham === 0 ? '' : formData?.phiKham.toLocaleString('vi-VN')}
-                          onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
-                          placeholder="0 ₫"
-                          className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-bold focus:outline-hidden text-white"
-                        />
-                      </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-slate-450">CLS & CĐHA (VND)</span>
-                        <input 
-                          type="text" 
-                          value={formData?.clsCdha === 0 ? '' : formData?.clsCdha.toLocaleString('vi-VN')}
-                          onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
-                          placeholder="0 ₫"
-                          className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-bold focus:outline-hidden text-white"
-                        />
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
+                        <select
+                          value={formData.treatmentType || 'Ngoại trú'}
+                          onChange={(e) => handleTreatmentTypeChange(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 cursor-pointer"
+                        >
+                          <option value="Ngoại trú">Ngoại trú</option>
+                          <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
+                          <option value="Nội trú/ICU">Nội trú/ICU</option>
+                          <option value="Ngoài viện">Ngoài viện</option>
+                        </select>
                       </div>
 
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-slate-450">Thuốc & Vắc-xin (VND)</span>
-                        <input 
-                          type="text" 
-                          value={formData?.thuocVacxin === 0 ? '' : formData?.thuocVacxin.toLocaleString('vi-VN')}
-                          onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
-                          placeholder="0 ₫"
-                          className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-bold focus:outline-hidden text-white"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-slate-450">Tạm ứng bảo hiểm (VND)</span>
-                        <input 
-                          type="text" 
-                          value={formData?.insuranceAdvance === 0 ? '' : formData?.insuranceAdvance.toLocaleString('vi-VN')}
-                          onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
-                          placeholder="0 ₫"
-                          className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-bold focus:outline-hidden text-white"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-slate-450">Tỷ lệ miễn giảm (%)</span>
-                        <input 
-                          type="number" 
-                          max="100"
-                          min="0"
-                          disabled={userRole === 'nhanvien'}
-                          value={formData?.discountRate || ''}
-                          onChange={(e) => handleInputChange('discountRate', e.target.value === '' ? 0 : Math.min(100, parseInt(e.target.value, 10)))}
-                          placeholder="Ví dụ: 20%"
-                          className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-bold focus:outline-hidden disabled:bg-slate-900 disabled:text-slate-500 text-white"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-slate-450">Tiền được giảm (Tự tính)</span>
-                        <div className="w-full px-3 py-2.5 bg-rose-950/20 border border-rose-900/30 text-rose-400 rounded-lg text-xs font-extrabold">
-                          {formatCurrency(formData?.approvedDiscountAmount)}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
+                            onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
+                          />
+                          <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="pt-2 flex justify-between items-center text-xs font-black uppercase text-slate-300">
-                      <span>Tổng giá trị hành trình trước miễn giảm:</span>
-                      <span className="text-sm font-black text-amber-500">{formatCurrency(formData?.totalAmount)}</span>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
+                            onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
+                          />
+                      <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-xs font-bold text-slate-655 block">Thuốc/vacxin</label>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
+                        onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
+                        placeholder="0"
+                        className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
+                      />
+                      <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+              </div>
+
+              {/* Right Column (space-y-6) */}
+              <div className="space-y-6">
+                
+                {/* Bảng chi phí/duyệt giảm */}
+                {formData.tier === 'VVIP' && (
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
+                    <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800">
+                      <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
+                      
+                      <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
+                        <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
+                        Bảng chi phí/duyệt giảm
+                      </h3>
+
+                      <div className="space-y-1.5 pt-2 relative z-10">
+                        <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
+                            onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-505 font-mono"
+                          />
+                          <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">VNĐ</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 relative z-10">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
+                            Duyệt giảm (%) {userRole === 'nhanvien' && '🔒'}
+                          </label>
+                          <div className="relative">
+                            <input 
+                              type="number" 
+                              min="0"
+                              max="100"
+                              value={formData.discountRate || ''}
+                              disabled={userRole === 'nhanvien'} 
+                              onChange={(e) => handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                              placeholder="0"
+                              className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-505 ${
+                                userRole === 'nhanvien'
+                                  ? 'bg-slate-800 border-slate-700 text-slate-550 cursor-not-allowed'
+                                  : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
+                              }`}
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-555 font-bold font-mono">%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
+                        
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Tổng phí tự động:</span>
+                          <div className="flex items-center gap-1">
+                            <input 
+                              type="text"
+                              value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
+                              onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
+                              className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
+                            />
+                            <span>đ</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-rose-400">-</span>
+                            <input 
+                              type="text"
+                              value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
+                              onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
+                              className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
+                            />
+                            <span className="text-rose-400">đ</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
+                          <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
+                        </div>
+
+                        <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
+                          <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
+                          <span className="text-lg font-black text-emerald-400 font-mono">
+                            {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
+                          </span>
+                        </div>
+
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* Văn bản đính kèm phê duyệt */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 block">
-                    Chứng từ, văn bản phê duyệt đính kèm ({formData?.approvalImages ? formData?.approvalImages.length : 0} ảnh)
-                  </label>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <label className="px-4 py-3 border border-dashed border-slate-800 hover:border-amber-500 hover:bg-slate-850 rounded-2xl cursor-pointer transition flex flex-col items-center justify-center gap-1">
-                      <Upload className="w-5 h-5 text-slate-550" />
-                      <span className="text-[10px] text-slate-400 font-bold">Tải lên các ảnh</span>
-                      <input 
-                        type="file" 
-                        multiple
-                        accept="image/*"
-                        onChange={handleMultipleImagesUpload}
-                        className="hidden" 
-                      />
-                    </label>
+                {/* Ảnh Phê Duyệt Gửi Kèm */}
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Ảnh Phê Duyệt Gửi Kèm
+                  </h3>
 
-                    {formData?.approvalImages && formData?.approvalImages.map((img, idx) => (
-                      <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-800 group">
-                        <img 
-                          src={img} 
-                          alt="Đính kèm" 
-                          className="w-full h-full object-cover cursor-pointer"
-                          onClick={() => { setLightboxImages(formData?.approvalImages); setLightboxIndex(idx); }} 
-                        />
-                        <button 
-                          type="button"
-                          onClick={() => {
-                            setFormData(prev => ({
-                              ...prev,
-                              approvalImages: prev?.approvalImages?.filter((_, i) => i !== idx)
-                            }));
-                          }}
-                          className="absolute top-1 right-1 p-0.5 bg-rose-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-2">
+                      {formData.approvalImages?.map((img, index) => (
+                        <div key={index} className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-50 animate-fadeIn">
+                          <img src={img} alt="Công văn" className="w-full h-full object-cover" />
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const updated = formData.approvalImages.filter((_, i) => i !== index);
+                              handleInputChange('approvalImages', updated);
+                            }}
+                            className="absolute right-1.5 top-1.5 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full transition shadow-md"
+                            title="Gỡ bỏ"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      <label className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition duration-200 aspect-video">
+                        <Upload className="w-5 h-5 text-slate-400" />
+                        <span className="text-[10px] font-bold text-slate-700">Tải thêm ảnh</span>
+                        <input type="file" accept="image/*" multiple onChange={handleMultipleImagesUpload} className="hidden" />
+                      </label>
+                    </div>
                   </div>
                 </div>
 
-                {/* Button Save */}
-                <button 
-                  type="submit" 
-                  className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-2 shadow-md"
-                >
-                  <Check className="w-4 h-4" /> {currentId ? "Lưu cập nhật thay đổi" : "Tiếp đón & đẩy thông báo (Push Notify)"}
-                </button>
+              </div> {/* Close right column */}
 
-              </form>
-            </div>
+            </div> {/* Close outer body grid layout */}
 
-          </div>
+          </form>
         )}
 
-        {/* Tab Monitoring */}
+        {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ & BỘ LỊCH ========================== */}
         {activeTab === 'monitoring' && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fadeIn">
             
-            {/* Bộ lọc Monitoring */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-md space-y-4">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-black text-white uppercase tracking-wide">
-                    Hành trình đón tiếp thời gian thực ({filteredPatients.length} ca)
-                  </h3>
-                  <p className="text-[11px] text-slate-400 font-semibold">Tự động kết nối và đồng bộ trạng thái luồng tiếp đón khách hàng</p>
-                </div>
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-lg font-black text-slate-955 flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo Dõi Hồ Sơ Khách Hàng VIP-VVIP
+                </h2>
+              </div>
+              <button 
+                onClick={() => { resetForm(); setActiveTab('register'); }}
+                className="px-4 py-2.5 bg-slate-900 text-white hover:bg-slate-850 rounded-xl text-xs font-black flex items-center gap-1.5 border border-slate-900 transition transform active:scale-95"
+              >
+                <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ mới
+              </button>
+            </div>
 
-                <div className="flex border border-slate-800 rounded-lg p-0.5 bg-slate-950">
-                  <button 
-                    onClick={() => setCalendarMode('list')}
-                    className={`px-3.5 py-1 text-[10px] font-bold rounded-md transition-all ${calendarMode === 'list' ? 'bg-slate-800 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-300'}`}
-                  >
-                    Kanban / Danh sách
-                  </button>
-                  <button 
-                    onClick={() => setCalendarMode('calendar')}
-                    className={`px-3.5 py-1 text-[10px] font-bold rounded-md transition-all ${calendarMode === 'calendar' ? 'bg-slate-800 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-300'}`}
-                  >
-                    Lịch tuần / Tháng
-                  </button>
-                </div>
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex justify-between items-center flex-wrap gap-3">
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                <button 
+                  onClick={() => setCalendarMode('list')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'list' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Dạng Danh Sách
+                </button>
+                <button 
+                  onClick={() => { setCalendarMode('week'); setCurrentCalendarDate(new Date()); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'week' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Lịch Tuần Động
+                </button>
+                <button 
+                  onClick={() => { setCalendarMode('month'); setCurrentCalendarDate(new Date()); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'month' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Lịch Tháng Chi Tiết
+                </button>
               </div>
 
-              {calendarMode === 'list' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 pt-2">
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-slate-550 absolute left-3 top-3" />
-                    <input 
-                      type="text" 
-                      placeholder="Tìm tên, PID, chỉ đạo..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-[11px] focus:outline-hidden font-semibold text-white"
-                    />
-                  </div>
-
-                  <select 
-                    value={filterSpecialty}
-                    onChange={(e) => setFilterSpecialty(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-[11px] focus:outline-hidden font-semibold text-slate-300"
+              {calendarMode !== 'list' && (
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => handleCalendarNavigate('prev')}
+                    className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
                   >
-                    <option value="">-- Tất cả Chuyên khoa --</option>
-                    {(systemSettings?.specialties || []).map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-
-                  <select 
-                    value={filterSite}
-                    onChange={(e) => setFilterSite(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-[11px] focus:outline-hidden font-semibold text-slate-300"
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs font-extrabold text-slate-800 min-w-[120px] text-center">
+                    {calendarMode === 'week' ? (
+                      `Tuần ${formatDateVN(weekDays[0].toISOString().split('T')[0])}`
+                    ) : (
+                      `Tháng ${currentCalendarDate.getMonth() + 1} / ${currentCalendarDate.getFullYear()}`
+                    )}
+                  </span>
+                  <button 
+                    onClick={() => handleCalendarNavigate('next')}
+                    className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
                   >
-                    <option value="">-- Tất cả Site cơ sở --</option>
-                    {sites.map(s => (
-                      <option key={s.id} value={s.label}>{s.label}</option>
-                    ))}
-                  </select>
-
-                  <select 
-                    value={filterTier}
-                    onChange={(e) => setFilterTier(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-[11px] focus:outline-hidden font-semibold text-slate-300"
-                  >
-                    <option value="">-- Hạng Khách hàng --</option>
-                    <option value="VIP">VIP</option>
-                    <option value="VVIP">VVIP</option>
-                  </select>
-
-                  <input 
-                    type="date" 
-                    value={filterDate}
-                    onChange={(e) => setFilterDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-[11px] focus:outline-hidden font-semibold text-slate-300"
-                  />
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
               )}
             </div>
 
-            {/* Chế độ Lịch tuần / tháng (Calendar View) */}
-            {calendarMode === 'calendar' ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-md space-y-4 animate-scaleIn text-slate-200">
-                
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={() => handleCalendarNavigate('prev')}
-                      className="p-1.5 border border-slate-800 hover:bg-slate-800 rounded-lg text-slate-300 transition"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <h3 className="text-sm font-black text-white uppercase tracking-wide">
-                      {currentCalendarDate.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })}
-                    </h3>
-                    <button 
-                      onClick={() => handleCalendarNavigate('next')}
-                      className="p-1.5 border border-slate-800 hover:bg-slate-800 rounded-lg text-slate-300 transition"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+            {calendarMode === 'list' && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="flex-1 relative">
+                    <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Tìm theo tên, mã PID, ghi chú..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-xs font-bold bg-white"
+                    />
                   </div>
-
-                  <div className="flex border border-slate-800 rounded-lg p-0.5 bg-slate-950">
-                    <button 
-                      onClick={() => setCalendarMode('calendar')}
-                      className="px-3.5 py-1 text-[10px] font-bold rounded-md bg-slate-800 text-white shadow-2xs"
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <select 
+                      value={filterTier}
+                      onChange={(e) => setFilterTier(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
                     >
-                      Tuần làm việc
-                    </button>
+                      <option value="">Tất cả hạng</option>
+                      <option value="VIP">VIP</option>
+                      <option value="VVIP">VVIP</option>
+                    </select>
+
+                    <select 
+                      value={filterSpecialty}
+                      onChange={(e) => setFilterSpecialty(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    >
+                      <option value="">Tất cả chuyên khoa</option>
+                      {systemSettings.specialties.map((spec, idx) => (
+                        <option key={idx} value={spec}>{spec}</option>
+                      ))}
+                    </select>
+
+                    <select 
+                      value={filterSite}
+                      onChange={(e) => setFilterSite(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    >
+                      <option value="">Tất cả Site</option>
+                      {sites.map(s => (
+                        <option key={s.id} value={s.label}>{s.label}</option>
+                      ))}
+                    </select>
+
+                    <input 
+                      type="date"
+                      value={filterDate}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    />
+
+                    {(searchTerm || filterTier || filterSpecialty || filterDate || filterSite) && (
+                      <button 
+                        onClick={() => { setSearchTerm(''); setFilterTier(''); setFilterSpecialty(''); setFilterDate(''); setFilterSite(''); }}
+                        className="px-3 py-2 text-rose-500 hover:bg-rose-50 rounded-xl text-xs font-bold transition"
+                      >
+                        Xóa lọc
+                      </button>
+                    )}
                   </div>
                 </div>
+              </div>
+            )}
 
-                <div className="grid grid-cols-7 gap-2 pt-2">
-                  {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
-                    <div key={d} className="text-center text-[10px] font-black uppercase text-slate-500 py-1">{d}</div>
-                  ))}
-                  
-                  {weekDays.map((day, idx) => {
-                    const dayStr = day.toISOString().split('T')[0];
-                    const patientsOnDay = visiblePatients.filter(p => p && p?.date === dayStr);
-                    const isToday = dayStr === todayStr;
+            {calendarMode === 'week' && (
+              <div className="grid grid-cols-1 md:grid-cols-7 gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm overflow-x-auto min-w-full">
+                {weekDays.map((day, idx) => {
+                  const dateStr = day.toISOString().split('T')[0];
+                  const dayPatients = visiblePatients.filter(p => p.date === dateStr);
+                  const isCurrentToday = dateStr === todayStr;
 
-                    return (
-                      <div key={idx} className={`p-3 border rounded-2xl min-h-[120px] flex flex-col justify-between ${isToday ? 'border-amber-500/30 bg-amber-500/5' : 'border-slate-800 bg-slate-955/20'}`}>
-                        <div className="flex justify-between items-center">
-                          <span className={`text-[10px] font-bold ${isToday ? 'text-amber-500 font-extrabold' : 'text-slate-450'}`}>{day.getDate()}</span>
-                          {patientsOnDay.length > 0 && (
-                            <span className="w-4 h-4 bg-amber-500 text-slate-950 text-[9px] font-black rounded-full flex items-center justify-center">
-                              {patientsOnDay.length}
-                            </span>
-                          )}
-                        </div>
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`p-3 rounded-2xl border min-h-[220px] flex flex-col space-y-3 ${
+                        isCurrentToday ? 'bg-indigo-50/40 border-indigo-200' : 'bg-slate-50/40 border-slate-150'
+                      }`}
+                    >
+                      <div className="text-center pb-2 border-b border-slate-250">
+                        <span className="text-[10px] uppercase font-black text-slate-400 block">
+                          {day.toLocaleDateString('vi-VN', { weekday: 'short' })}
+                        </span>
+                        <span className={`text-sm font-extrabold font-mono inline-block px-2 py-0.5 rounded-full ${
+                          isCurrentToday ? 'bg-indigo-600 text-white' : 'text-slate-800'
+                        }`}>
+                          {day.getDate()}
+                        </span>
+                      </div>
 
-                        <div className="space-y-1 mt-2 flex-1 overflow-y-auto max-h-[100px] pr-0.5">
-                          {patientsOnDay.map(p => (
+                      <div className="flex-1 space-y-2 overflow-y-auto max-h-[300px]">
+                        {dayPatients.length === 0 ? (
+                          <div className="text-center text-[10px] text-slate-300 font-bold pt-8">Không có ca</div>
+                        ) : (
+                          dayPatients.map(p => (
                             <div 
                               key={p.id}
                               onClick={() => initiateEdit(p)}
-                              className={`p-1.5 rounded-lg border text-[9px] font-black cursor-pointer truncate ${p?.tier === 'VVIP' ? 'bg-amber-950 text-amber-400 border-amber-900/30' : 'bg-sky-950 text-sky-400 border-sky-900/30'}`}
-                              title={p?.name}
+                              className="p-2 bg-white border border-slate-200 rounded-xl shadow-3xs hover:border-indigo-400 transition cursor-pointer space-y-1 animate-scaleIn text-left"
                             >
-                              {p?.name}
+                              <div className="font-extrabold text-[10px] text-slate-800 truncate">{p.name}</div>
+                              <div className="flex items-center justify-between gap-1 text-[8px] text-slate-450">
+                                <span className="font-mono">PID: {p.pid}</span>
+                                <span className={`px-1 rounded-sm uppercase font-black text-[7px] ${
+                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                                }`}>
+                                  {p.tier}
+                                </span>
+                              </div>
                             </div>
-                          ))}
-                        </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {calendarMode === 'month' && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-black uppercase text-slate-400 pb-2 border-b border-slate-100">
+                  <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span>
+                </div>
+                
+                <div className="grid grid-cols-7 gap-2">
+                  {monthDays.map((day, idx) => {
+                    if (!day) return <div key={idx} className="aspect-square bg-slate-50/20 rounded-xl border border-transparent"></div>;
+
+                    const dateStr = day.toISOString().split('T')[0];
+                    const dayPatients = visiblePatients.filter(p => p.date === dateStr);
+                    const isCurrentToday = dateStr === todayStr;
+
+                    return (
+                      <div 
+                        key={idx}
+                        onClick={() => {
+                          if (dayPatients.length > 0) {
+                            setFilterDate(dateStr);
+                            setCalendarMode('list');
+                          }
+                        }}
+                        className={`aspect-square p-2 rounded-2xl border flex flex-col justify-between transition-all relative ${
+                          dayPatients.length > 0 ? 'cursor-pointer hover:border-indigo-400 shadow-3xs' : ''
+                        } ${
+                          isCurrentToday ? 'bg-indigo-50/50 border-indigo-200' : 'bg-white border-slate-150'
+                        }`}
+                      >
+                        <span className={`text-[11px] font-black font-mono leading-none ${
+                          isCurrentToday ? 'text-indigo-600 font-black' : 'text-slate-550'
+                        }`}>
+                          {day.getDate()}
+                        </span>
+
+                        {dayPatients.length > 0 && (
+                          <div className="flex gap-1 flex-wrap justify-end">
+                            {dayPatients.slice(0, 3).map((p, pIdx) => (
+                              <span 
+                                key={pIdx} 
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  p.tier === 'VVIP' ? 'bg-amber-400' : 'bg-indigo-500'
+                                }`} 
+                                title={`${p.name} (${p.tier})`}
+                              />
+                            ))}
+                            {dayPatients.length > 3 && (
+                              <span className="text-[7px] text-slate-400 font-bold">+{dayPatients.length - 3}</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
-
-              </div>
-            ) : (
-              /* Chế độ Bảng Kanban đón tiếp (Kanban View) */
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fadeIn">
-                
-                {/* Cột 1: Đăng ký / Chờ đón tiếp */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-md space-y-4">
-                  <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-300">1. Chờ đón tiếp</span>
-                    <span className="px-2 py-0.5 bg-slate-950 text-slate-400 border border-slate-800 text-[9px] font-bold rounded-md">
-                      {kanbanPatients.filter(p => ['Scheduled', 'Preparing', 'ReceivedInfo', 'Waiting'].includes(p.status)).length} ca
-                    </span>
-                  </div>
-
-                  <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                    {kanbanPatients.filter(p => ['Scheduled', 'Preparing', 'ReceivedInfo', 'Waiting'].includes(p.status)).map(p => (
-                      <div key={p.id} className="p-4 border border-slate-800 hover:border-slate-750 bg-slate-955/30 rounded-2xl space-y-3 relative group">
-                        
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="space-y-0.5">
-                            <span className="text-xs font-extrabold text-white group-hover:text-amber-500 cursor-pointer block leading-snug" onClick={() => initiateEdit(p)}>
-                              {p?.name}
-                            </span>
-                            <span className="text-[10px] text-slate-450 font-bold block">PID: {p?.pid} • Hạng: {p?.tier}</span>
-                          </div>
-                          <span className={`px-2 py-0.5 text-[8px] font-black rounded-sm ${p?.tier === 'VVIP' ? 'bg-amber-955 text-amber-400 border border-amber-900/30' : 'bg-sky-955 text-sky-400 border border-sky-900/30'}`}>
-                            {p?.tier}
-                          </span>
-                        </div>
-
-                        <div className="p-2.5 bg-slate-950 rounded-xl border border-slate-850 space-y-1 text-[10px] text-slate-400 font-bold">
-                          <p className="text-amber-500">🏥 {p?.specialties?.join(', ') || 'Chưa chọn khoa'}</p>
-                          {p?.boardApproval && <p className="text-slate-200">📌 Phê duyệt: {p?.boardApproval}</p>}
-                        </div>
-
-                        <div className="flex gap-2 pt-1">
-                          <button 
-                            onClick={() => handleUpdateStatus(p.id, 'Examining')}
-                            className="flex-1 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-[10px] font-black rounded-xl transition shadow-sm"
-                          >
-                            Bàn giao Khám
-                          </button>
-                          <button 
-                            onClick={() => initiateEdit(p)}
-                            className="px-2.5 py-1.5 border border-slate-800 hover:bg-slate-800 text-slate-300 text-[10px] font-bold rounded-xl transition"
-                          >
-                            Chi tiết
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Cột 2: Đang Khám / Cận lâm sàng */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-md space-y-4">
-                  <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-300">2. Đang khám / CLS</span>
-                    <span className="px-2 py-0.5 bg-slate-955 text-indigo-400 border border-slate-800 text-[9px] font-bold rounded-md">
-                      {kanbanPatients.filter(p => ['Received', 'Examining', 'Testing', 'Reviewing'].includes(p.status)).length} ca
-                    </span>
-                  </div>
-
-                  <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                    {kanbanPatients.filter(p => ['Received', 'Examining', 'Testing', 'Reviewing'].includes(p.status)).map(p => (
-                      <div key={p.id} className="p-4 border border-slate-800 hover:border-slate-750 bg-slate-955/30 rounded-2xl space-y-3 relative group">
-                        
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="space-y-0.5">
-                            <span className="text-xs font-extrabold text-white group-hover:text-amber-500 cursor-pointer block leading-snug" onClick={() => initiateEdit(p)}>
-                              {p?.name}
-                            </span>
-                            <span className="text-[10px] text-slate-450 font-bold block">PID: {p?.pid} • Hạng: {p?.tier}</span>
-                          </div>
-                          <span className="px-2 py-0.5 text-[8px] font-black rounded-sm bg-indigo-950 text-indigo-400 border border-indigo-900/30">
-                            {workflowStatuses.find(s => s.id === p.status)?.label || p.status}
-                          </span>
-                        </div>
-
-                        <div className="p-2.5 bg-slate-950 rounded-xl border border-slate-850 space-y-1 text-[10px] text-slate-400 font-bold">
-                          <p className="text-amber-500">🏥 {p?.specialties?.join(', ') || 'Chưa chọn khoa'}</p>
-                          <p>📍 Phân vùng: {p?.examinationArea || 'Phòng VIP'}</p>
-                        </div>
-
-                        <div className="flex gap-2 pt-1">
-                          <button 
-                            onClick={() => handleUpdateStatus(p.id, 'Pharmacy')}
-                            className="flex-1 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] font-black rounded-xl transition shadow-sm"
-                          >
-                            Bàn giao Nhà Thuốc
-                          </button>
-                          <button 
-                            onClick={() => initiateEdit(p)}
-                            className="px-2.5 py-1.5 border border-slate-800 hover:bg-slate-800 text-slate-300 text-[10px] font-bold rounded-xl transition"
-                          >
-                            Chi tiết
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Cột 3: Nhà Thuốc / Hoàn Tất */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-md space-y-4">
-                  <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-300">3. Chờ thuốc / Hoàn tất</span>
-                    <span className="px-2 py-0.5 bg-slate-955 text-emerald-400 border border-slate-800 text-[9px] font-bold rounded-md">
-                      {kanbanPatients.filter(p => ['Pharmacy', 'Inpatient', 'Completed'].includes(p.status)).length} ca
-                    </span>
-                  </div>
-
-                  <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                    {kanbanPatients.filter(p => ['Pharmacy', 'Inpatient', 'Completed'].includes(p.status)).map(p => (
-                      <div key={p.id} className="p-4 border border-slate-800 hover:border-slate-750 bg-slate-955/30 rounded-2xl space-y-3 relative group">
-                        
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="space-y-0.5">
-                            <span className="text-xs font-extrabold text-white group-hover:text-amber-500 cursor-pointer block leading-snug" onClick={() => initiateEdit(p)}>
-                              {p?.name}
-                            </span>
-                            <span className="text-[10px] text-slate-450 font-bold block">PID: {p?.pid} • Hạng: {p?.tier}</span>
-                          </div>
-                          <span className={`px-2 py-0.5 text-[8px] font-black rounded-sm ${p.status === 'Completed' ? 'bg-emerald-950 text-emerald-400 border border-emerald-900/30' : 'bg-yellow-950 text-yellow-450 border border-yellow-900/30'}`}>
-                            {workflowStatuses.find(s => s.id === p.status)?.label || p.status}
-                          </span>
-                        </div>
-
-                        <div className="p-2.5 bg-slate-950 rounded-xl border border-slate-850 space-y-1 text-[10px] text-slate-400 font-bold">
-                          <p className="text-amber-500">🏥 {p?.specialties?.join(', ') || 'Chưa chọn khoa'}</p>
-                          <p className="text-slate-300 font-black">💰 Thực thu: {formatCurrency(p?.totalAmount - p?.approvedDiscountAmount)}</p>
-                        </div>
-
-                        <div className="flex gap-2 pt-1">
-                          {p.status !== 'Completed' && (
-                            <button 
-                              onClick={() => handleUpdateStatus(p.id, 'Completed')}
-                              className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black rounded-xl transition"
-                            >
-                              Xác nhận Hoàn Tất
-                            </button>
-                          )}
-                          <button 
-                            onClick={() => initiateEdit(p)}
-                            className="px-2.5 py-1.5 border border-slate-800 hover:bg-slate-800 text-slate-300 text-[10px] font-bold rounded-xl transition w-full"
-                          >
-                            Chi tiết hồ sơ
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
               </div>
             )}
 
+            {calendarMode === 'list' && (
+              <>
+                {isLoading ? (
+                  <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
+                    <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+                    <p className="text-slate-400 font-semibold text-xs animate-pulse">Đang cập nhật...</p>
+                  </div>
+                ) : filteredPatients.length === 0 ? (
+                  <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
+                    <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto text-slate-400">
+                      <ClipboardList className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy hồ sơ nào phù hợp</h3>
+                      <p className="text-slate-400 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="hidden lg:block bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-fadeIn">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-slate-55 border-b border-slate-200 text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                              <th className="py-4 px-5">PID / Khách Hàng</th>
+                              <th className="py-4 px-3">Phân hạng</th>
+                              <th className="py-4 px-3">Ngày Khám / Site / Khu vực</th>
+                              <th className="py-4 px-3">Chuyên Khoa</th>
+                              <th className="py-4 px-3">HĐQT Chỉ Đạo</th>
+                              <th className="py-4 px-3 text-right">Tổng Chi Phí</th>
+                              <th className="py-4 px-3 text-right">Duyệt Giảm</th>
+                              <th className="py-4 px-3 text-right">Thực Thu</th>
+                              <th className="py-4 px-5 text-right">Tác vụ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200 text-xs">
+                            {filteredPatients.map((p) => {
+                              const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
+                              const pSite = sites.find(s => s.label === p.site) || sites[0];
+                              return (
+                                <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 animate-fadeIn">
+                                  <td className="py-4 px-5">
+                                    <div className="font-extrabold text-slate-955 text-sm">{p.name}</div>
+                                    <div className="text-[10px] text-indigo-600 font-mono font-black mt-0.5">PID: {p.pid}</div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${
+                                      p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                                    }`}>
+                                      <Sparkles className="w-3 h-3" />
+                                      {p.tier}
+                                    </span>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
+                                        {pSite.label}
+                                      </div>
+                                      <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
+                                        p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
+                                      }`}>
+                                        {p.examinationArea || 'Khu VIP'}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="flex flex-wrap gap-1 max-w-[180px]">
+                                      {p.specialties?.map((s, idx) => (
+                                        <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded font-bold">
+                                          {s}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="font-bold text-slate-700">{p.boardApproval || '---'}</div>
+                                    {p.notes && <div className="text-[10px] text-slate-400 max-w-[150px] truncate" title={p.notes}>{p.notes}</div>}
+                                  </td>
+                                  <td className="py-4 px-3 text-right font-bold text-slate-900 font-mono">
+                                    {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Thanh toán quầy</span> : formatCurrency(p.totalAmount)}
+                                  </td>
+                                  <td className="py-4 px-3 text-right">
+                                    {p.tier === 'VIP' ? (
+                                      <span className="text-slate-400 font-sans text-[10px]">---</span>
+                                    ) : (
+                                      <>
+                                        <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
+                                        <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
+                                      </>
+                                    )}
+                                  </td>
+                                  <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
+                                    {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Hóa đơn gốc</span> : formatCurrency(realCollected)}
+                                  </td>
+                                  <td className="py-4 px-5 text-right whitespace-nowrap">
+                                    <div className="flex justify-end gap-1.5">
+                                      {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
+                                        <button 
+                                          type="button"
+                                          onClick={() => {
+                                            const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
+                                            setLightboxImages(imgs);
+                                            setLightboxIndex(0);
+                                          }}
+                                          className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
+                                        >
+                                          <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
+                                        </button>
+                                      )}
+                                      <button onClick={() => initiateEdit(p)} className="px-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
+                                        <Edit3 className="w-4 h-4" />
+                                      </button>
+                                      
+                                      {userRole !== 'nhanvien' ? (
+                                        <button 
+                                          onClick={() => {
+                                            setConfirmModal({
+                                              show: true,
+                                              title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
+                                              message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+                                              action: async () => {
+                                                try {
+                                                  if (isFirebaseConnected && db) {
+                                                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
+                                                    showNotification("Đã xóa hồ sơ thành công!");
+                                                  } else {
+                                                    const updated = patients.filter(item => item.id !== p.id);
+                                                    setPatients(updated);
+                                                    localStorage.setItem('local_patients', JSON.stringify(updated));
+                                                    showNotification("Đã xóa hồ sơ cục bộ!");
+                                                  }
+                                                  setConfirmModal({ show: false, action: null, message: '', title: '' });
+                                                } catch (err) {
+                                                  console.error(err);
+                                                }
+                                              }
+                                            });
+                                          }} 
+                                          className="p-1.5 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" 
+                                          title="Xóa"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      ) : (
+                                        <span className="p-1.5 text-slate-300 cursor-not-allowed">
+                                          <Lock className="w-4 h-4" />
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
+                      {filteredPatients.map((p) => {
+                        const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
+                        const pSite = sites.find(s => s.label === p.site) || sites[0];
+                        return (
+                          <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
+                                <h4 className="font-extrabold text-slate-900 text-sm">{p.name}</h4>
+                                <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 animate-fadeIn">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
+                                </p>
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
+                                    {pSite.label}
+                                  </span>
+                                  <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
+                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
+                                  }`}>
+                                    {p.examinationArea || 'Khu VIP'}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className={`inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[9px] font-black ${
+                                p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                              }`}>
+                                {p.tier}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-wrap gap-1">
+                              {p.specialties?.map((s, idx) => (
+                                <span key={idx} className="text-[9px] bg-slate-50 text-slate-605 border border-slate-200 px-2.5 py-0.5 rounded font-bold">
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+
+                            <div className="bg-slate-55 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-655">
+                              <div>Phê duyệt/Chỉ đạo: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
+                              {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
+                            </div>
+
+                            {p.tier === 'VVIP' ? (
+                              <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
+                                <div>
+                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
+                                  <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
+                                  <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
+                                  <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
+                                </div>
+                              </div>
+                            ) : null}
+
+                            <div className="flex justify-end gap-2 pt-1">
+                              {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
+                                    setLightboxImages(imgs);
+                                    setLightboxIndex(0);
+                                  }}
+                                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-605 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
+                                >
+                                  <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
+                                </button>
+                              )}
+                              <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
+                                <Edit3 className="w-3.5 h-3.5" /> Sửa
+                              </button>
+                              
+                              {userRole !== 'nhanvien' && (
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    setConfirmModal({
+                                      title: "Xác nhận gỡ bỏ dữ liệu",
+                                      message: "Bạn có chắc chắn muốn gỡ bỏ vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+                                      show: true,
+                                      action: async () => {
+                                        try {
+                                          if (isFirebaseConnected && db) {
+                                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
+                                            showNotification("Đã xóa dữ liệu đám mây!");
+                                          } else {
+                                            const updated = patients.filter(item => item.id !== p.id);
+                                            setPatients(updated);
+                                            localStorage.setItem('local_patients', JSON.stringify(updated));
+                                            showNotification("Đã xóa dữ liệu!");
+                                          }
+                                          setConfirmModal({ show: false, action: null, message: '', title: '' });
+                                        } catch (err) {
+                                          console.error(err);
+                                        }
+                                      }
+                                    });
+                                  }}
+                                  className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-605 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" /> Xóa
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
           </div>
         )}
 
-        {/* Tab Settings */}
-        {activeTab === 'settings' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-scaleIn">
+        {/* ========================== GIAO DIỆN 4: CẤU HÌNH THAM SỐ ========================== */}
+        {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
+          <div className="space-y-6 animate-fadeIn">
             
-            {/* Mục 1: Quản lý Chuyên khoa & Công thức */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+              <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-md space-y-6">
-                <div className="space-y-1 pb-4 border-b border-slate-850">
-                  <h3 className="text-base font-black text-white uppercase tracking-wide">Cấu hình tham số điều trị</h3>
-                  <p className="text-xs text-slate-400 font-semibold">Tùy biến danh mục chuyên khoa và công thức thanh toán miễn giảm</p>
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
+                    Cấu Hinh Các Trường Cộng Tổng
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">Lựa chọn các loại chi phí phát sinh để tự động tính vào [Tổng cộng]:</p>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-450">Danh mục Chuyên Khoa ({systemSettings?.specialties ? systemSettings?.specialties.length : 0})</h4>
+                <div className="space-y-3">
+                  {[
+                    { key: 'phiKham', label: 'Phí khám/Điều trị' },
+                    { key: 'ngoaiTru', label: 'Ngoại trú' },
+                    { key: 'capCuu', label: 'Cấp cứu/daycare' },
+                    { key: 'noiTru', label: 'Nội trú/ICU' },
+                    { key: 'ngoaiVien', label: 'Ngoại viện' },
+                    { key: 'clsCdha', label: 'CLS/CDHA' },
+                    { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
+                  ].map((field) => (
+                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-150 hover:bg-slate-50 cursor-pointer transition">
+                      <input 
+                        type="checkbox"
+                        checked={systemSettings.totalFormulaFields[field.key] || false}
+                        onChange={() => handleFormulaCheckboxChange(field.key)}
+                        className="w-4 h-4 rounded-md text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                      />
+                      <span className="text-xs font-bold text-slate-700">{field.label}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="border-t border-slate-150 pt-6 space-y-4">
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
+                      Phương Thức Tính Số Tiền Duyệt Giảm
+                    </h3>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <button
+                      type="button"
+                      onClick={() => handleDiscountFormulaChange('only_total')}
+                      className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
+                        systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
+                        systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                      }`}>
+                        {systemSettings.discountFormulaType === 'only_total' && <span className="w-2 h-2 rounded-full bg-white"></span>}
+                      </div>
+                      <div>
+                        <strong className="text-xs text-slate-800 block">Duyệt giảm trên tổng gốc</strong>
+                        <span className="text-[10px] text-slate-400 block mt-1">Biểu thức: <code>Số tiền duyệt giảm = [Tổng cộng] × [% giảm]</code></span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDiscountFormulaChange('total_minus_insurance_advance')}
+                      className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
+                        systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
+                        systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                      }`}>
+                        {systemSettings.discountFormulaType === 'total_minus_insurance_advance' && <span className="w-2 h-2 rounded-full bg-white"></span>}
+                      </div>
+                      <div>
+                        <strong className="text-xs text-slate-800 block">Khấu trừ bảo hiểm & tạm ứng trước khi giảm</strong>
+                        <span className="text-[10px] text-slate-400 block mt-1">Biểu thức: <code>Số tiền duyệt giảm = ([Tổng cộng] - [BHYT/Tạm ứng]) × [% giảm]</code></span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="space-y-6">
+                
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Quản Lý Danh Mục Chuyên Khoa
+                  </h3>
+
                   <div className="flex gap-2">
                     <input 
                       type="text" 
-                      placeholder="Nhập tên chuyên khoa mới (ví dụ: CK Tim mạch)"
+                      placeholder="Thêm chuyên khoa mới..."
                       value={newSpecialtyInput}
                       onChange={(e) => setNewSpecialtyInput(e.target.value)}
-                      className="flex-1 px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs focus:outline-hidden font-semibold text-white"
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
                     />
-                    <button 
+                    <button
+                      type="button"
                       onClick={handleAddSpecialty}
-                      className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition flex items-center gap-1"
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center gap-1"
                     >
                       <Plus className="w-4 h-4" /> Thêm
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-48 overflow-y-auto pr-1">
-                    {(systemSettings?.specialties || []).map(spec => (
-                      <div key={spec} className="p-2 border border-slate-800 rounded-xl flex items-center justify-between text-[11px] font-bold bg-slate-950/40">
-                        <span className="truncate text-slate-250">{spec}</span>
-                        <button 
+                  <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                    {systemSettings.specialties.map((spec, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition animate-fadeIn">
+                        <span className="text-xs font-bold text-slate-700">{spec}</span>
+                        <button
+                          type="button"
                           onClick={() => handleRemoveSpecialty(spec)}
-                          className="text-rose-500 hover:text-rose-400 p-0.5 transition"
+                          className="p-1 text-slate-405 hover:text-red-500 rounded-lg transition"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="space-y-4 pt-4 border-t border-slate-850">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-450">Thiết lập công thức tính tổng số tiền trước giảm</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {[
-                      { id: 'phiKham', label: 'Tính tiền Khám Lâm Sàng' },
-                      { id: 'clsCdha', label: 'Tính tiền CLS / CĐHA' },
-                      { id: 'thuocVacxin', label: 'Tính tiền Thuốc / Vắc-xin' }
-                    ].map(field => (
-                      <label key={field.id} className="p-3 border border-slate-800 hover:border-slate-750 rounded-2xl flex items-center gap-2.5 text-[11px] font-semibold cursor-pointer transition bg-slate-950/20 text-slate-300">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                      Quản Trị Phân Quyền Nhân Sự
+                    </h3>
+                  </div>
+
+                  {userRole === 'admin' ? (
+                    <form onSubmit={handleCreateStaff} className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                      <div className="grid grid-cols-2 gap-2">
                         <input 
-                          type="checkbox" 
-                          checked={!!systemSettings?.totalFormulaFields?.[field.id]} 
-                          onChange={() => handleFormulaCheckboxChange(field.id)}
-                          className="rounded-sm border-slate-800 text-amber-500 focus:ring-amber-500 bg-slate-950" 
+                          type="text" 
+                          placeholder="Họ tên nhân viên..." 
+                          value={newStaff.name}
+                          onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold animate-fadeIn"
+                          required
                         />
-                        <span>{field.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t border-slate-850">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-450">Thiết lập phương thức tính chiết khấu</h4>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <label className="flex-1 p-3 border border-slate-800 hover:border-slate-750 rounded-2xl flex items-center gap-2.5 text-[11px] font-semibold cursor-pointer transition bg-slate-950/20 text-slate-300">
-                      <input 
-                        type="radio" 
-                        name="discountFormula"
-                        checked={systemSettings?.discountFormulaType === 'total_minus_insurance_advance'}
-                        onChange={() => handleDiscountFormulaChange('total_minus_insurance_advance')}
-                        className="text-amber-500 focus:ring-amber-500 bg-slate-950" 
-                      />
-                      <span>Miễn giảm sau khi trừ bảo hiểm</span>
-                    </label>
-                    <label className="flex-1 p-3 border border-slate-800 hover:border-slate-750 rounded-2xl flex items-center gap-2.5 text-[11px] font-semibold cursor-pointer transition bg-slate-950/20 text-slate-300">
-                      <input 
-                        type="radio" 
-                        name="discountFormula"
-                        checked={systemSettings?.discountFormulaType === 'total_direct'}
-                        onChange={() => handleDiscountFormulaChange('total_direct')}
-                        className="text-amber-500 focus:ring-amber-500 bg-slate-950" 
-                      />
-                      <span>Miễn giảm trực tiếp trên hoá đơn</span>
-                    </label>
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* Mục 2: Quản lý Nhân viên phân quyền (Chỉ Admin) */}
-            <div className="lg:col-span-1">
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-md space-y-6">
-                
-                <div className="space-y-1 pb-4 border-b border-slate-850">
-                  <h3 className="text-base font-black text-white uppercase tracking-wide">Quản lý Tài khoản (IT Admin)</h3>
-                  <p className="text-xs text-slate-400 font-semibold">Cấp và gỡ bỏ quyền truy cập hệ thống của nhân viên</p>
-                </div>
-
-                {userRole === 'admin' ? (
-                  <form onSubmit={handleCreateStaff} className="space-y-4 text-slate-200">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 block">Mã UID Firebase Auth</label>
-                      <input 
-                        type="text" 
-                        required
-                        placeholder="Chuỗi ID tài khoản Firebase"
-                        value={newStaff?.uid}
-                        onChange={(e) => setNewStaff(prev => ({ ...prev, uid: e.target.value }))}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs focus:outline-hidden font-semibold text-white"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 block">Họ & Tên nhân viên</label>
-                      <input 
-                        type="text" 
-                        required
-                        placeholder="Nguyễn Văn A"
-                        value={newStaff?.name}
-                        onChange={(e) => setNewStaff(prev => ({ ...prev, name: e.target.value }))}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs focus:outline-hidden font-semibold text-white"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 block">Email làm việc</label>
-                      <input 
-                        type="email" 
-                        required
-                        placeholder="email@vip.com"
-                        value={newStaff?.email}
-                        onChange={(e) => setNewStaff(prev => ({ ...prev, email: e.target.value }))}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs focus:outline-hidden font-semibold text-white"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 block">Vai trò trên hệ thống</label>
-                      <select 
-                        value={newStaff?.role}
-                        onChange={(e) => setNewStaff(prev => ({ ...prev, role: e.target.value }))}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs focus:outline-hidden font-semibold text-slate-300"
+                        <input 
+                          type="text" 
+                          placeholder="Chức danh" 
+                          value={newStaff.title}
+                          onChange={(e) => setNewStaff({ ...newStaff, title: e.target.value })}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 gap-2">
+                        <input 
+                          type="email" 
+                          placeholder="Email đăng nhập..." 
+                          value={newStaff.email}
+                          onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
+                          required
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Mã UID (Lấy từ Firebase Authentication)..." 
+                          value={newStaff.uid}
+                          onChange={(e) => setNewStaff({ ...newStaff, uid: e.target.value })}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-mono font-bold animate-fadeIn"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Vai trò phân quyền</label>
+                        <select 
+                          value={newStaff.role}
+                          onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold cursor-pointer"
+                        >
+                          <option value="nhanvien">nhanvien</option>
+                          <option value="quanly_site">quanly_site</option>
+                          <option value="quanly">quanly</option>
+                          <option value="lanhdao">lanhdao</option>
+                          <option value="admin">admin</option>
+                        </select>
+                      </div>
+                      <button 
+                        type="submit"
+                        className="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center justify-center gap-1"
                       >
-                        <option value="nhanvien">Lễ tân tiếp đón (nhanvien)</option>
-                        <option value="quanly_site">Quản lý site cơ sở (quanly_site)</option>
-                        <option value="quanly">Quản lý chuyên ban (quanly)</option>
-                        <option value="lanhdao">Hội đồng quản trị (lanhdao)</option>
-                        <option value="admin">IT Admin (admin)</option>
-                      </select>
-                    </div>
+                        <UserPlus className="w-4 h-4" /> Đăng ký tài khoản nhân viên
+                      </button>
+                    </form>
+                  ) : null}
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 block">Chức danh / Tiêu đề hiển thị</label>
-                      <input 
-                        type="text" 
-                        placeholder="Ví dụ: Quản lý chuyên ban Sơn Hòa"
-                        value={newStaff?.title}
-                        onChange={(e) => setNewStaff(prev => ({ ...prev, title: e.target.value }))}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs focus:outline-hidden font-semibold text-white"
-                      />
-                    </div>
-
-                    <button 
-                      type="submit" 
-                      className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black uppercase rounded-xl transition flex items-center justify-center gap-1 shadow-md"
-                    >
-                      <UserPlus className="w-4 h-4" /> Kích hoạt tài khoản
-                    </button>
-                  </form>
-                ) : (
-                  <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-[11px] text-amber-500 font-semibold flex items-start gap-1.5 leading-relaxed">
-                    <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500 animate-pulse" />
-                    Chức năng quản trị và cấp quyền tài khoản bị hạn chế. Chỉ có IT Admin mới được phép thao tác.
-                  </div>
-                )}
-
-                <div className="space-y-3 pt-4 border-t border-slate-850">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-500">Danh sách tài khoản ({staffList.length})</h4>
-                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-                    {staffList.map(staff => (
-                      <div key={staff.uid} className="p-3 border border-slate-800 rounded-2xl flex items-center justify-between gap-2 text-[11px] bg-slate-955/20">
-                        <div className="min-w-0 space-y-0.5">
-                          <span className="font-extrabold text-white block truncate">{staff.name}</span>
-                          <span className="text-[9px] text-slate-450 font-semibold block uppercase tracking-wider">{staff.role} • {staff.title}</span>
+                  <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                    {staffList.map((staff) => (
+                      <div key={staff.uid} className="flex justify-between items-center p-3 rounded-2xl border border-slate-200 bg-slate-50/50">
+                        <div>
+                          <div className="text-xs font-bold text-slate-800">{staff.name}</div>
+                          <div className="text-[9px] text-slate-400 font-mono">{staff.email}</div>
+                          <div className="text-[9px] text-slate-400 italic">UID: {staff.uid} | {staff.title}</div>
                         </div>
-                        {userRole === 'admin' && (
-                          <button 
-                            onClick={() => handleDeleteStaff(staff.uid)}
-                            className="p-1 hover:bg-rose-950/30 text-rose-500 rounded-lg transition flex-shrink-0"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-black px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-sm uppercase">
+                            {staff.role}
+                          </span>
+                          {userRole === 'admin' && staff.uid !== "acc_admin" && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteStaff(staff.uid)}
+                              className="p-1 border border-slate-200 text-slate-400 hover:text-red-500 rounded transition"
+                              title="Xóa"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
               </div>
-            </div>
 
+            </div>
           </div>
         )}
 
       </main>
 
-      {/* Mobile Footer Navigation Bar */}
-      <footer className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900 border-t border-slate-850 shadow-2xl md:hidden">
-        <div className="grid grid-cols-4 h-16">
-          <button 
-            onClick={() => { resetForm(); setActiveTab('dashboard'); }}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-black uppercase ${activeTab === 'dashboard' ? 'text-amber-500' : 'text-slate-500'}`}
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Tổng quan</span>
-          </button>
-
-          <button 
-            onClick={() => { resetForm(); setActiveTab('register'); }}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-black uppercase ${activeTab === 'register' ? 'text-amber-500' : 'text-slate-500'}`}
-          >
-            <Plus className="w-5 h-5" />
-            <span>Tiếp đón</span>
-          </button>
-
-          <button 
-            onClick={() => { resetForm(); setActiveTab('monitoring'); }}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-black uppercase ${activeTab === 'monitoring' ? 'text-amber-500' : 'text-slate-500'}`}
-          >
-            <ClipboardList className="w-5 h-5" />
-            <span>Theo dõi</span>
-          </button>
-
-          <button 
-            onClick={() => {
-              if (['admin', 'lanhdao', 'quanly'].includes(userRole)) {
-                setActiveTab('settings');
-              } else {
-                showNotification("Phân quyền nhân viên bị hạn chế chức năng cài đặt!", "error");
-              }
-            }}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-black uppercase ${activeTab === 'settings' ? 'text-amber-500' : 'text-slate-500'}`}
-          >
-            <Settings className="w-5 h-5" />
-            <span>Cấu hình</span>
-          </button>
+      <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
+        <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.9</p>
+          <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
-
     </div>
   );
 }
