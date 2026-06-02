@@ -237,7 +237,8 @@ export default function App() {
   const [leftFormTab, setLeftFormTab] = useState('visitHistory');
   const [isHistoryPanelExpanded, setIsHistoryPanelExpanded] = useState(false);
 
-  const [dashFilterMode, setDashFilterMode] = useState('today');
+  // States cho bộ lọc Thống kê Báo cáo ở Dashboard
+  const [dashFilterMode, setDashFilterMode] = useState('today'); // 'today' hoặc 'range'
   const [dashStartDate, setDashStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [dashEndDate, setDashEndDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -292,8 +293,8 @@ export default function App() {
     const hasTargetedRecipients = Array.isArray(dataRecipients) && dataRecipients.length > 0;
 
     if (currentUser) {
-      const isManagerOrAdmin = ['admin', 'lanhdao', 'quanly'].includes(currentUser.role);
-      const isAssigned = hasTargetedRecipients && dataRecipients.includes(currentUser.uid);
+      const isManagerOrAdmin = ['admin', 'lanhdao', 'quanly'].includes(currentUser?.role);
+      const isAssigned = hasTargetedRecipients && dataRecipients.includes(currentUser?.uid);
       
       if (hasTargetedRecipients && !isManagerOrAdmin && !isAssigned) {
         return;
@@ -359,7 +360,7 @@ export default function App() {
         });
       }
     } catch (err) {
-      console.warn(err);
+      console.warn("Lỗi đồng bộ mã thông báo FCM thiết bị:", err);
     }
   };
 
@@ -379,8 +380,8 @@ export default function App() {
       
       if (permission === 'granted') {
         showNotification("Đã kích hoạt thành công thông báo!");
-        if (currentUser && currentUser.uid) {
-          await saveFcmTokenToDatabase(currentUser.uid);
+        if (currentUser && currentUser?.uid) {
+          await saveFcmTokenToDatabase(currentUser?.uid);
         }
         triggerPushAlert("🟢 Đã bật thông báo", "Hệ thống sẵn sàng nhận dữ liệu thời gian thực.");
       } else {
@@ -445,7 +446,7 @@ export default function App() {
   const handleLogout = async () => {
     if (isFirebaseConnected && auth && currentUser) {
       try {
-        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser.uid);
+        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser?.uid);
         await updateDoc(userDocRef, { fcmToken: null }).catch(e => console.warn(e));
       } catch (err) {
         console.warn(err);
@@ -466,7 +467,7 @@ export default function App() {
     }
 
     const localAccount = staffList.find(
-      (acc) => acc.email.toLowerCase() === loginEmail.trim().toLowerCase()
+      (acc) => acc?.email?.toLowerCase() === loginEmail.trim().toLowerCase()
     );
 
     if (isFirebaseConnected && auth) {
@@ -479,25 +480,25 @@ export default function App() {
             uid: user.uid,
             email: user.email,
             role: 'nhanvien',
-            name: user.email.split('@')[0],
+            name: user.email ? user.email.split('@')[0] : 'Nhân viên',
             title: 'Nhân viên chuyên ban'
           };
           if (userDoc.exists()) {
             userData = userDoc.data();
           }
           setCurrentUser(userData);
-          setUserRole(userData.role);
+          setUserRole(userData?.role || 'nhanvien');
           localStorage.setItem('crm_current_user', JSON.stringify(userData));
           setAuthError('');
-          showNotification(`Đăng nhập thành công! Chào ${userData.name}`);
+          showNotification(`Đăng nhập thành công! Chào ${userData?.name}`);
         })
         .catch((error) => {
           if (localAccount && localAccount.pass === loginPassword) {
             setCurrentUser(localAccount);
-            setUserRole(localAccount.role);
+            setUserRole(localAccount?.role || 'nhanvien');
             localStorage.setItem('crm_current_user', JSON.stringify(localAccount));
             setAuthError('');
-            showNotification(`Đăng nhập (Chế độ Dự Phòng): Chào ${localAccount.name}`);
+            showNotification(`Đăng nhập (Chế độ Dự Phòng): Chào ${localAccount?.name}`);
             return;
           }
           console.error(error);
@@ -506,10 +507,10 @@ export default function App() {
     } else {
       if (localAccount && localAccount.pass === loginPassword) {
         setCurrentUser(localAccount);
-        setUserRole(localAccount.role);
+        setUserRole(localAccount?.role || 'nhanvien');
         localStorage.setItem('crm_current_user', JSON.stringify(localAccount));
         setAuthError('');
-        showNotification(`Đăng nhập ngoại tuyến thành công: Chào ${localAccount.name}`);
+        showNotification(`Đăng nhập ngoại tuyến thành công: Chào ${localAccount?.name}`);
       } else {
         setAuthError("Sai thông tin tài khoản hoặc hệ thống offline.");
       }
@@ -527,10 +528,10 @@ export default function App() {
   }, []);
 
   const filteredSpecialties = useMemo(() => {
-    return systemSettings.specialties.filter(s =>
-      s.toLowerCase().includes(specSearch.toLowerCase())
+    return (systemSettings?.specialties || []).filter(s =>
+      s?.toLowerCase().includes(specSearch.toLowerCase())
     );
-  }, [systemSettings.specialties, specSearch]);
+  }, [systemSettings?.specialties, specSearch]);
 
   const handleTreatmentTypeChange = (value) => {
     setFormData(prev => ({
@@ -544,10 +545,67 @@ export default function App() {
   };
 
   useEffect(() => {
+    let html5QrCode;
+    if (isScanning) {
+      const startCamera = async () => {
+        if (typeof window.Html5Qrcode === 'undefined') {
+          await new Promise(resolve => setTimeout(resolve, 800));
+          if (typeof window.Html5Qrcode === 'undefined') {
+            setScannerError("Chưa tải xong thư viện quét mã. Vui lòng thử lại.");
+            return;
+          }
+        }
+
+        try {
+          html5QrCode = new window.Html5Qrcode("reader");
+          html5QrCodeRef.current = html5QrCode;
+          
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            {
+              fps: 15,
+              qrbox: (width, height) => {
+                const size = Math.min(width, height) * 0.75;
+                return { width: size, height: size };
+              }
+            },
+            (decodedText) => {
+              handleInputChange('pid', decodedText);
+              showNotification("Đã quét thành công mã: " + decodedText);
+              stopScanner();
+            },
+            (errorMessage) => {
+            }
+          );
+        } catch (err) {
+          console.error(err);
+          setScannerError("Không thể truy cập camera. Vui lòng cấp quyền camera trong cài đặt trình duyệt.");
+        }
+      };
+      
+      startCamera();
+    }
+
+    return () => {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+        }).catch(e => console.warn(e));
+      }
+    };
+  }, [isScanning]);
+
+  useEffect(() => {
     checkIosPermissionStatus();
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(err => console.warn(err));
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        .then((registration) => {
+          console.log("Firebase SW registered context scope:", registration.scope);
+        })
+        .catch((err) => {
+          console.warn("Lỗi đăng ký Firebase Service Worker:", err);
+        });
     }
 
     if (!document.getElementById('html5-qrcode-script')) {
@@ -569,15 +627,212 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const faviconUrl = 'https://iili.io/F66acRs.png';
+    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+    link.type = 'image/png';
+    link.rel = 'shortcut icon';
+    link.href = faviconUrl;
+    document.getElementsByTagName('head')[0].appendChild(link);
+
+    const savedStaff = localStorage.getItem('crm_staff_accounts');
+    if (!savedStaff) {
+      localStorage.setItem('crm_staff_accounts', JSON.stringify(mockStaffAccounts));
+      setStaffList(mockStaffAccounts);
+    } else {
+      setStaffList(JSON.parse(savedStaff));
+    }
+
+    const savedSettings = localStorage.getItem('local_settings');
+    if (!savedSettings) {
+      localStorage.setItem('local_settings', JSON.stringify(defaultSystemSettings));
+      setSystemSettings(defaultSystemSettings);
+    } else {
+      setSystemSettings(JSON.parse(savedSettings));
+    }
+
+    const savedUser = localStorage.getItem('crm_current_user');
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        if (parsedUser) {
+          setCurrentUser(parsedUser);
+          setUserRole(parsedUser?.role || 'nhanvien');
+        }
+      } catch (err) {
+        console.error("Error parsing local user:", err);
+      }
+    }
+
+    if (auth && db && isFirebaseConfigured) {
+      setIsFirebaseConnected(true);
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          try {
+            const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', firebaseUser.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              setCurrentUser(userData);
+              setUserRole(userData?.role || 'nhanvien');
+              saveFcmTokenToDatabase(firebaseUser.uid).catch(e => console.warn(e));
+            } else {
+              const fallbackUser = { 
+                uid: firebaseUser.uid, 
+                email: firebaseUser.email, 
+                role: 'nhanvien', 
+                name: firebaseUser.email ? firebaseUser.email.split('@')[0] : 'Nhân viên',
+                title: 'Nhân viên chuyên ban'
+              };
+              setCurrentUser(fallbackUser);
+              setUserRole('nhanvien');
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        setIsLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
+      setIsFirebaseConnected(false);
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    setIsLoading(true);
+
+    if (isFirebaseConnected && db) {
+      const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
+      const settingsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
+      const usersCol = collection(db, 'artifacts', appId, 'public', 'data', 'users');
+
+      const unsubscribeSettings = onSnapshot(settingsDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setSystemSettings(docSnap.data());
+        } else {
+          setDoc(settingsDocRef, systemSettings).catch(e => console.warn(e));
+        }
+      }, (err) => console.error(err));
+
+      const unsubscribeUsers = onSnapshot(usersCol, (snapshot) => {
+        const list = [];
+        snapshot.forEach((docSnap) => {
+          list.push({ uid: docSnap.id, ...docSnap.data() });
+        });
+        setStaffList(list);
+      }, (err) => console.error(err));
+
+      const unsubscribePatients = onSnapshot(patientsCol, (snapshot) => {
+        const list = [];
+        snapshot.forEach((docSnap) => {
+          list.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        list.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        if (isInitialMount.current) {
+          isInitialMount.current = false;
+        } else {
+          snapshot.docChanges().forEach((change) => {
+            const data = change.doc.data();
+            const statusLabel = workflowStatuses.find(s => s.id === data.status)?.label || data.status;
+            if (change.type === "added") {
+              triggerPushAlert(
+                `🆕 Tiếp nhận khách ${data?.tier || 'VIP'}`,
+                `Bệnh nhân: ${data?.name || 'Chưa rõ'} (PID: ${data?.pid || '---'}) đã được xếp trạng thái: ${statusLabel}.`,
+                data?.recipients || [],
+                'info'
+              );
+            }
+            if (change.type === "modified") {
+              triggerPushAlert(
+                `🔄 Cập nhật hành trình`,
+                `Hồ sơ khách hàng ${data?.name || 'Chưa rõ'} (PID: ${data?.pid || '---'}) vừa đổi trạng thái sang: ${statusLabel}.`,
+                data?.recipients || [],
+                'success'
+              );
+            }
+            if (change.type === "removed") {
+              triggerPushAlert(
+                `⚠️ Gỡ bỏ hồ sơ`,
+                `Hồ sơ của một bệnh nhân VIP vừa bị gỡ khỏi hệ thống.`,
+                data?.recipients || [],
+                'error'
+              );
+            }
+          });
+        }
+
+        setPatients(list);
+        setIsLoading(false);
+      }, (error) => {
+        console.warn(error);
+        const savedPatients = localStorage.getItem('local_patients');
+        if (savedPatients) {
+          setPatients(JSON.parse(savedPatients));
+        }
+        setIsLoading(false);
+      });
+
+      return () => {
+        unsubscribeSettings();
+        unsubscribeUsers();
+        unsubscribePatients();
+      };
+    } else {
+      const savedPatients = localStorage.getItem('local_patients');
+      if (savedPatients) {
+        setPatients(JSON.parse(savedPatients));
+      }
+      setIsLoading(false);
+    }
+  }, [currentUser, isFirebaseConnected]);
+
+  const calculatedSums = useMemo(() => {
+    if (formData?.tier === 'VIP') {
+      return { totalAmount: 0, approvedDiscountAmount: 0 };
+    }
+    const formulas = systemSettings?.totalFormulaFields || {};
+    let total = 0;
+
+    if (formulas.phiKham) total += Number(formData?.phiKham || 0);
+    if (formulas.clsCdha) total += Number(formData?.clsCdha || 0);
+    if (formulas.thuocVacxin) total += Number(formData?.thuocVacxin || 0);
+
+    let discountBase = total;
+    if (systemSettings?.discountFormulaType === 'total_minus_insurance_advance') {
+      discountBase = Math.max(0, total - Number(formData?.insuranceAdvance || 0));
+    }
+
+    const discountAmount = Math.round(discountBase * (Number(formData?.discountRate || 0) / 100));
+
+    return {
+      totalAmount: total,
+      approvedDiscountAmount: discountAmount
+    };
+  }, [formData, systemSettings]);
+
+  useEffect(() => {
+    if (formData?.totalAmount !== calculatedSums.totalAmount || formData?.approvedDiscountAmount !== calculatedSums.approvedDiscountAmount) {
+      setFormData(prev => ({
+        ...prev,
+        totalAmount: calculatedSums.totalAmount,
+        approvedDiscountAmount: calculatedSums.approvedDiscountAmount
+      }));
+    }
+  }, [calculatedSums.totalAmount, calculatedSums.approvedDiscountAmount]);
+
   const matchedPatientProfile = useMemo(() => {
-    if (!formData.pid.trim()) return null;
-    return patients.find(p => p.pid.trim().toLowerCase() === formData.pid.trim().toLowerCase());
-  }, [formData.pid, patients]);
+    if (!formData?.pid?.trim()) return null;
+    return patients.find(p => p?.pid?.trim().toLowerCase() === formData?.pid?.trim().toLowerCase());
+  }, [formData?.pid, patients]);
 
   const patientVisitHistory = useMemo(() => {
-    if (!formData.pid.trim()) return [];
-    return patients.filter(p => p.pid.trim().toLowerCase() === formData.pid.trim().toLowerCase() && p.id !== currentId);
-  }, [formData.pid, patients, currentId]);
+    if (!formData?.pid?.trim()) return [];
+    return patients.filter(p => p?.pid?.trim().toLowerCase() === formData?.pid?.trim().toLowerCase() && p.id !== currentId);
+  }, [formData?.pid, patients, currentId]);
 
   useEffect(() => {
     if (patientVisitHistory.length > 0) {
@@ -590,8 +845,8 @@ export default function App() {
   useEffect(() => {
     if (matchedPatientProfile && !currentId) {
       setFormData(prev => {
-        if (prev.name !== matchedPatientProfile.name) {
-          return { ...prev, name: matchedPatientProfile.name };
+        if (prev?.name !== matchedPatientProfile?.name) {
+          return { ...prev, name: matchedPatientProfile?.name || '' };
         }
         return prev;
       });
@@ -614,11 +869,11 @@ export default function App() {
 
   const toggleSpecialtySelection = (spec) => {
     setFormData(prev => {
-      const exists = prev.specialties.includes(spec);
+      const exists = prev?.specialties?.includes(spec);
       if (exists) {
-        return { ...prev, specialties: prev.specialties.filter(s => s !== spec) };
+        return { ...prev, specialties: prev?.specialties?.filter(s => s !== spec) };
       } else {
-        return { ...prev, specialties: [...prev.specialties, spec] };
+        return { ...prev, specialties: [...(prev?.specialties || []), spec] };
       }
     });
   };
@@ -651,7 +906,7 @@ export default function App() {
     Promise.all(readers).then((newImages) => {
       setFormData(prev => ({
         ...prev,
-        approvalImages: [...(prev.approvalImages || []), ...newImages]
+        approvalImages: [...(prev?.approvalImages || []), ...newImages]
       }));
       showNotification("Đã thêm các ảnh phê duyệt thành công!");
     });
@@ -660,14 +915,15 @@ export default function App() {
   const todayStr = new Date().toISOString().split('T')[0];
 
   const isFutureOrPreArrival = (patient) => {
-    const isPreArrivalStatus = ['Scheduled', 'Preparing', 'ReceivedInfo'].includes(patient.status);
-    const isFutureDate = patient.date > todayStr;
+    if (!patient) return false;
+    const isPreArrivalStatus = ['Scheduled', 'Preparing', 'ReceivedInfo'].includes(patient?.status);
+    const isFutureDate = patient?.date > todayStr;
     return isPreArrivalStatus || isFutureDate;
   };
 
   const isUserAssignedToPatient = (patient) => {
-    if (!currentUser) return false;
-    if (Array.isArray(patient.recipients) && patient.recipients.includes(currentUser.uid)) {
+    if (!currentUser || !patient) return false;
+    if (Array.isArray(patient?.recipients) && patient?.recipients.includes(currentUser?.uid)) {
       return true;
     }
     return false;
@@ -675,7 +931,8 @@ export default function App() {
 
   const visiblePatients = useMemo(() => {
     return patients.filter(p => {
-      if (currentUser && ['nhanvien', 'quanly_site'].includes(currentUser.role)) {
+      if (!p) return false;
+      if (currentUser && ['nhanvien', 'quanly_site'].includes(currentUser?.role)) {
         if (isFutureOrPreArrival(p)) {
           return isUserAssignedToPatient(p);
         }
@@ -688,15 +945,15 @@ export default function App() {
     return visiblePatients.filter(p => {
       if (!p) return false;
       const matchSearch =
-        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.pid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.boardApproval?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+        p?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p?.pid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p?.boardApproval?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p?.notes?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchSpecialty = !filterSpecialty || p.specialties?.includes(filterSpecialty);
-      const matchTier = !filterTier || p.tier === filterTier;
-      const matchDate = !filterDate || p.date === filterDate;
-      const matchSite = !filterSite || p.site === filterSite;
+      const matchSpecialty = !filterSpecialty || p?.specialties?.includes(filterSpecialty);
+      const matchTier = !filterTier || p?.tier === filterTier;
+      const matchDate = !filterDate || p?.date === filterDate;
+      const matchSite = !filterSite || p?.site === filterSite;
 
       return matchSearch && matchSpecialty && matchTier && matchDate && matchSite;
     });
@@ -706,29 +963,29 @@ export default function App() {
     const filtered = visiblePatients.filter(p => {
       if (!p) return false;
       if (dashFilterMode === 'today') {
-        return p.date === todayStr;
+        return p?.date === todayStr;
       } else {
-        return p.date >= dashStartDate && p.date <= dashEndDate;
+        return p?.date >= dashStartDate && p?.date <= dashEndDate;
       }
     });
 
     let totalPatients = filtered.length;
-    let vipCount = filtered.filter(p => p.tier === 'VIP').length;
-    let vvipCount = filtered.filter(p => p.tier === 'VVIP').length;
-    let totalRevenue = filtered.reduce((sum, p) => sum + (p.totalAmount || 0), 0);
-    let totalDiscount = filtered.reduce((sum, p) => sum + (p.approvedDiscountAmount || 0), 0);
-    let totalCollected = filtered.reduce((sum, p) => sum + Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0)), 0);
+    let vipCount = filtered.filter(p => p?.tier === 'VIP').length;
+    let vvipCount = filtered.filter(p => p?.tier === 'VVIP').length;
+    let totalRevenue = filtered.reduce((sum, p) => sum + (p?.totalAmount || 0), 0);
+    let totalDiscount = filtered.reduce((sum, p) => sum + (p?.approvedDiscountAmount || 0), 0);
+    let totalCollected = filtered.reduce((sum, p) => sum + Math.max(0, (p?.totalAmount || 0) - (p?.approvedDiscountAmount || 0)), 0);
 
     return { totalPatients, vipCount, vvipCount, totalRevenue, totalDiscount, totalCollected };
   }, [visiblePatients, dashFilterMode, dashStartDate, dashEndDate, todayStr]);
 
   const metrics = useMemo(() => {
     let totalPatients = filteredPatients.length;
-    let vipCount = filteredPatients.filter(p => p.tier === 'VIP').length;
-    let vvipCount = filteredPatients.filter(p => p.tier === 'VVIP').length;
-    let totalRevenue = filteredPatients.reduce((sum, p) => sum + (p.totalAmount || 0), 0);
-    let totalDiscount = filteredPatients.reduce((sum, p) => sum + (p.approvedDiscountAmount || 0), 0);
-    let totalCollected = filteredPatients.reduce((sum, p) => sum + Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0)), 0);
+    let vipCount = filteredPatients.filter(p => p?.tier === 'VIP').length;
+    let vvipCount = filteredPatients.filter(p => p?.tier === 'VVIP').length;
+    let totalRevenue = filteredPatients.reduce((sum, p) => sum + (p?.totalAmount || 0), 0);
+    let totalDiscount = filteredPatients.reduce((sum, p) => sum + (p?.approvedDiscountAmount || 0), 0);
+    let totalCollected = filteredPatients.reduce((sum, p) => sum + Math.max(0, (p?.totalAmount || 0) - (p?.approvedDiscountAmount || 0)), 0);
 
     return { totalPatients, vipCount, vvipCount, totalRevenue, totalDiscount, totalCollected };
   }, [filteredPatients]);
@@ -736,10 +993,10 @@ export default function App() {
   const kanbanPatients = useMemo(() => {
     return visiblePatients.filter(p => {
       if (!p) return false;
-      const isToday = p.date === todayStr;
-      const isNotCompleted = p.status !== 'Completed';
-      const matchDate = !filterDate ? (isToday || isNotCompleted) : p.date === filterDate;
-      const matchSite = !filterSite || p.site === filterSite;
+      const isToday = p?.date === todayStr;
+      const isNotCompleted = p?.status !== 'Completed';
+      const matchDate = !filterDate ? (isToday || isNotCompleted) : p?.date === filterDate;
+      const matchSite = !filterSite || p?.site === filterSite;
       return matchDate && matchSite;
     });
   }, [visiblePatients, filterDate, filterSite, todayStr]);
@@ -794,13 +1051,13 @@ export default function App() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-    const tomorrowPatients = visiblePatients.filter(p => p && p.date === tomorrowStr);
+    const tomorrowPatients = visiblePatients.filter(p => p && p?.date === tomorrowStr);
 
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 8);
     const sevenDaysStr = sevenDaysFromNow.toISOString().split('T')[0];
 
-    const nextWeekPatients = visiblePatients.filter(p => p && p.date > tomorrowStr && p.date <= sevenDaysStr);
+    const nextWeekPatients = visiblePatients.filter(p => p && p?.date > tomorrowStr && p?.date <= sevenDaysStr);
 
     return {
       tomorrowPatients,
@@ -809,37 +1066,360 @@ export default function App() {
     };
   }, [visiblePatients]);
 
+  const savePatient = async (e) => {
+    e.preventDefault();
+    if (!formData?.name?.trim()) {
+      showNotification("Họ & Tên khách hàng không được để trống!", "error");
+      return;
+    }
+    if (!formData?.pid?.trim()) {
+      showNotification("Mã PID là bắt buộc!", "error");
+      return;
+    }
+
+    const currentHistory = formData?.history || [];
+    let newLog = {};
+    if (currentId) {
+      newLog = {
+        timestamp: new Date().toISOString(),
+        action: "Cập nhật thông tin hồ sơ",
+        user: currentUser?.name || 'Hệ thống'
+      };
+    } else {
+      newLog = {
+        timestamp: new Date().toISOString(),
+        action: "Tiếp đón khởi tạo hành trình",
+        user: currentUser?.name || 'Hệ thống'
+      };
+    }
+
+    let payload = {
+      ...formData,
+      status: formData?.status || 'Waiting',
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentUser?.name || 'Hệ thống',
+      history: [...currentHistory, newLog]
+    };
+
+    if (formData?.tier === 'VIP') {
+      payload = {
+        ...payload,
+        phiKham: 0,
+        clsCdha: 0,
+        thuocVacxin: 0,
+        insuranceAdvance: 0,
+        discountRate: 0,
+        approvedDiscountAmount: 0,
+        totalAmount: 0
+      };
+    }
+
+    const firstImg = payload.approvalImages && payload.approvalImages.length > 0 ? payload.approvalImages[0] : '';
+    payload.approvalImage = firstImg;
+
+    try {
+      if (isFirebaseConnected && db) {
+        const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
+        if (currentId) {
+          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payload);
+          showNotification("Cập nhật thành công!");
+        } else {
+          await addDoc(patientsCol, { ...payload, createdAt: new Date().toISOString() });
+          showNotification("Đăng ký thành công!");
+        }
+      } else {
+        let updatedList = [...patients];
+        if (currentId) {
+          updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
+          showNotification("Cập nhật thành công!");
+        } else {
+          const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
+          updatedList.unshift(newDoc);
+          showNotification("Đã lưu hồ sơ thành công!");
+        }
+        setPatients(updatedList);
+        localStorage.setItem('local_patients', JSON.stringify(updatedList));
+      }
+      resetForm();
+      setActiveTab('monitoring');
+    } catch (err) {
+      console.warn(err);
+      let updatedList = [...patients];
+      if (currentId) {
+        updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
+        showNotification("Đã lưu cập nhật vào thiết bị (Chế độ Dự Phòng)!");
+      } else {
+        const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
+        updatedList.unshift(newDoc);
+        showNotification("Đã lưu hồ sơ mới vào thiết bị (Chế độ Dự Phòng)!");
+      }
+      setPatients(updatedList);
+      localStorage.setItem('local_patients', JSON.stringify(updatedList));
+      resetForm();
+      setActiveTab('monitoring');
+    }
+  };
+
+  const handleLoginSubmit = (e) => {
+    handleLogin(e);
+  };
+
+  const initiateEdit = (patient) => {
+    if (!patient) return;
+    setCurrentId(patient.id);
+    setFormRightTab(patient.tier === 'VIP' ? 'timeline' : 'billing');
+    setIsHistoryPanelExpanded(false);
+    let initTreatmentType = 'Ngoại trú';
+    if (patient.capCuu) initTreatmentType = 'Cấp cứu/Daycare';
+    else if (patient.noiTru) initTreatmentType = 'Nội trú/ICU';
+    else if (patient.ngoaiVien) initTreatmentType = 'Ngoài viện';
+    else if (patient.treatmentType) initTreatmentType = patient.treatmentType;
+
+    setFormData({
+      name: patient?.name || '',
+      tier: patient?.tier || 'VIP',
+      boardApproval: patient?.boardApproval || '',
+      notes: patient?.notes || '',
+      pid: patient?.pid || '',
+      date: patient?.date || new Date().toISOString().split('T')[0],
+      specialties: patient?.specialties || [],
+      site: patient?.site || 'BV Tâm Anh - Tân Sơn Hòa',
+      examinationArea: patient?.examinationArea || 'Khu VIP',
+      ngoaiTru: patient?.ngoaiTru !== undefined ? patient?.ngoaiTru : (initTreatmentType === 'Ngoại trú'),
+      capCuu: patient?.capCuu !== undefined ? patient?.capCuu : (initTreatmentType === 'Cấp cứu/Daycare'),
+      noiTru: patient?.noiTru !== undefined ? patient?.noiTru : (initTreatmentType === 'Nội trú/ICU'),
+      ngoaiVien: patient?.ngoaiVien !== undefined ? patient?.ngoaiVien : (initTreatmentType === 'Ngoài viện'),
+      treatmentType: initTreatmentType,
+      phiKham: patient?.phiKham || 0,
+      clsCdha: patient?.clsCdha || 0,
+      thuocVacxin: patient?.thuocVacxin || 0,
+      insuranceAdvance: patient?.insuranceAdvance || 0,
+      discountRate: patient?.discountRate || 0,
+      approvedDiscountAmount: patient?.approvedDiscountAmount || 0,
+      totalAmount: patient?.totalAmount || 0,
+      approvalImages: patient?.approvalImages || (patient?.approvalImage ? [patient?.approvalImage] : []),
+      status: patient?.status || 'Waiting',
+      recipients: patient?.recipients || [],
+      history: patient?.history || []
+    });
+    setActiveTab('register');
+  };
+
+  const handleUpdateStatus = async (patientId, newStatus) => {
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) return;
+
+    if (userRole === 'nhanvien') {
+      const currentStatus = patient?.status || 'Waiting';
+      const isAllowed = 
+        (currentStatus === 'Waiting' && newStatus === 'Examining') || 
+        (currentStatus === 'Pharmacy' && newStatus === 'Completed');
+
+      if (!isAllowed) {
+        showNotification("Lỗi: Tài khoản nhân viên chỉ được phép chuyển trạng thái theo đúng luồng bàn giao quy định!", "error");
+        return;
+      }
+    }
+
+    const statusLabel = workflowStatuses.find(s => s.id === newStatus)?.label || newStatus;
+    const currentHistory = patient?.history || [];
+    const newLog = {
+      timestamp: new Date().toISOString(),
+      action: "Chuyển trạng thái hành trình sang: " + statusLabel,
+      user: currentUser?.name || 'Hệ thống'
+    };
+    const updatedHistory = [...currentHistory, newLog];
+
+    try {
+      if (isFirebaseConnected && db) {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'patients', patientId);
+        await updateDoc(docRef, {
+          status: newStatus,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentUser?.name || 'Hệ thống',
+          history: updatedHistory
+        });
+      } else {
+        const updatedList = patients.map(p => {
+          if (p.id === patientId) {
+            return { 
+              ...p, 
+              status: newStatus, 
+              updatedAt: new Date().toISOString(), 
+              updatedBy: currentUser?.name || 'Hệ thống',
+              history: updatedHistory
+            };
+          }
+          return p;
+        });
+        setPatients(updatedList);
+        localStorage.setItem('local_patients', JSON.stringify(updatedList));
+        triggerPushAlert("🔄 Cập nhật hành trình (Cục bộ)", `Khách hàng ${patient?.name || 'VIP'} đã được cập nhật trạng thái mới.`, patient?.recipients || [], "success");
+      }
+      showNotification("Đã cập nhật trạng thái hành trình khám!");
+    } catch (err) {
+      console.error(err);
+      showNotification("Lỗi đồng bộ trạng thái lên database!", "error");
+    }
+  };
+
   const executeCopyVisit = (visit) => {
-    const previousImages = visit.approvalImages || (visit.approvalImage ? [visit.approvalImage] : []);
+    if (!visit) return;
+    const previousImages = visit?.approvalImages || (visit?.approvalImage ? [visit?.approvalImage] : []);
     setFormData(prev => ({
       ...prev,
-      specialties: visit.specialties || [],
-      site: visit.site || 'BV Tâm Anh - Tân Sơn Hòa',
-      examinationArea: visit.examinationArea || 'Khu VIP',
-      boardApproval: visit.boardApproval || '',
-      notes: visit.notes || '',
-      treatmentType: visit.treatmentType || 'Ngoại trú',
-      ngoaiTru: visit.ngoaiTru !== undefined ? visit.ngoaiTru : (visit.treatmentType === 'Ngoại trú'),
-      capCuu: visit.capCuu !== undefined ? visit.capCuu : (visit.treatmentType === 'Cấp cứu/Daycare'),
-      noiTru: visit.noiTru !== undefined ? visit.noiTru : (visit.treatmentType === 'Nội trú/ICU'),
-      ngoaiVien: visit.ngoaiVien !== undefined ? visit.ngoaiVien : (visit.treatmentType === 'Ngoài viện'),
+      specialties: visit?.specialties || [],
+      site: visit?.site || 'BV Tâm Anh - Tân Sơn Hòa',
+      examinationArea: visit?.examinationArea || 'Khu VIP',
+      boardApproval: visit?.boardApproval || '',
+      notes: visit?.notes || '',
+      treatmentType: visit?.treatmentType || 'Ngoại trú',
+      ngoaiTru: visit?.ngoaiTru !== undefined ? visit?.ngoaiTru : (visit?.treatmentType === 'Ngoại trú'),
+      capCuu: visit?.capCuu !== undefined ? visit?.capCuu : (visit?.treatmentType === 'Cấp cứu/Daycare'),
+      noiTru: visit?.noiTru !== undefined ? visit?.noiTru : (visit?.treatmentType === 'Nội trú/ICU'),
+      ngoaiVien: visit?.ngoaiVien !== undefined ? visit?.ngoaiVien : (visit?.treatmentType === 'Ngoài viện'),
       approvalImages: previousImages,
-      recipients: visit.recipients || []
+      recipients: visit?.recipients || []
     }));
     showNotification("Đã sao chép lịch sử thăm khám cũ kèm chứng từ phê duyệt!");
     setCopyConfirmModal({ show: false, visitToCopy: null });
   };
 
+  const handleCreateStaff = async (e) => {
+    e.preventDefault();
+    if (userRole !== 'admin') {
+      showNotification("Chỉ IT Admin mới được phép thao tác!", "error");
+      return;
+    }
+    if (!newStaff?.name?.trim() || !newStaff?.email?.trim() || !newStaff?.uid?.trim()) {
+      showNotification("Vui lòng điền đầy đủ thông tin!", "error");
+      return;
+    }
+
+    const created = {
+      uid: newStaff?.uid?.trim(),
+      name: newStaff?.name?.trim(),
+      email: newStaff?.email?.trim(),
+      role: newStaff?.role || 'nhanvien',
+      title: newStaff?.title?.trim() || 'Nhân viên chuyên ban'
+    };
+
+    if (isFirebaseConnected && db) {
+      try {
+        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', created.uid);
+        await setDoc(userDocRef, created);
+        showNotification("Đã đăng ký và đẩy phân quyền lên Firebase Cloud!");
+      } catch (err) {
+        console.error(err);
+        showNotification("Lỗi đồng bộ phân quyền lên Firebase Cloud!", "error");
+      }
+    } else {
+      const updatedList = [...staffList, created];
+      setStaffList(updatedList);
+      localStorage.setItem('crm_staff_accounts', JSON.stringify(updatedList));
+      showNotification("Đã lưu tài khoản nhân viên cục bộ!");
+    }
+
+    setNewStaff({ name: '', email: '', role: 'nhanvien', uid: '', title: '' });
+  };
+
+  const handleDeleteStaff = (uid) => {
+    if (uid === currentUser?.uid || uid === "acc_admin") {
+      showNotification("Không thể tự xóa tài khoản chính đang hoạt động!", "error");
+      return;
+    }
+
+    setConfirmModal({
+      show: true,
+      title: "Xác nhận gỡ bỏ tài khoản",
+      message: "Bạn có chắc chắn muốn xóa vĩnh viễn quyền truy cập của tài khoản này khỏi hệ thống database không?",
+      action: async () => {
+        try {
+          if (isFirebaseConnected && db) {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', uid));
+            showNotification("Đã xóa quyền tài khoản khỏi Firebase Cloud!");
+          } else {
+            const updated = staffList.filter(s => s.uid !== uid);
+            setStaffList(updated);
+            localStorage.setItem('crm_staff_accounts', JSON.stringify(updated));
+            showNotification("Đã xóa quyền tài khoản cục bộ!");
+          }
+        } catch (err) {
+          console.error(err);
+          showNotification("Gặp sự cố khi gỡ bỏ tài khoản!", "error");
+        }
+        setConfirmModal({ show: false, action: null, message: '', title: '' });
+      }
+    });
+  };
+
+  const saveSettingsOnDb = async (newSettings) => {
+    setSystemSettings(newSettings);
+    if (isFirebaseConnected && db) {
+      try {
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config'), newSettings);
+      } catch (e) {
+        console.error(e);
+      }
+    } else {
+      localStorage.setItem('local_settings', JSON.stringify(newSettings));
+    }
+  };
+
+  const handleAddSpecialty = () => {
+    if (!newSpecialtyInput.trim()) return;
+
+    const inputParts = newSpecialtyInput.split(',').map(p => p.trim()).filter(p => p !== '');
+    let addedCount = 0;
+    let updatedSpecialties = [...(systemSettings?.specialties || [])];
+
+    inputParts.forEach(spec => {
+      if (!updatedSpecialties.includes(spec)) {
+        updatedSpecialties.push(spec);
+        addedCount++;
+      }
+    });
+
+    if (addedCount === 0) {
+      showNotification("Các chuyên khoa đã tồn tại!", "error");
+      return;
+    }
+
+    saveSettingsOnDb({ ...systemSettings, specialties: updatedSpecialties });
+    setNewSpecialtyInput('');
+    showNotification(`Đã thêm mới ${addedCount} chuyên khoa!`);
+  };
+
+  const handleRemoveSpecialty = (spec) => {
+    const updated = (systemSettings?.specialties || []).filter(s => s !== spec);
+    saveSettingsOnDb({ ...systemSettings, specialties: updated });
+    showNotification("Đã gỡ bỏ chuyên khoa.");
+  };
+
+  const handleFormulaCheckboxChange = (field) => {
+    const updatedFormula = {
+      ...(systemSettings?.totalFormulaFields || {}),
+      [field]: !systemSettings?.totalFormulaFields?.[field]
+    };
+    saveSettingsOnDb({ ...systemSettings, totalFormulaFields: updatedFormula });
+    showNotification("Công thức tổng cộng đã được cập nhật!");
+  };
+
+  const handleDiscountFormulaChange = (type) => {
+    saveSettingsOnDb({ ...systemSettings, discountFormulaType: type });
+    showNotification("Phương thức tính miễn giảm đã thay đổi!");
+  };
+
   const handleToggleRecipient = (uid) => {
     setFormData(prev => {
-      const exist = prev.recipients || [];
+      const exist = prev?.recipients || [];
       const updated = exist.includes(uid) ? exist.filter(id => id !== uid) : [...exist, uid];
       return { ...prev, recipients: updated };
     });
   };
 
   const registrableStaffList = useMemo(() => {
-    return staffList.filter(s => ['nhanvien', 'quanly_site'].includes(s.role));
+    return staffList.filter(s => s && ['nhanvien', 'quanly_site'].includes(s?.role));
   }, [staffList]);
 
   const handleCalendarNavigate = (direction) => {
@@ -852,29 +1432,80 @@ export default function App() {
     setCurrentCalendarDate(nextDate);
   };
 
-  const handleSyncMockUsersToCloud = async () => {
-    if (!isFirebaseConnected || !db || !auth.currentUser) {
-      showNotification("Yêu cầu kết nối Cloud và đăng nhập tài khoản thật!", "error");
-      return;
-    }
-    if (userRole !== 'admin') {
-      showNotification("Chỉ IT Admin mới được phép đồng bộ!", "error");
-      return;
-    }
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-tr from-slate-100 via-indigo-50/20 to-slate-200 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-800">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/5 rounded-full filter blur-3xl -translate-x-12 -translate-y-12"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full filter blur-3xl translate-x-12 translate-y-12"></div>
 
-    try {
-      showNotification("Đang xử lý đồng bộ lên Firestore...");
-      for (const account of mockStaffAccounts) {
-        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', account.uid);
-        await setDoc(userDocRef, account);
-      }
-      showNotification("Đã đồng bộ hóa toàn bộ tài khoản mẫu lên Cloud!");
-      triggerPushAlert("⚡ Đồng bộ dữ liệu", "Hồ sơ các nhóm tài khoản đã được đẩy lên Firestore Database thành công.");
-    } catch (e) {
-      console.error(e);
-      showNotification("Lỗi đồng bộ. Hãy kiểm tra lại quy tắc Rules của bạn.", "error");
-    }
-  };
+        <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-200 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
+          <div className="text-center space-y-3">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2.5 shadow-sm border border-slate-200 mx-auto">
+              <img 
+                src="https://iili.io/F66acRs.png" 
+                alt="Hospital Logo" 
+                className="w-full h-full object-contain" 
+              />
+            </div>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-black tracking-tight text-slate-900">
+                QL KH VIP-VVIP
+              </h1>
+              <p className="text-xs text-slate-400 font-semibold tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
+            </div>
+          </div>
+
+          {authError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-605 text-center font-bold flex items-center gap-1.5 justify-center">
+              <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-500" />
+              {authError}
+            </div>
+          )}
+
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email </label>
+              <input 
+                type="email" 
+                placeholder="nhập email tại đây"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
+              />
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu</label>
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full pl-4 pr-10 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => { setShowPassword(!showPassword); }}
+                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
+            >
+              <Lock className="w-4 h-4" /> Xác thực
+            </button>
+          </form>
+
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
@@ -883,7 +1514,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 animate-fadeIn">
           <div className="absolute top-4 right-4 z-50 flex gap-2">
             <button 
-              onClick={() => setLightboxImages([])}
+              onClick={() => { setLightboxImages([]); }}
               className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition"
             >
               <X className="w-5 h-5" />
@@ -930,7 +1561,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleIn">
             <div className="flex items-center gap-2.5 text-indigo-600">
-              <Copy className="w-5 h-5 flex-shrink-0 text-indigo-505" />
+              <Copy className="w-5 h-5 flex-shrink-0 text-indigo-500" />
               <h3 className="text-base font-extrabold text-slate-955">Xác nhận sao chép lịch sử</h3>
             </div>
             <p className="text-xs text-slate-505 leading-relaxed font-semibold">
@@ -938,13 +1569,13 @@ export default function App() {
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button 
-                onClick={() => setCopyConfirmModal({ show: false, visitToCopy: null })}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-605 rounded-xl transition"
+                onClick={() => { setCopyConfirmModal({ show: false, visitToCopy: null }); }}
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 rounded-xl transition"
               >
                 Hủy bỏ
               </button>
               <button 
-                onClick={() => executeCopyVisit(copyConfirmModal.visitToCopy)}
+                onClick={() => { executeCopyVisit(copyConfirmModal.visitToCopy); }}
                 className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white rounded-xl transition shadow-xs"
               >
                 Xác nhận sao chép
@@ -955,7 +1586,7 @@ export default function App() {
       )}
 
       {isScanning && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-50 bg-slate-955/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
           <style>{`
             #reader video {
               width: 100% !important;
@@ -978,14 +1609,14 @@ export default function App() {
             </div>
 
             {scannerError ? (
-              <div className="p-4 bg-rose-50 border border-rose-105 rounded-2xl text-[11px] text-rose-600 font-semibold space-y-2">
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-[11px] text-rose-600 font-semibold space-y-2">
                 <p>{scannerError}</p>
                 <button 
                   type="button"
                   onClick={() => {
                     setScannerError('');
                     setIsScanning(false);
-                    setTimeout(() => setIsScanning(true), 200);
+                    setTimeout(() => { setIsScanning(true); }, 200);
                   }}
                   className="px-3 py-1 bg-rose-600 text-white rounded-lg font-bold"
                 >
@@ -1004,7 +1635,7 @@ export default function App() {
                   <div className="absolute inset-x-0 h-0.5 bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-bounce" style={{ top: '45%' }}></div>
                   <div className="flex justify-between">
                     <div className="w-4 h-4 border-b-4 border-l-4 border-indigo-500 rounded-bl-xs"></div>
-                    <div className="w-4 h-4 border-b-4 border-r-4 border-indigo-500 rounded-br-xs"></div>
+                    <div className="w-4 h-4 border-b-4 border-r-4 border-indigo-500 rounded-tr-xs"></div>
                   </div>
                 </div>
               </div>
@@ -1013,7 +1644,7 @@ export default function App() {
             <button
               type="button"
               onClick={stopScanner}
-              className="px-4 py-1.5 border border-slate-200 text-slate-500 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition w-full"
+              className="px-4 py-1.5 border border-slate-200 text-slate-550 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition w-full"
             >
               Hủy bỏ quét
             </button>
@@ -1038,11 +1669,11 @@ export default function App() {
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="text-xs font-extrabold text-slate-900">{alert.title}</h4>
-              <p className="text-[11px] text-slate-600 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
+              <p className="text-[11px] text-slate-605 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
             </div>
             <button 
-              onClick={() => setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id))}
-              className="text-slate-400 hover:text-slate-600 p-0.5 transition"
+              onClick={() => { setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id)); }}
+              className="text-slate-400 hover:text-slate-655 p-0.5 transition"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -1057,11 +1688,11 @@ export default function App() {
               <ShieldAlert className="w-5 h-5 flex-shrink-0 text-rose-500" />
               <h3 className="text-base font-extrabold text-slate-955">{confirmModal.title || "Xác nhận tác vụ"}</h3>
             </div>
-            <p className="text-sm text-slate-500 leading-relaxed font-medium">{confirmModal.message}</p>
+            <p className="text-sm text-slate-505 leading-relaxed font-medium">{confirmModal.message}</p>
             <div className="flex justify-end gap-2 pt-2">
               <button 
-                onClick={() => setConfirmModal({ show: false, action: null, message: '', title: '' })}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-605 rounded-xl transition"
+                onClick={() => { setConfirmModal({ show: false, action: null, message: '', title: '' }); }}
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 rounded-xl transition"
               >
                 Hủy bỏ
               </button>
@@ -1136,7 +1767,7 @@ export default function App() {
 
               {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
                 <button 
-                  onClick={() => setActiveTab('settings')}
+                  onClick={() => { setActiveTab('settings'); }}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                     activeTab === 'settings' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
                   }`}
@@ -1153,72 +1784,51 @@ export default function App() {
               </div>
 
               <button 
-                onClick={() => setShowNotificationCenter(!showNotificationCenter)}
+                onClick={() => { setShowNotificationCenter(!showNotificationCenter); }}
                 className={`p-2 rounded-xl transition-all relative border border-slate-200 ${
-                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-505 hover:bg-slate-105'
+                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600' : 'text-slate-605'
                 }`}
-                title="Trung tâm thông báo"
               >
-                {unreadCount > 0 ? (
-                  <>
-                    <BellRing className="w-5 h-5 text-indigo-600 animate-pulse" />
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-600 text-white font-black text-[9px] rounded-full flex items-center justify-center border-2 border-white shadow-xs">
-                      {unreadCount}
-                    </span>
-                  </>
-                ) : (
-                  <Bell className="w-5 h-5" />
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-bounce">
+                    {unreadCount}
+                  </span>
                 )}
               </button>
 
               {showNotificationCenter && (
-                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 p-4 space-y-3 animate-scaleIn">
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                    <div className="flex items-center gap-1.5">
-                      <BellRing className="w-4 h-4 text-indigo-600" />
-                      <h4 className="text-xs font-black text-slate-900">Trung tâm thông báo</h4>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={markAllAsRead}
-                        className="text-[10px] text-indigo-600 hover:text-indigo-800 font-extrabold transition"
-                      >
-                        Đã đọc tất cả
-                      </button>
-                      <button 
-                        onClick={clearAllNotifications}
-                        className="text-[10px] text-rose-500 hover:text-rose-700 font-extrabold transition"
-                      >
-                        Xóa tất cả
-                      </button>
+                <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 space-y-3 z-50 animate-scaleIn text-slate-800">
+                  <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">Trung tâm thông báo</h4>
+                    <div className="flex gap-2">
+                      <button onClick={markAllAsRead} className="text-[10px] text-indigo-600 font-bold hover:underline">Đọc hết</button>
+                      <span className="text-slate-300">|</span>
+                      <button onClick={clearAllNotifications} className="text-[10px] text-slate-400 font-bold hover:underline">Xóa hết</button>
                     </div>
                   </div>
-
-                  <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                  <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
                     {notifications.length === 0 ? (
-                      <div className="text-center py-8 text-slate-405 space-y-2">
-                        <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400" />
-                        <p className="text-[11px] font-bold">Hệ thống chưa ghi nhận thông báo mới.</p>
+                      <div className="py-8 text-center text-slate-400 space-y-1">
+                        <Bell className="w-8 h-8 mx-auto stroke-1 text-slate-300" />
+                        <p className="text-[11px] font-semibold">Không có thông báo mới nào</p>
                       </div>
                     ) : (
                       notifications.map(n => (
-                        <div 
-                          key={n.id}
-                          className={`p-3 rounded-2xl border text-xs transition flex gap-2 items-start ${
-                            n.read ? 'border-slate-205 bg-slate-50/50' : 'border-indigo-100 bg-indigo-50/30'
-                          }`}
-                        >
-                          <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                            n.type === 'success' ? 'bg-emerald-500' :
-                            n.type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'
-                          }`} />
-                          <div className="flex-1 space-y-0.5">
-                            <strong className="text-slate-800 block leading-tight">{n.title}</strong>
-                            <p className="text-[11px] text-slate-555 leading-normal font-medium">{n.message}</p>
-                            <span className="text-[9px] text-slate-400 font-bold block flex items-center gap-1 mt-1">
-                              <Clock className="w-3 h-3" /> {n.timestamp}
-                            </span>
+                        <div key={n.id} className={`p-2.5 rounded-xl border text-[11px] transition-all relative ${n.read ? 'border-slate-100 bg-slate-50/50' : 'border-indigo-50 bg-indigo-50/20'}`}>
+                          <div className="flex justify-between items-start gap-1">
+                            <span className="font-extrabold text-slate-900 leading-tight block">{n.title}</span>
+                            <span className="text-[9px] text-slate-400 font-bold flex-shrink-0">{n.timestamp}</span>
                           </div>
+                          <p className="text-slate-500 mt-1 font-semibold leading-relaxed">{n.message}</p>
+                          {!n.read && (
+                            <button 
+                              onClick={() => { setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item)); }}
+                              className="absolute top-1.5 right-1.5 text-indigo-600 hover:text-indigo-800"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       ))
                     )}
@@ -1226,13 +1836,9 @@ export default function App() {
                 </div>
               )}
 
-              <div className="hidden sm:block text-right">
-                <div className="text-xs font-extrabold text-slate-955">{currentUser.name}</div>
-                <div className="text-[10px] text-indigo-605 font-extrabold uppercase tracking-wide">{currentUser.title || userRole}</div>
-              </div>
               <button 
                 onClick={handleLogout}
-                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl border border-slate-200 transition-all"
+                className="p-2 border border-slate-200 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 rounded-xl transition-all"
                 title="Đăng xuất"
               >
                 <LogOut className="w-5 h-5" />
@@ -1243,1341 +1849,1275 @@ export default function App() {
         </div>
       </header>
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-100 flex justify-around py-3 shadow-xl rounded-t-3xl">
-        <button 
-          onClick={() => { resetForm(); setActiveTab('dashboard'); }}
-          className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
-        >
-          <LayoutDashboard className="w-5 h-5" />
-          <span>Bảng điều khiển</span>
-        </button>
-        <button 
-          onClick={() => { resetForm(); setActiveTab('register'); }}
-          className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'register' ? 'text-indigo-600' : 'text-slate-400'}`}
-        >
-          <Plus className="w-5 h-5" />
-          <span>Tiếp nhận VIP</span>
-        </button>
-        <button 
-          onClick={() => { resetForm(); setActiveTab('monitoring'); }}
-          className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'monitoring' ? 'text-indigo-600' : 'text-slate-400'}`}
-        >
-          <ClipboardList className="w-5 h-5" />
-          <span>Theo dõi hồ sơ</span>
-        </button>
-        {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
-          <button 
-            onClick={() => setActiveTab('settings')}
-            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'}`}
-          >
-            <Settings className="w-5 h-5" />
-            <span>Cấu hình</span>
-          </button>
-        )}
-      </div>
-
+      {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
-        {/* ========================== GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN ========================== */}
+        {/* Tab Dashboard */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-8 animate-fadeIn">
+          <div className="space-y-6">
             
-            {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && iosNotificationStatus !== 'granted' && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-sm">
-                <div className="flex gap-3 items-start">
-                  <div className="p-2 bg-amber-100 text-amber-800 rounded-xl mt-0.5 border border-amber-200">
-                    <Smartphone className="w-5 h-5" />
+            {/* Bộ lọc Thống kê Báo cáo */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+                  <TrendingUp className="w-4 h-4 text-indigo-500" /> Báo cáo thống kê tổng hợp
+                </h3>
+                <p className="text-[11px] text-slate-400 font-semibold">Tự động tổng hợp và cập nhật dữ liệu tiếp đón thời gian thực</p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex border border-slate-200 rounded-lg p-0.5 bg-slate-50">
+                  <button 
+                    onClick={() => setDashFilterMode('today')}
+                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${dashFilterMode === 'today' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Hôm nay
+                  </button>
+                  <button 
+                    onClick={() => setDashFilterMode('range')}
+                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${dashFilterMode === 'range' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Khoảng ngày
+                  </button>
+                </div>
+
+                {dashFilterMode === 'range' && (
+                  <div className="flex items-center gap-2 animate-scaleIn">
+                    <input 
+                      type="date" 
+                      value={dashStartDate}
+                      onChange={(e) => setDashStartDate(e.target.value)}
+                      className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-hidden text-slate-700"
+                    />
+                    <span className="text-slate-400 text-xs">đến</span>
+                    <input 
+                      type="date" 
+                      value={dashEndDate}
+                      onChange={(e) => setDashEndDate(e.target.value)}
+                      className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-hidden text-slate-700"
+                    />
                   </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 uppercase">Chưa kích hoạt cảnh báo ngầm thiết bị</h4>
-                    <p className="text-[11px] text-slate-500 mt-0.5 font-semibold leading-relaxed">
-                      Để nhận thông báo báo cáo ca VVIP và duyệt chi phí ngay cả khi đóng ứng dụng hoặc khóa màn hình iPhone, bạn cần bấm kích hoạt dưới đây.
-                    </p>
+                )}
+              </div>
+            </div>
+
+            {/* Dashboard Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-2xs relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/5 rounded-bl-full"></div>
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Tổng lượt đón tiếp</span>
+                    <span className="text-2xl font-black text-slate-900 block">{dashMetrics?.totalPatients}</span>
+                  </div>
+                  <div className="p-2 bg-indigo-50 rounded-xl text-indigo-600">
+                    <Users className="w-5 h-5" />
                   </div>
                 </div>
-                <button
-                  onClick={requestIosNotificationPermission}
-                  className="w-full sm:w-auto px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black rounded-xl transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1"
-                >
-                  <BellRing className="w-3.5 h-3.5" /> Kích hoạt thông báo
-                </button>
+                <div className="mt-4 flex gap-1.5 flex-wrap">
+                  <span className="px-2 py-0.5 bg-sky-50 border border-sky-100 text-sky-700 text-[10px] font-extrabold rounded-md">
+                    {dashMetrics?.vipCount} VIP
+                  </span>
+                  <span className="px-2 py-0.5 bg-amber-50 border border-amber-100 text-amber-700 text-[10px] font-extrabold rounded-md">
+                    {dashMetrics?.vvipCount} VVIP
+                  </span>
+                </div>
               </div>
-            )}
 
-            <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl shadow-slate-100 border border-slate-700">
-              <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20"></div>
-              <div className="relative z-10 space-y-4 max-w-2xl">
-                <span className="px-3 py-1 bg-amber-400 text-slate-950 rounded-full text-[10px] font-black uppercase tracking-wider">
-                  Phòng Chăm Sóc Khách Hàng
-                </span>
-                <h2 className="text-xl sm:text-3xl font-black tracking-tight leading-tight">
-                  Chào, {currentUser.name}!
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-semibold">
-                  Công cụ hỗ trợ quản lý và theo dõi việc tiếp đón và chi phí của nhóm Khách hàng VIP, VVIP, Ngoại giao của Ban giám đốc.
-                </p>
-                <div className="pt-2">
-                  <button 
-                    onClick={() => { resetForm(); setActiveTab('register'); }}
-                    className="px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-955 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-2 transition transform active:scale-95"
-                  >
-                    <Plus className="w-4.5 h-4.5 stroke-[3px]" /> Tiếp nhận hồ sơ mới <ArrowRight className="w-4 h-4" />
-                  </button>
+              <div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-2xs relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-bl-full"></div>
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Doanh thu tạm tính</span>
+                    <span className="text-lg sm:text-2xl font-black text-slate-900 block">{formatCurrency(dashMetrics?.totalRevenue)}</span>
+                  </div>
+                  <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
+                    <DollarSign className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-4 text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                  <Info className="w-3.5 h-3.5" /> Chưa khấu trừ bảo hiểm & miễn giảm
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-2xs relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/5 rounded-bl-full"></div>
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Tổng tiền miễn giảm</span>
+                    <span className="text-lg sm:text-2xl font-black text-rose-600 block">{formatCurrency(dashMetrics?.totalDiscount)}</span>
+                  </div>
+                  <div className="p-2 bg-rose-50 rounded-xl text-rose-600">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-4 text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                  <Info className="w-3.5 h-3.5" /> Chỉ tính trên hồ sơ thuộc nhóm VVIP
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-2xs relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-violet-500/5 rounded-bl-full"></div>
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Thực thu dự kiến</span>
+                    <span className="text-lg sm:text-2xl font-black text-indigo-700 block">{formatCurrency(dashMetrics?.totalCollected)}</span>
+                  </div>
+                  <div className="p-2 bg-violet-50 rounded-xl text-violet-600">
+                    <Activity className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-4 text-[10px] text-slate-450 font-black flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5 text-emerald-500" /> Đã cập nhật dòng tiền sạch
                 </div>
               </div>
             </div>
 
-            {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-                    Những gì của ngày hôm nay
-                  </h3>
-                  <span className="text-[10px] bg-indigo-50 border border-indigo-200 text-indigo-750 px-2.5 py-1 rounded-full font-extrabold">
-                    {isFirebaseConnected ? 'Live' : 'Offline'}
+            {/* Phân tích kế hoạch ngày mai & Tuần tới */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* Lịch trình ngày mai */}
+              <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-2xs space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-sky-500" /> Kế hoạch đón tiếp ngày mai ({briefingStats?.tomorrowDateFormatted})
+                    </h3>
+                    <p className="text-[11px] text-slate-400 font-semibold">Danh sách đã lên lịch, chuẩn bị trước hồ sơ chuyên khoa</p>
+                  </div>
+                  <span className="px-3 py-1 bg-sky-50 text-sky-700 text-xs font-black rounded-xl">
+                    {briefingStats?.tomorrowPatients.length} ca tiếp đón
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
-                      <Users className="w-6 h-6" />
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                  {briefingStats?.tomorrowPatients.length === 0 ? (
+                    <div className="py-12 text-center text-slate-400 space-y-2">
+                      <Clock className="w-10 h-10 mx-auto stroke-1 text-slate-350" />
+                      <p className="text-xs font-semibold">Chưa ghi nhận ca đăng ký lịch trước cho ngày mai</p>
                     </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Khách hàng</span>
-                      <span className="text-xl font-black text-slate-900">{metrics.totalPatients}</span>
-                      <span className="text-[11px] text-slate-500 block">
-                        VIP: {metrics.vipCount} | VVIP: {metrics.vvipCount}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-indigo-50 text-indigo-600 border-indigo-100">
-                      <Activity className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Tổng chi phí</span>
-                      <span className="text-xl font-black text-slate-900">{formatCurrency(metrics.totalRevenue)}</span>
-                      <span className="text-[11px] text-slate-500 block">
-                        Tổng chi phí sử dụng
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
-                      <CreditCard className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Tổng duyệt giảm</span>
-                      <span className="text-xl font-black text-rose-600">-{formatCurrency(metrics.totalDiscount)}</span>
-                      <span className="text-[11px] text-rose-400 block font-bold">
-                        Ban lãnh đạo duyệt
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                    <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
-                    Hành Trình Khách Hàng (Realtime Kanban)
-                  </h3>
-                  <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng.</p>
-                </div>
-                <div className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-black rounded-lg">
-                  Tổng lượt khám: {kanbanPatients.length}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4 overflow-x-auto pb-4">
-                {workflowStatuses.map(col => {
-                  const colPatients = kanbanPatients.filter(p => (p.status || 'Waiting') === col.id);
-
-                  return (
-                    <div 
-                      key={col.id} 
-                      className="bg-slate-50/60 rounded-2xl p-3 border border-slate-200 flex flex-col min-w-[150px] min-h-[350px]"
-                    >
-                      <div className="flex justify-between items-center pb-3 border-b border-slate-200 mb-3">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className={`w-2 h-2 rounded-full ${col.dot}`}></span>
-                          <span className="text-[10px] font-black text-slate-700 truncate">{col.label}</span>
-                        </div>
-                        <span className="text-[10px] font-black bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-550">
-                          {colPatients.length}
-                        </span>
-                      </div>
-
-                      <div className="flex-1 space-y-3 overflow-y-auto max-h-[350px]">
-                        {colPatients.map(p => {
-                          const patientSite = sites.find(s => s.label === p.site) || sites[0];
-                          return (
-                            <div 
-                              key={p.id}
-                              className={`bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition duration-150 space-y-2.5 relative group ${patientSite.marker}`}
-                            >
-                              <div className="flex justify-between items-start gap-1">
-                                <span className="text-[8px] text-indigo-600 font-mono font-black truncate">PID: {p.pid}</span>
-                                <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
-                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                                }`}>
-                                  {p.tier}
-                                </span>
-                              </div>
-
-                              <div className="font-extrabold text-[11px] text-slate-800 leading-tight truncate" title={p.name}>
-                                {p.name}
-                              </div>
-
-                              <div className="space-y-1">
-                                <select
-                                  value={p.status || 'Waiting'}
-                                  onChange={(e) => handleUpdateStatus(p.id, e.target.value)}
-                                  className="w-full px-1.5 py-1 text-[9px] font-black border border-slate-200 rounded-md bg-white text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-indigo-500 cursor-pointer"
-                                >
-                                  {workflowStatuses.map(st => (
-                                    <option key={st.id} value={st.id}>{st.label}</option>
-                                  ))}
-                                </select>
-                              </div>
-
-                              <div className="flex flex-col gap-0.5 text-[8px] text-slate-400 border-t border-slate-200 pt-1.5 font-semibold">
-                                <span className="truncate">NV cập nhật: {p.updatedBy || 'Lễ tân'}</span>
-                                <span className="flex-shrink-0 text-slate-305 font-mono">
-                                  {p.updatedAt ? new Date(p.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date(p.updatedAt).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'}) : '---'}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                        {colPatients.length === 0 && (
-                          <div className="text-center py-8 text-slate-300 text-[10px] font-bold border-2 border-dashed border-slate-200 rounded-xl">
-                            Trống
+                  ) : (
+                    briefingStats?.tomorrowPatients.map(p => (
+                      <div key={p.id} className="p-4 border border-slate-100 rounded-2xl hover:border-slate-200 transition-all flex items-center justify-between gap-4 bg-slate-50/40">
+                        <div className="space-y-1 min-w-0">
+                          <span className="text-xs font-extrabold text-slate-900 hover:text-indigo-600 cursor-pointer block truncate" onClick={() => initiateEdit(p)}>
+                            {p?.name}
+                          </span>
+                          <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-500 font-semibold">
+                            <span className="font-bold text-slate-800">PID: {p?.pid || '---'}</span>
+                            <span>•</span>
+                            <span className="text-indigo-600 truncate max-w-[150px]">{p?.specialties?.join(', ') || 'Chưa chọn khoa'}</span>
                           </div>
-                        )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className={`px-2 py-0.5 text-[10px] font-black rounded-md ${p?.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'}`}>
+                            {p?.tier}
+                          </span>
+                          <button 
+                            onClick={() => initiateEdit(p)}
+                            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-                <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo dõi hồ sơ
-                </h4>
-                <p className="text-xs text-slate-555 leading-relaxed font-semibold">
-                  Truy cập nhanh danh sách bệnh nhân VIP/VVIP đang điều trị tại phòng khám và bệnh viện chuyên khoa. Thực hiện tra cứu tiến trình và biên lai đính kèm.
-                </p>
-                <button 
-                  onClick={() => setActiveTab('monitoring')}
-                  className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition"
-                >
-                  Đến bảng giám sát <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-
-              {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-                  <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống
-                  </h4>
-                  <p className="text-xs text-slate-555 leading-relaxed font-semibold">
-                    Thiết lập công thức tính tổng phí điều trị, cấu hình các chuyên khoa tiếp nhận và phân quyền tài khoản cho đội ngũ tiếp đón.
-                  </p>
-                  <button 
-                    onClick={() => setActiveTab('settings')}
-                    className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition"
-                  >
-                    Đến trang cấu hình <ChevronRight className="w-4 h-4" />
-                  </button>
+                    ))
+                  )}
                 </div>
-              )}
+              </div>
+
+              {/* Tóm tắt tuần tới & Phím nhanh */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xs space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide">Tóm tắt tuần kế tiếp</h3>
+                  
+                  <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100/50 flex items-center justify-between">
+                    <div className="space-y-1">
+                      <span className="text-xs font-bold text-slate-500 block">Tiếp đón (7 ngày tới)</span>
+                      <span className="text-3xl font-black text-slate-900 block">{briefingStats?.nextWeekCount}</span>
+                    </div>
+                    <div className="p-3 bg-indigo-500 text-white rounded-2xl">
+                      <Calendar className="w-6 h-6" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-400">Truy cập nhanh tác vụ</h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    <button 
+                      onClick={() => { resetForm(); setActiveTab('register'); }}
+                      className="w-full p-3 bg-slate-900 hover:bg-slate-850 text-white text-xs font-bold rounded-2xl transition flex items-center justify-between"
+                    >
+                      <span>Tiếp đón hồ sơ VIP/VVIP mới</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+                      className="w-full p-3 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-2xl transition flex items-center justify-between"
+                    >
+                      <span>Mở bảng theo dõi Kanban</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
           </div>
         )}
 
+        {/* Tab Register */}
         {activeTab === 'register' && (
-          <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-md">
-              <div>
-                <h2 className="text-base font-black text-slate-955 flex items-center gap-1.5">
-                  {currentId ? "Cập Nhật Tiến Độ" : "Tạo lượt VIP/VVIP Mới"}
-                </h2>
+            {/* Cột Trái: Lịch sử & Đơn vị liên kết */}
+            <div className="lg:col-span-1 space-y-6">
+              
+              <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-2xs space-y-4">
+                <div className="flex border-b border-slate-100 pb-0.5">
+                  <button 
+                    onClick={() => setLeftFormTab('visitHistory')}
+                    className={`flex-1 pb-2 text-xs font-black uppercase tracking-wider border-b-2 transition ${leftFormTab === 'visitHistory' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}
+                  >
+                    Lịch sử ({patientVisitHistory.length})
+                  </button>
+                  <button 
+                    onClick={() => setLeftFormTab('timeline')}
+                    className={`flex-1 pb-2 text-xs font-black uppercase tracking-wider border-b-2 transition ${leftFormTab === 'timeline' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}
+                  >
+                    Tiến trình
+                  </button>
+                </div>
+
+                {leftFormTab === 'visitHistory' && (
+                  <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                    {patientVisitHistory.length === 0 ? (
+                      <div className="py-12 text-center text-slate-400 space-y-2">
+                        <History className="w-10 h-10 mx-auto stroke-1 text-slate-300" />
+                        <p className="text-xs font-semibold leading-relaxed">
+                          {!formData?.pid ? "Vui lòng nhập PID để tìm kiếm" : "Bệnh nhân chưa từng có lượt khám cũ"}
+                        </p>
+                      </div>
+                    ) : (
+                      patientVisitHistory.map(visit => (
+                        <div key={visit.id} className="p-3.5 border border-slate-100 rounded-2xl bg-slate-50/50 space-y-3">
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="space-y-0.5">
+                              <span className="text-xs font-extrabold text-slate-905 block">Ngày khám: {formatDateVN(visit?.date)}</span>
+                              <span className="text-[10px] text-indigo-600 font-bold block truncate max-w-[150px]">
+                                {visit?.specialties?.join(', ') || 'Chưa chọn khoa'}
+                              </span>
+                            </div>
+                            <button 
+                              type="button"
+                              onClick={() => { setCopyConfirmModal({ show: true, visitToCopy: visit }); }}
+                              className="p-1.5 hover:bg-indigo-50 hover:text-indigo-600 text-slate-400 rounded-lg transition"
+                              title="Sao chép dữ liệu lượt khám này"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          </div>
+                          
+                          {(visit?.boardApproval || visit?.notes) && (
+                            <div className="p-2 bg-white rounded-xl border border-slate-100 text-[10px] space-y-1 text-slate-500 font-semibold leading-relaxed">
+                              {visit?.boardApproval && <p className="text-slate-800">📌 Phê duyệt: {visit?.boardApproval}</p>}
+                              {visit?.notes && <p>✍️ Ghi chú: {visit?.notes}</p>}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {leftFormTab === 'timeline' && (
+                  <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
+                    {(!formData?.history || formData?.history.length === 0) ? (
+                      <div className="py-12 text-center text-slate-400 space-y-2">
+                        <Activity className="w-10 h-10 mx-auto stroke-1 text-slate-300" />
+                        <p className="text-xs font-semibold">Chưa ghi nhận tiến trình hoạt động của lượt khám này</p>
+                      </div>
+                    ) : (
+                      <div className="relative pl-4 border-l border-slate-150 space-y-4 py-2 ml-2">
+                        {formData?.history.map((log, idx) => (
+                          <div key={idx} className="relative text-[11px] space-y-1">
+                            <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 bg-indigo-600 border-2 border-white rounded-full"></div>
+                            <div className="flex justify-between items-start gap-1">
+                              <span className="font-bold text-slate-800 leading-tight block">{log.action}</span>
+                              <span className="text-[9px] text-slate-400 font-semibold flex-shrink-0">
+                                {new Date(log.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <p className="text-slate-405 font-bold">Thực hiện: {log.user}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <button 
-                  type="button" 
-                  onClick={() => { resetForm(); setActiveTab('monitoring'); }}
-                  className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold rounded-xl transition"
-                >
-                  Hủy bỏ
-                </button>
-                <button 
-                  type="submit"
-                  className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
-                >
-                  <Check className="w-4 h-4" /> {currentId ? "Cập nhật" : "Đăng ký"}
-                </button>
-              </div>
+
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
-              
-              <div className="lg:col-span-2 space-y-6">
+            {/* Cột Phải: Biểu mẫu Tiếp đón */}
+            <div className="lg:col-span-2">
+              <form onSubmit={savePatient} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xs space-y-6">
                 
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
-                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                    Thông Tin Hành Chính
-                  </h3>
+                <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                  <div className="space-y-1">
+                    <h2 className="text-base font-black text-slate-900 uppercase tracking-wide">
+                      {currentId ? "📝 Hiệu chỉnh hành trình tiếp đón" : "🆕 Đăng ký lượt tiếp đón mới"}
+                    </h2>
+                    <p className="text-xs text-slate-400 font-semibold">
+                      {currentId ? "Cập nhật thông tin chi tiết và chứng từ hành trình" : "Điền đầy đủ thông tin hoặc quét mã để ghi nhận khách hàng"}
+                    </p>
+                  </div>
+                  {currentId && (
+                    <button 
+                      type="button" 
+                      onClick={resetForm}
+                      className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-605 text-xs font-black rounded-xl transition"
+                    >
+                      Hủy cập nhật
+                    </button>
+                  )}
+                </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách hàng *</label>
+                {/* Hạng & Mã PID */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-505 block">Hạng phân lớp khách hàng</label>
+                    <div className="flex border border-slate-200 rounded-xl p-1 bg-slate-50">
+                      <button 
+                        type="button"
+                        onClick={() => handleInputChange('tier', 'VIP')}
+                        className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all ${formData?.tier === 'VIP' ? 'bg-white text-sky-800 shadow-2xs border border-sky-100' : 'text-slate-500'}`}
+                      >
+                        Khách VIP
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => handleInputChange('tier', 'VVIP')}
+                        className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all ${formData?.tier === 'VVIP' ? 'bg-white text-amber-800 shadow-2xs border border-amber-100' : 'text-slate-500'}`}
+                      >
+                        Khách VVIP
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-505 block">Mã định danh bệnh nhân (PID)</label>
+                    <div className="relative">
                       <input 
                         type="text" 
-                        placeholder="Nhập họ và tên Khách hàng"
-                        value={formData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800"
                         required
+                        placeholder="nhập mã PID hoặc bấm quét"
+                        value={formData?.pid}
+                        onChange={(e) => handleInputChange('pid', e.target.value)}
+                        className="w-full pl-4 pr-12 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs focus:outline-hidden text-slate-800 font-semibold"
                       />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Mã PID *</label>
-                      <div className="flex gap-2">
-                        <input 
-                          type="text" 
-                          placeholder="Nhập/Quét mã bệnh nhân PID..."
-                          value={formData.pid}
-                          onChange={(e) => handleInputChange('pid', e.target.value)}
-                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-mono font-black bg-white text-slate-800"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setScannerError('');
-                            setIsScanning(true);
-                          }}
-                          className="px-3 bg-slate-100 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs border border-slate-200/80"
-                        >
-                          <Scan className="w-4 h-4 text-slate-500" /> Quét mã
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-605 block">Phân Hạng Tiếp Đón</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleInputChange('tier', 'VIP')}
-                          className={`py-2 px-4 rounded-xl text-xs font-bold border transition ${
-                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700 font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                          }`}
-                        >
-                          Hạng VIP
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleInputChange('tier', 'VVIP')}
-                          className={`py-2 px-4 rounded-xl text-xs font-bold border transition ${
-                            formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-200 text-amber-700 font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                          }`}
-                        >
-                          Hạng VVIP
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-605 block">Ngày khám / Điều trị</label>
-                      <input 
-                        type="date" 
-                        value={formData.date}
-                        onChange={(e) => handleInputChange('date', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-605 block">Site thăm khám</label>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                        {sites.map(s => (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => handleInputChange('site', s.label)}
-                            className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center ${
-                              formData.site === s.label ? `${s.bg} border-slate-400 font-black` : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                            }`}
-                          >
-                            {s.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-605 block">Trạng Thái (Vị Trí Kanban Ban Đầu)</label>
-                      <select
-                        value={formData.status}
-                        onChange={(e) => handleInputChange('status', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white cursor-pointer"
+                      <button 
+                        type="button"
+                        onClick={() => setIsScanning(true)}
+                        className="absolute right-3 top-3 text-slate-400 hover:text-indigo-600 transition"
+                        title="Quét mã vạch qua Camera"
                       >
-                        {workflowStatuses.map(status => (
-                          <option key={status.id} value={status.id}>{status.label}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-605 block">HĐQT Phê Duyệt</label>
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap gap-1.5">
-                          {["Sếp Dũng", "Sếp Hoa", "Sếp Nga", "Sếp Thông"].map((boss) => (
-                            <button
-                              key={boss}
-                              type="button"
-                              onClick={() => handleInputChange('boardApproval', boss)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
-                                formData.boardApproval === boss 
-                                  ? 'bg-slate-900 border-slate-900 text-white shadow-xs font-extrabold' 
-                                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                              }`}
-                            >
-                              {boss}
-                            </button>
-                          ))}
-                        </div>
-                        <input 
-                          type="text" 
-                          placeholder="Thành viên hội đồng quản trị duyệt..."
-                          value={formData.boardApproval}
-                          onChange={(e) => handleInputChange('boardApproval', e.target.value)}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-semibold bg-white text-slate-800"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-605 block">Ghi chú</label>
-                      <textarea 
-                        rows="5"
-                        placeholder="Mô tả ghi chú nếu có..."
-                        value={formData.notes}
-                        onChange={(e) => handleInputChange('notes', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-medium bg-white text-slate-800"
-                      ></textarea>
+                        <Scan className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Chuyên khoa thăm khám multi-select + search */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4" ref={specRef}>
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                    Chuyên khoa thăm khám
-                  </h3>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Tìm kiếm chuyên khoa..."
-                      value={specSearch}
-                      onChange={(e) => {
-                        setSpecSearch(e.target.value);
-                        setIsSpecDropdownOpen(true);
-                      }}
-                      onFocus={() => setIsSpecDropdownOpen(true)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800"
+                {/* Họ tên & Ngày khám */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-505 block">Họ & Tên khách hàng</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="Họ & Tên in hoa viết dấu"
+                      value={formData?.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs focus:outline-hidden text-slate-800 font-semibold"
                     />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-505 block">Ngày tiếp đón chuyên khoa</label>
+                    <input 
+                      type="date" 
+                      required
+                      value={formData?.date}
+                      onChange={(e) => handleInputChange('date', e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs focus:outline-hidden text-slate-800 font-semibold"
+                    />
+                  </div>
+                </div>
+
+                {/* Site khám & Khu vực khám */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-505 block">Site cơ sở tiếp đón</label>
+                    <select 
+                      value={formData?.site}
+                      onChange={(e) => handleInputChange('site', e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs focus:outline-hidden text-slate-800 font-semibold"
+                    >
+                      {sites.map(s => (
+                        <option key={s.id} value={s.label}>{s.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-505 block">Phân vùng đón tiếp</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ví dụ: Khu VIP tầng 1"
+                      value={formData?.examinationArea}
+                      onChange={(e) => handleInputChange('examinationArea', e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs focus:outline-hidden text-slate-800 font-semibold"
+                    />
+                  </div>
+                </div>
+
+                {/* Chọn chuyên khoa */}
+                <div className="space-y-1.5" ref={specRef}>
+                  <label className="text-xs font-bold text-slate-505 block">Các chuyên khoa tiếp nhận</label>
+                  <div className="relative">
+                    <div 
+                      onClick={() => setIsSpecDropdownOpen(true)}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 focus-within:border-indigo-500 rounded-xl text-xs text-slate-605 cursor-pointer min-h-[42px] flex items-center justify-between"
+                    >
+                      <span className="font-semibold text-slate-700 truncate">
+                        {formData?.specialties && formData?.specialties.length > 0 ? formData?.specialties.join(', ') : "Bấm để chọn chuyên khoa"}
+                      </span>
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    </div>
+
                     {isSpecDropdownOpen && (
-                      <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-fadeIn">
-                        {filteredSpecialties.length === 0 ? (
-                          <div className="text-xs text-slate-400 font-bold text-center py-4">Không tìm thấy chuyên khoa phù hợp</div>
-                        ) : (
-                          filteredSpecialties.map((spec) => {
-                            const isSelected = formData.specialties.includes(spec);
+                      <div className="absolute left-0 right-0 top-12 mt-1 bg-white border border-slate-200 rounded-2xl shadow-2xl p-4 space-y-3 z-30 animate-scaleIn">
+                        <input 
+                          type="text" 
+                          placeholder="Tìm nhanh chuyên khoa..."
+                          value={specSearch}
+                          onChange={(e) => setSpecSearch(e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-hidden font-semibold"
+                        />
+                        <div className="max-h-48 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          {filteredSpecialties.map(spec => {
+                            const isSelected = formData?.specialties?.includes(spec);
                             return (
-                              <button
+                              <div 
                                 key={spec}
-                                type="button"
                                 onClick={() => toggleSpecialtySelection(spec)}
-                                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${
-                                  isSelected ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-700'
-                                }`}
+                                className={`p-2 rounded-xl text-[11px] font-bold cursor-pointer transition flex items-center justify-between ${isSelected ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-600'}`}
                               >
                                 <span>{spec}</span>
-                                {isSelected && <Check className="w-4 h-4 text-indigo-650" />}
-                              </button>
-                            );
-                          })
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {formData.specialties.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
-                      {formData.specialties.map((spec) => (
-                        <span
-                          key={spec}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold"
-                        >
-                          {spec}
-                          <button
-                            type="button"
-                            onClick={() => toggleSpecialtySelection(spec)}
-                            className="p-0.5 hover:bg-slate-850 rounded-full transition"
-                          >
-                            <X className="w-3 h-3 text-slate-400 hover:text-white" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Chi Phí Điều Trị & Lâm Sàng Thực Tế */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
-                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                    Chi Phí Điều Trị & Lâm Sàng Thực Tế
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
-                      <select
-                        value={formData.treatmentType || 'Ngoại trú'}
-                        onChange={(e) => handleTreatmentTypeChange(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 cursor-pointer"
-                      >
-                        <option value="Ngoại trú">Ngoại trú</option>
-                        <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
-                        <option value="Nội trú/ICU">Nội trú/ICU</option>
-                        <option value="Ngoài viện">Ngoài viện</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
-                          onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
-                          onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-655 block">Thuốc/vacxin</label>
-                      <div className="relative">
-                        <input 
-                          type="text" 
-                          value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
-                          onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
-                        />
-                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-
-              </div>
-
-              <div className="space-y-6">
-                
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                  <div className="flex border-b border-slate-100 pb-2">
-                    <button
-                      type="button"
-                      onClick={() => setFormRightTab('billing')}
-                      className={`flex-1 py-2 text-xs font-black text-center transition border-b-2 ${
-                        formRightTab === 'billing' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
-                      }`}
-                    >
-                      Bảng tổng hợp
-                    </button>
-                    {currentId && (
-                      <button
-                        type="button"
-                        onClick={() => setFormRightTab('timeline')}
-                        className={`flex-1 py-2 text-xs font-black text-center transition border-b-2 ${
-                          formRightTab === 'timeline' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
-                        }`}
-                      >
-                        Lịch sử Timeline
-                      </button>
-                    )}
-                  </div>
-
-                  {formRightTab === 'billing' ? (
-                    <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800 animate-fadeIn">
-                      <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
-                      
-                      <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
-                        <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
-                        Biên lai chi phí
-                      </h3>
-
-                      <div className="space-y-1.5 pt-2 relative z-10">
-                        <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
-                        <div className="relative">
-                          <input 
-                            type="text" 
-                            value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
-                            onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
-                            placeholder="0"
-                            className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-500 font-mono"
-                          />
-                          <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">VNĐ</span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3 relative z-10">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
-                            Duyệt giảm (%) {userRole === 'nhanvien' && '🔒'}
-                          </label>
-                          <div className="relative">
-                            <input 
-                              type="number" 
-                              min="0"
-                              max="100"
-                              value={formData.discountRate || ''}
-                              disabled={userRole === 'nhanvien'} 
-                              onChange={(e) => handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                              placeholder="0"
-                              className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-505 ${
-                                userRole === 'nhanvien'
-                                  ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
-                                  : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
-                              }`}
-                            />
-                            <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">%</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
-                        
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Tổng phí tự động:</span>
-                          <div className="flex items-center gap-1">
-                            <input 
-                              type="text"
-                              value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
-                              onChange={(e) => handleCurrencyChange('totalAmount', e.target.value)}
-                              className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
-                            />
-                            <span>đ</span>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
-                          <div className="flex items-center gap-1">
-                            <span className="text-rose-400">-</span>
-                            <input 
-                              type="text"
-                              value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
-                              onChange={(e) => handleCurrencyChange('approvedDiscountAmount', e.target.value)}
-                              className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono"
-                            />
-                            <span className="text-rose-400">đ</span>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
-                          <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
-                        </div>
-
-                        <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
-                          <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
-                          <span className="text-lg font-black text-emerald-400 font-mono">
-                            {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
-                          </span>
-                        </div>
-
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-h-[350px] overflow-y-auto pr-1 animate-fadeIn">
-                      {(!formData.history || formData.history.length === 0) ? (
-                        <p className="text-xs text-slate-400 font-bold text-center py-6">Chưa có hoạt động nào được ghi nhận.</p>
-                      ) : (
-                        <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
-                          {formData.history.map((log, index) => (
-                            <div key={index} className="relative">
-                              <span className="absolute -left-[22px] top-1 bg-indigo-600 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
-                              <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
-                              <div className="text-[9px] text-slate-400 mt-1 flex justify-between font-bold">
-                                <span>Bởi: {log.user}</span>
-                                <span className="font-mono">
-                                  {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'})}
-                                </span>
+                                {isSelected && <Check className="w-4 h-4 text-indigo-600" />}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                    Ảnh Phê Duyệt Gửi Kèm
-                  </h3>
-
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-2">
-                      {formData.approvalImages?.map((img, index) => (
-                        <div key={index} className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-50 animate-fadeIn">
-                          <img src={img} alt="Công văn" className="w-full h-full object-cover" />
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              const updated = formData.approvalImages.filter((_, i) => i !== index);
-                              handleInputChange('approvalImages', updated);
-                            }}
-                            className="absolute right-1.5 top-1.5 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full transition shadow-md"
-                            title="Gỡ bỏ"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                      <label className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition duration-200 aspect-video">
-                        <Upload className="w-5 h-5 text-slate-400" />
-                        <span className="text-[10px] font-bold text-slate-700">Tải thêm ảnh</span>
-                        <input type="file" accept="image/*" multiple onChange={handleMultipleImagesUpload} className="hidden" />
-                      </label>
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-              </div>
+                {/* Loại hình điều trị */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-505 block">Phương án điều trị chuyên ban</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {['Ngoại trú', 'Cấp cứu/Daycare', 'Nội trú/ICU', 'Ngoài viện'].map(type => {
+                      const isSelected = formData?.treatmentType === type;
+                      return (
+                        <button 
+                          key={type}
+                          type="button"
+                          onClick={() => handleTreatmentTypeChange(type)}
+                          className={`py-2.5 px-3 border rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${isSelected ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        >
+                          {isSelected && <Check className="w-3.5 h-3.5" />}
+                          {type}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Phân quyền Nhân viên: Chọn người phân công hỗ trợ */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-505 block">Chỉ định nhân sự đón tiếp trực tiếp (FCM Push Target)</label>
+                  <div className="p-3 border border-slate-200 rounded-2xl max-h-36 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {registrableStaffList.length === 0 ? (
+                      <div className="col-span-2 py-6 text-center text-slate-400 text-[11px] font-semibold">Chưa có danh sách nhân viên tiếp đón</div>
+                    ) : (
+                      registrableStaffList.map(staff => {
+                        const isAssigned = formData?.recipients?.includes(staff.uid);
+                        return (
+                          <div 
+                            key={staff.uid}
+                            onClick={() => handleToggleRecipient(staff.uid)}
+                            className={`p-2 border rounded-xl flex items-center justify-between cursor-pointer transition text-[11px] font-semibold ${isAssigned ? 'border-indigo-200 bg-indigo-50/40 text-indigo-700 font-extrabold' : 'border-slate-100 hover:bg-slate-50 text-slate-600'}`}
+                          >
+                            <div className="space-y-0.5">
+                              <span>{staff.name}</span>
+                              <span className="text-[9px] text-slate-400 block font-normal">{staff.title}</span>
+                            </div>
+                            <input 
+                              type="checkbox" 
+                              checked={isAssigned} 
+                              onChange={() => {}} // Handle bằng onClick Div để tăng diện tích tap
+                              className="rounded-sm border-slate-300 text-indigo-600 focus:ring-indigo-500 pointer-events-none" 
+                            />
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Chỉ đạo và Ghi chú */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-505 block">Chỉ đạo phê duyệt của Hội Đồng Quản Trị</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ý kiến phê duyệt từ ban giám đốc"
+                      value={formData?.boardApproval}
+                      onChange={(e) => handleInputChange('boardApproval', e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs focus:outline-hidden text-slate-800 font-semibold"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-505 block">Ghi chú hành trình / Hồ sơ bệnh án</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ghi chú quan trọng đón tiếp"
+                      value={formData?.notes}
+                      onChange={(e) => handleInputChange('notes', e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-xs focus:outline-hidden text-slate-800 font-semibold"
+                    />
+                  </div>
+                </div>
+
+                {/* Vùng Chi phí (Ẩn nếu là khách VIP bình thường - Chỉ hiển thị cho VVIP) */}
+                {formData?.tier === 'VVIP' && (
+                  <div className="p-5 bg-slate-50/50 border border-slate-200 rounded-2xl space-y-4 animate-scaleIn">
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center justify-between">
+                      <span>Dự toán & Miễn giảm chi phí điều trị (VVIP)</span>
+                      <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-100 font-extrabold px-1.5 py-0.5 rounded-sm">HỒ SƠ BỆNH ÁN CHI TIẾT</span>
+                    </h3>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500">Khám lâm sàng (VND)</span>
+                        <input 
+                          type="text" 
+                          value={formData?.phiKham === 0 ? '' : formData?.phiKham.toLocaleString('vi-VN')}
+                          onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
+                          placeholder="0 ₫"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-hidden text-slate-800"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500">CLS & CĐHA (VND)</span>
+                        <input 
+                          type="text" 
+                          value={formData?.clsCdha === 0 ? '' : formData?.clsCdha.toLocaleString('vi-VN')}
+                          onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
+                          placeholder="0 ₫"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-hidden text-slate-800"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500">Thuốc & Vắc-xin (VND)</span>
+                        <input 
+                          type="text" 
+                          value={formData?.thuocVacxin === 0 ? '' : formData?.thuocVacxin.toLocaleString('vi-VN')}
+                          onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
+                          placeholder="0 ₫"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-hidden text-slate-800"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500">Tạm ứng bảo hiểm (VND)</span>
+                        <input 
+                          type="text" 
+                          value={formData?.insuranceAdvance === 0 ? '' : formData?.insuranceAdvance.toLocaleString('vi-VN')}
+                          onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
+                          placeholder="0 ₫"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-hidden text-slate-800"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500">Tỷ lệ miễn giảm (%)</span>
+                        <input 
+                          type="number" 
+                          max="100"
+                          min="0"
+                          disabled={userRole === 'nhanvien'}
+                          value={formData?.discountRate || ''}
+                          onChange={(e) => handleInputChange('discountRate', e.target.value === '' ? 0 : Math.min(100, parseInt(e.target.value, 10)))}
+                          placeholder="Ví dụ: 20%"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-hidden disabled:bg-slate-100 text-slate-800"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-slate-500">Tiền được giảm (Tự tính)</span>
+                        <div className="w-full px-3 py-2.5 bg-rose-50 border border-rose-100 text-rose-700 rounded-lg text-xs font-extrabold">
+                          {formatCurrency(formData?.approvedDiscountAmount)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex justify-between items-center text-xs font-black uppercase text-slate-800">
+                      <span>Tổng giá trị hành trình trước miễn giảm:</span>
+                      <span className="text-sm font-black text-indigo-700">{formatCurrency(formData?.totalAmount)}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Văn bản đính kèm phê duyệt */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-505 block">
+                    Chứng từ, văn bản phê duyệt đính kèm ({formData?.approvalImages ? formData?.approvalImages.length : 0} ảnh)
+                  </label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="px-4 py-3 border border-dashed border-slate-300 hover:border-indigo-500 hover:bg-slate-50 rounded-2xl cursor-pointer transition flex flex-col items-center justify-center gap-1">
+                      <Upload className="w-5 h-5 text-slate-400" />
+                      <span className="text-[10px] text-slate-500 font-bold">Tải lên các ảnh</span>
+                      <input 
+                        type="file" 
+                        multiple
+                        accept="image/*"
+                        onChange={handleMultipleImagesUpload}
+                        className="hidden" 
+                      />
+                    </label>
+
+                    {formData?.approvalImages && formData?.approvalImages.map((img, idx) => (
+                      <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200 group">
+                        <img 
+                          src={img} 
+                          alt="Đính kèm" 
+                          className="w-full h-full object-cover cursor-pointer"
+                          onClick={() => { setLightboxImages(formData?.approvalImages); setLightboxIndex(idx); }} 
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              approvalImages: prev?.approvalImages?.filter((_, i) => i !== idx)
+                            }));
+                          }}
+                          className="absolute top-1 right-1 p-0.5 bg-rose-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Button Save */}
+                <button 
+                  type="submit" 
+                  className="w-full py-3.5 bg-slate-900 hover:bg-slate-850 text-white text-xs font-black uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-2"
+                >
+                  <Check className="w-4 h-4" /> {currentId ? "Lưu cập nhật thay đổi" : "Tiếp đón và đẩy thông báo"}
+                </button>
+
+              </form>
             </div>
-          </form>
+
+          </div>
         )}
 
+        {/* Tab Monitoring */}
         {activeTab === 'monitoring' && (
-          <div className="space-y-6 animate-fadeIn">
+          <div className="space-y-6">
             
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h2 className="text-lg font-black text-slate-955 flex items-center gap-2">
-                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo Dõi Hồ Sơ Khách Hàng VIP-VVIP
-                </h2>
-              </div>
-              <button 
-                onClick={() => { resetForm(); setActiveTab('register'); }}
-                className="px-4 py-2.5 bg-slate-900 text-white hover:bg-slate-850 rounded-xl text-xs font-black flex items-center gap-1.5 border border-slate-900 transition transform active:scale-95"
-              >
-                <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ mới
-              </button>
-            </div>
-
-            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-              <div className="flex flex-col md:flex-row gap-3">
-                <div className="flex-1 relative">
-                  <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Tìm theo tên, mã PID, ghi chú..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-xs font-bold bg-white"
-                  />
+            {/* Bộ lọc Monitoring */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-2xs space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide">
+                    Hành trình đón tiếp thời gian thực ({filteredPatients.length} ca)
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-semibold">Tự động kết nối và đồng bộ trạng thái luồng tiếp đón khách hàng</p>
                 </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  <select 
-                    value={filterTier}
-                    onChange={(e) => setFilterTier(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+
+                <div className="flex border border-slate-200 rounded-lg p-0.5 bg-slate-50">
+                  <button 
+                    onClick={() => setCalendarMode('list')}
+                    className={`px-3.5 py-1 text-[10px] font-bold rounded-md transition-all ${calendarMode === 'list' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
                   >
-                    <option value="">Tất cả hạng</option>
-                    <option value="VIP">VIP</option>
-                    <option value="VVIP">VVIP</option>
-                  </select>
+                    Kanban / Danh sách
+                  </button>
+                  <button 
+                    onClick={() => setCalendarMode('calendar')}
+                    className={`px-3.5 py-1 text-[10px] font-bold rounded-md transition-all ${calendarMode === 'calendar' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Lịch tuần / Tháng
+                  </button>
+                </div>
+              </div>
+
+              {calendarMode === 'list' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 pt-2">
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input 
+                      type="text" 
+                      placeholder="Tìm tên, PID, chỉ đạo..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-[11px] focus:outline-hidden font-semibold"
+                    />
+                  </div>
 
                   <select 
                     value={filterSpecialty}
                     onChange={(e) => setFilterSpecialty(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] focus:outline-hidden font-semibold"
                   >
-                    <option value="">Tất cả chuyên khoa</option>
-                    {systemSettings.specialties.map((spec, idx) => (
-                      <option key={idx} value={spec}>{spec}</option>
+                    <option value="">-- Tất cả Chuyên khoa --</option>
+                    {(systemSettings?.specialties || []).map(s => (
+                      <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
 
                   <select 
                     value={filterSite}
                     onChange={(e) => setFilterSite(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] focus:outline-hidden font-semibold"
                   >
-                    <option value="">Tất cả Site</option>
+                    <option value="">-- Tất cả Site cơ sở --</option>
                     {sites.map(s => (
                       <option key={s.id} value={s.label}>{s.label}</option>
                     ))}
                   </select>
 
+                  <select 
+                    value={filterTier}
+                    onChange={(e) => setFilterTier(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] focus:outline-hidden font-semibold"
+                  >
+                    <option value="">-- Hạng Khách hàng --</option>
+                    <option value="VIP">VIP</option>
+                    <option value="VVIP">VVIP</option>
+                  </select>
+
                   <input 
-                    type="date"
+                    type="date" 
                     value={filterDate}
                     onChange={(e) => setFilterDate(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] focus:outline-hidden font-semibold text-slate-700"
                   />
-
-                  {(searchTerm || filterTier || filterSpecialty || filterDate || filterSite) && (
-                    <button 
-                      onClick={() => { setSearchTerm(''); setFilterTier(''); setFilterSpecialty(''); setFilterDate(''); setFilterSite(''); }}
-                      className="px-3 py-2 text-rose-500 hover:bg-rose-50 rounded-xl text-xs font-bold transition"
-                    >
-                      Xóa lọc
-                    </button>
-                  )}
                 </div>
-              </div>
+              )}
             </div>
 
-            {isLoading ? (
-              <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
-                <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
-                <p className="text-slate-400 font-semibold text-xs animate-pulse">Đang cập nhật...</p>
-              </div>
-            ) : filteredPatients.length === 0 ? (
-              <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
-                <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto text-slate-400">
-                  <ClipboardList className="w-8 h-8" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy gì hết nè</h3>
-                  <p className="text-slate-400 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="hidden lg:block bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-[10px] text-slate-400 font-black uppercase tracking-wider">
-                          <th className="py-4 px-5">PID / Khách Hàng</th>
-                          <th className="py-4 px-3">Phân hạng</th>
-                          <th className="py-4 px-3">Ngày Khám / Site</th>
-                          <th className="py-4 px-3">Chuyên Khoa</th>
-                          <th className="py-4 px-3">HĐQT Phê Duyệt</th>
-                          <th className="py-4 px-3 text-right">Tổng Chi Phí</th>
-                          <th className="py-4 px-3 text-right">Duyệt Giảm</th>
-                          <th className="py-4 px-3 text-right">Thực Thu</th>
-                          <th className="py-4 px-5 text-right">Tác vụ</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200 text-xs">
-                        {filteredPatients.map((p) => {
-                          const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
-                          const pSite = sites.find(s => s.label === p.site) || sites[0];
-                          return (
-                            <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 animate-fadeIn">
-                              <td className="py-4 px-5">
-                                <div className="font-extrabold text-slate-955 text-sm">{p.name}</div>
-                                <div className="text-[10px] text-indigo-600 font-mono font-black mt-0.5">PID: {p.pid}</div>
-                              </td>
-                              <td className="py-4 px-3">
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${
-                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                                }`}>
-                                  <Sparkles className="w-3 h-3" />
-                                  {p.tier}
-                                </span>
-                              </td>
-                              <td className="py-4 px-3">
-                                <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
-                                <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1 ${pSite.bg}`}>
-                                  {pSite.label}
-                                </div>
-                              </td>
-                              <td className="py-4 px-3">
-                                <div className="flex flex-wrap gap-1 max-w-[180px]">
-                                  {p.specialties?.map((s, idx) => (
-                                    <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded font-bold">
-                                      {s}
-                                    </span>
-                                  ))}
-                                </div>
-                              </td>
-                              <td className="py-4 px-3">
-                                <div className="font-bold text-slate-700">{p.boardApproval || '---'}</div>
-                                {p.notes && <div className="text-[10px] text-slate-400 max-w-[150px] truncate" title={p.notes}>{p.notes}</div>}
-                              </td>
-                              <td className="py-4 px-3 text-right font-bold text-slate-900 font-mono">
-                                {formatCurrency(p.totalAmount)}
-                              </td>
-                              <td className="py-4 px-3 text-right">
-                                <div className="font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</div>
-                                <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
-                              </td>
-                              <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
-                                {formatCurrency(realCollected)}
-                              </td>
-                              <td className="py-4 px-5 text-right whitespace-nowrap">
-                                <div className="flex justify-end gap-1.5">
-                                  {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
-                                    <button 
-                                      onClick={() => {
-                                        const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
-                                        setLightboxImages(imgs);
-                                        setLightboxIndex(0);
-                                      }}
-                                      className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl transition" 
-                                      title="Ảnh duyệt"
-                                    >
-                                      <ImageIcon className="w-4 h-4" />
-                                    </button>
-                                  )}
-                                  <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
-                                    <Edit3 className="w-4 h-4" />
-                                  </button>
-                                  
-                                  {userRole !== 'nhanvien' ? (
-                                    <button 
-                                      onClick={() => {
-                                        setConfirmModal({
-                                          show: true,
-                                          title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
-                                          message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
-                                          action: async () => {
-                                            try {
-                                              if (isFirebaseConnected && db) {
-                                                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
-                                                showNotification("Đã xóa hồ sơ thành công!");
-                                              } else {
-                                                const updated = patients.filter(item => item.id !== p.id);
-                                                setPatients(updated);
-                                                localStorage.setItem('local_patients', JSON.stringify(updated));
-                                                showNotification("Đã xóa hồ sơ cục bộ!");
-                                              }
-                                              setConfirmModal({ show: false, action: null, message: '', title: '' });
-                                            } catch (err) {
-                                              console.error(err);
-                                            }
-                                          }
-                                        });
-                                      }} 
-                                      className="p-1.5 bg-rose-50 border border-rose-200 text-rose-605 hover:bg-rose-500 hover:text-white rounded-xl transition" 
-                                      title="Xóa"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  ) : (
-                                    <span className="p-1.5 text-slate-300 cursor-not-allowed">
-                                      <Lock className="w-4 h-4" />
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+            {/* Chế độ Lịch tuần / tháng (Calendar View) */}
+            {calendarMode === 'calendar' ? (
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xs space-y-4 animate-scaleIn">
+                
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => handleCalendarNavigate('prev')}
+                      className="p-1.5 border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-600 transition"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide">
+                      {currentCalendarDate.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })}
+                    </h3>
+                    <button 
+                      onClick={() => handleCalendarNavigate('next')}
+                      className="p-1.5 border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-600 transition"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="flex border border-slate-200 rounded-lg p-0.5 bg-slate-50">
+                    <button 
+                      onClick={() => setCalendarMode('calendar')}
+                      className="px-3.5 py-1 text-[10px] font-bold rounded-md bg-white text-slate-900 shadow-2xs"
+                    >
+                      Tuần làm việc
+                    </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
-                  {filteredPatients.map((p) => {
-                    const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
-                    const pSite = sites.find(s => s.label === p.site) || sites[0];
+                <div className="grid grid-cols-7 gap-2 pt-2">
+                  {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
+                    <div key={d} className="text-center text-[10px] font-black uppercase text-slate-400 py-1">{d}</div>
+                  ))}
+                  
+                  {weekDays.map((day, idx) => {
+                    const dayStr = day.toISOString().split('T')[0];
+                    const patientsOnDay = visiblePatients.filter(p => p && p?.date === dayStr);
+                    const isToday = dayStr === todayStr;
+
                     return (
-                      <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
-                            <h4 className="font-extrabold text-slate-900 text-sm">{p.name}</h4>
-                            <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
-                              <Calendar className="w-3.5 h-3.5" />
-                              Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
-                            </p>
-                            <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1.5 ${pSite.bg}`}>
-                              {pSite.label}
+                      <div key={idx} className={`p-3 border rounded-2xl min-h-[120px] flex flex-col justify-between ${isToday ? 'border-indigo-200 bg-indigo-50/10' : 'border-slate-100 bg-slate-50/20'}`}>
+                        <div className="flex justify-between items-center">
+                          <span className={`text-[10px] font-bold ${isToday ? 'text-indigo-600 font-extrabold' : 'text-slate-500'}`}>{day.getDate()}</span>
+                          {patientsOnDay.length > 0 && (
+                            <span className="w-4 h-4 bg-indigo-600 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                              {patientsOnDay.length}
                             </span>
-                          </div>
-                          <span className={`inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[9px] font-black ${
-                            p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
-                          }`}>
-                            {p.tier}
-                          </span>
+                          )}
                         </div>
 
-                        <div className="flex flex-wrap gap-1">
-                          {p.specialties?.map((s, idx) => (
-                            <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-2.5 py-0.5 rounded font-bold">
-                              {s}
-                            </span>
+                        <div className="space-y-1 mt-2 flex-1 overflow-y-auto max-h-[100px] pr-0.5">
+                          {patientsOnDay.map(p => (
+                            <div 
+                              key={p.id}
+                              onClick={() => initiateEdit(p)}
+                              className={`p-1.5 rounded-lg border text-[9px] font-black cursor-pointer truncate ${p?.tier === 'VVIP' ? 'bg-amber-100/60 border-amber-250 text-amber-900' : 'bg-sky-100/60 border-sky-250 text-sky-900'}`}
+                              title={p?.name}
+                            >
+                              {p?.name}
+                            </div>
                           ))}
-                        </div>
-
-                        <div className="bg-slate-50 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-655">
-                          <div>Phê duyệt: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
-                          {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
-                          <div>
-                            <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
-                            <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
-                          </div>
-                          <div>
-                            <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
-                            <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
-                          </div>
-                          <div>
-                            <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
-                            <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-end gap-2 pt-1">
-                          {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
-                            <button 
-                              type="button"
-                              onClick={() => {
-                                const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
-                                setLightboxImages(imgs);
-                                setLightboxIndex(0);
-                              }}
-                              className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-605 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
-                            >
-                              <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
-                            </button>
-                          )}
-                          <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-705 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
-                            <Edit3 className="w-3.5 h-3.5" /> Sửa
-                          </button>
-                          
-                          {userRole !== 'nhanvien' && (
-                            <button 
-                              type="button"
-                              onClick={() => {
-                                setConfirmModal({
-                                  title: "Xác nhận gỡ bỏ dữ liệu",
-                                  message: "Bạn có chắc chắn muốn gỡ bỏ vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
-                                  show: true,
-                                  action: async () => {
-                                    try {
-                                      if (isFirebaseConnected && db) {
-                                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
-                                        showNotification("Đã xóa dữ liệu đám mây!");
-                                      } else {
-                                        const updated = patients.filter(item => item.id !== p.id);
-                                        setPatients(updated);
-                                        localStorage.setItem('local_patients', JSON.stringify(updated));
-                                        showNotification("Đã xóa dữ liệu!");
-                                      }
-                                      setConfirmModal({ show: false, action: null, message: '', title: '' });
-                                    } catch (err) {
-                                      console.error(err);
-                                    }
-                                  }
-                                });
-                              }}
-                              className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" /> Xóa
-                            </button>
-                          )}
                         </div>
                       </div>
                     );
                   })}
                 </div>
-              </>
-            )}
-          </div>
-        )}
 
-        {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
-          <div className="space-y-6 animate-fadeIn">
-            
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-              <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-                <div>
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
-                    Cấu Hinh Các Trường Cộng Tổng
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1">Lựa chọn các loại chi phí phát sinh để tự động tính vào [Tổng cộng]:</p>
-                </div>
-
-                <div className="space-y-3">
-                  {[
-                    { key: 'phiKham', label: 'Phí khám/Điều trị' },
-                    { key: 'ngoaiTru', label: 'Ngoại trú' },
-                    { key: 'capCuu', label: 'Cấp cứu/daycare' },
-                    { key: 'noiTru', label: 'Nội trú/ICU' },
-                    { key: 'ngoaiVien', label: 'Ngoại viện' },
-                    { key: 'clsCdha', label: 'CLS/CDHA' },
-                    { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
-                  ].map((field) => (
-                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-150 hover:bg-slate-55 cursor-pointer transition">
-                      <input 
-                        type="checkbox"
-                        checked={systemSettings.totalFormulaFields[field.key] || false}
-                        onChange={() => handleFormulaCheckboxChange(field.key)}
-                        className="w-4 h-4 rounded-md text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                      />
-                      <span className="text-xs font-bold text-slate-700">{field.label}</span>
-                    </label>
-                  ))}
-                </div>
-
-                <div className="border-t border-slate-150 pt-6 space-y-4">
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
-                      Phương Thức Tính Số Tiền Duyệt Giảm
-                    </h3>
+              </div>
+            ) : (
+              /* Chế độ Bảng Kanban đón tiếp (Kanban View) */
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                {/* Cột 1: Đăng ký / Chờ đón tiếp */}
+                <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-2xs space-y-4">
+                  <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-800">1. Chờ đón tiếp</span>
+                    <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-md">
+                      {kanbanPatients.filter(p => ['Scheduled', 'Preparing', 'ReceivedInfo', 'Waiting'].includes(p.status)).length} ca
+                    </span>
                   </div>
 
-                  <div className="space-y-2.5">
-                    <button
-                      type="button"
-                      onClick={() => handleDiscountFormulaChange('only_total')}
-                      className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
-                        systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
-                        systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
-                      }`}>
-                        {systemSettings.discountFormulaType === 'only_total' && <span className="w-2 h-2 rounded-full bg-white"></span>}
-                      </div>
-                      <div>
-                        <strong className="text-xs text-slate-800 block">Duyệt giảm trên tổng gốc</strong>
-                        <span className="text-[10px] text-slate-400 block mt-1">Biểu thức: <code>Số tiền duyệt giảm = [Tổng cộng] × [% giảm]</code></span>
-                      </div>
-                    </button>
+                  <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                    {kanbanPatients.filter(p => ['Scheduled', 'Preparing', 'ReceivedInfo', 'Waiting'].includes(p.status)).map(p => (
+                      <div key={p.id} className="p-4 border border-slate-100 hover:border-slate-200 bg-slate-50/30 rounded-2xl space-y-3 relative group">
+                        
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-extrabold text-slate-905 block group-hover:text-indigo-600 cursor-pointer" onClick={() => initiateEdit(p)}>
+                              {p?.name}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold block">PID: {p?.pid} • Hạng: {p?.tier}</span>
+                          </div>
+                          <span className={`px-2 py-0.5 text-[9px] font-black rounded-sm ${p?.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'}`}>
+                            {p?.tier}
+                          </span>
+                        </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleDiscountFormulaChange('total_minus_insurance_advance')}
-                      className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
-                        systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
-                        systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
-                      }`}>
-                        {systemSettings.discountFormulaType === 'total_minus_insurance_advance' && <span className="w-2 h-2 rounded-full bg-white"></span>}
+                        <div className="p-2.5 bg-white rounded-xl border border-slate-100 space-y-1 text-[10px] text-slate-500 font-bold">
+                          <p className="text-indigo-600">🏥 {p?.specialties?.join(', ') || 'Chưa chọn khoa'}</p>
+                          {p?.boardApproval && <p className="text-slate-800">📌 Phê duyệt: {p?.boardApproval}</p>}
+                        </div>
+
+                        <div className="flex gap-2 pt-1">
+                          <button 
+                            onClick={() => handleUpdateStatus(p.id, 'Examining')}
+                            className="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black rounded-xl transition"
+                          >
+                            Bàn giao Khám
+                          </button>
+                          <button 
+                            onClick={() => initiateEdit(p)}
+                            className="px-2.5 py-1.5 border border-slate-200 hover:bg-slate-100 text-slate-500 rounded-xl transition"
+                          >
+                            Chi tiết
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <strong className="text-xs text-slate-800 block">Khấu trừ bảo hiểm & tạm ứng trước khi giảm</strong>
-                        <span className="text-[10px] text-slate-400 block mt-1">Biểu thức: <code>Số tiền duyệt giảm = ([Tổng cộng] - [BHYT/Tạm ứng]) × [% giảm]</code></span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Cột 2: Đang Khám / Cận lâm sàng */}
+                <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-2xs space-y-4">
+                  <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-800">2. Đang khám / CLS</span>
+                    <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded-md">
+                      {kanbanPatients.filter(p => ['Received', 'Examining', 'Testing', 'Reviewing'].includes(p.status)).length} ca
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                    {kanbanPatients.filter(p => ['Received', 'Examining', 'Testing', 'Reviewing'].includes(p.status)).map(p => (
+                      <div key={p.id} className="p-4 border border-slate-100 hover:border-slate-200 bg-slate-50/30 rounded-2xl space-y-3 relative group">
+                        
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-extrabold text-slate-905 block group-hover:text-indigo-600 cursor-pointer" onClick={() => initiateEdit(p)}>
+                              {p?.name}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold block">PID: {p?.pid} • Hạng: {p?.tier}</span>
+                          </div>
+                          <span className="px-2 py-0.5 text-[9px] font-black rounded-sm bg-sky-100 text-sky-800">
+                            {workflowStatuses.find(s => s.id === p.status)?.label || p.status}
+                          </span>
+                        </div>
+
+                        <div className="p-2.5 bg-white rounded-xl border border-slate-100 space-y-1 text-[10px] text-slate-500 font-bold">
+                          <p className="text-indigo-600">🏥 {p?.specialties?.join(', ') || 'Chưa chọn khoa'}</p>
+                          <p>📍 Phân vùng: {p?.examinationArea || 'Phòng VIP'}</p>
+                        </div>
+
+                        <div className="flex gap-2 pt-1">
+                          <button 
+                            onClick={() => handleUpdateStatus(p.id, 'Pharmacy')}
+                            className="flex-1 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black rounded-xl transition"
+                          >
+                            Bàn giao Nhà Thuốc
+                          </button>
+                          <button 
+                            onClick={() => initiateEdit(p)}
+                            className="px-2.5 py-1.5 border border-slate-200 hover:bg-slate-100 text-slate-500 rounded-xl transition"
+                          >
+                            Chi tiết
+                          </button>
+                        </div>
                       </div>
-                    </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Cột 3: Nhà Thuốc / Hoàn Tất */}
+                <div className="bg-white border border-slate-200 rounded-3xl p-4 shadow-2xs space-y-4">
+                  <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-800">3. Chờ thuốc / Hoàn tất</span>
+                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-md">
+                      {kanbanPatients.filter(p => ['Pharmacy', 'Inpatient', 'Completed'].includes(p.status)).length} ca
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                    {kanbanPatients.filter(p => ['Pharmacy', 'Inpatient', 'Completed'].includes(p.status)).map(p => (
+                      <div key={p.id} className="p-4 border border-slate-100 hover:border-slate-200 bg-slate-50/30 rounded-2xl space-y-3 relative group">
+                        
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-extrabold text-slate-905 block group-hover:text-indigo-600 cursor-pointer" onClick={() => initiateEdit(p)}>
+                              {p?.name}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold block">PID: {p?.pid} • Hạng: {p?.tier}</span>
+                          </div>
+                          <span className={`px-2 py-0.5 text-[9px] font-black rounded-sm ${p.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                            {workflowStatuses.find(s => s.id === p.status)?.label || p.status}
+                          </span>
+                        </div>
+
+                        <div className="p-2.5 bg-white rounded-xl border border-slate-100 space-y-1 text-[10px] text-slate-500 font-bold">
+                          <p className="text-indigo-600">🏥 {p?.specialties?.join(', ') || 'Chưa chọn khoa'}</p>
+                          <p className="text-slate-550">💰 Thực thu: {formatCurrency(p?.totalAmount - p?.approvedDiscountAmount)}</p>
+                        </div>
+
+                        <div className="flex gap-2 pt-1">
+                          {p.status !== 'Completed' && (
+                            <button 
+                              onClick={() => handleUpdateStatus(p.id, 'Completed')}
+                              className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black rounded-xl transition"
+                            >
+                              Xác nhận Hoàn Tất
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => initiateEdit(p)}
+                            className="px-2.5 py-1.5 border border-slate-200 hover:bg-slate-100 text-slate-500 rounded-xl transition w-full"
+                          >
+                            Chi tiết hồ sơ
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
               </div>
+            )}
 
-              <div className="space-y-6">
-                
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                    Quản Lý Danh Mục Chuyên Khoa
-                  </h3>
+          </div>
+        )}
 
+        {/* Tab Settings */}
+        {activeTab === 'settings' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Mục 1: Quản lý Chuyên khoa & Công thức */}
+            <div className="lg:col-span-2 space-y-6">
+              
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xs space-y-6">
+                <div className="space-y-1 pb-4 border-b border-slate-100">
+                  <h3 className="text-base font-black text-slate-900 uppercase tracking-wide">Cấu hình tham số điều trị</h3>
+                  <p className="text-xs text-slate-400 font-semibold">Tùy biến danh mục chuyên khoa và công thức thanh toán miễn giảm</p>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Danh mục Chuyên Khoa ({systemSettings?.specialties ? systemSettings?.specialties.length : 0})</h4>
                   <div className="flex gap-2">
                     <input 
                       type="text" 
-                      placeholder="Thêm chuyên khoa mới..."
+                      placeholder="Nhập tên chuyên khoa mới (ví dụ: CK Tim mạch)"
                       value={newSpecialtyInput}
                       onChange={(e) => setNewSpecialtyInput(e.target.value)}
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
+                      className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-hidden font-semibold"
                     />
-                    <button
-                      type="button"
+                    <button 
                       onClick={handleAddSpecialty}
-                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center gap-1"
+                      className="px-4 py-2 bg-slate-900 hover:bg-slate-850 text-white text-xs font-black rounded-xl transition flex items-center gap-1"
                     >
                       <Plus className="w-4 h-4" /> Thêm
                     </button>
                   </div>
 
-                  <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                    {systemSettings.specialties.map((spec, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition animate-fadeIn">
-                        <span className="text-xs font-bold text-slate-700">{spec}</span>
-                        <button
-                          type="button"
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                    {(systemSettings?.specialties || []).map(spec => (
+                      <div key={spec} className="p-2 border border-slate-100 rounded-xl flex items-center justify-between text-[11px] font-bold bg-slate-50/40">
+                        <span className="truncate">{spec}</span>
+                        <button 
                           onClick={() => handleRemoveSpecialty(spec)}
-                          className="p-1 text-slate-400 hover:text-red-500 rounded-lg transition"
+                          className="text-rose-500 hover:text-rose-700 p-0.5 transition"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                      Quản Trị Phân Quyền Nhân Sự
-                    </h3>
-                  </div>
-
-                  {userRole === 'admin' ? (
-                    <form onSubmit={handleCreateStaff} className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                      <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Thiết lập công thức tính tổng số tiền trước giảm</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {[
+                      { id: 'phiKham', label: 'Tính tiền Khám Lâm Sàng' },
+                      { id: 'clsCdha', label: 'Tính tiền CLS / CĐHA' },
+                      { id: 'thuocVacxin', label: 'Tính tiền Thuốc / Vắc-xin' }
+                    ].map(field => (
+                      <label key={field.id} className="p-3 border border-slate-100 hover:border-slate-200 rounded-2xl flex items-center gap-2 text-[11px] font-semibold cursor-pointer transition bg-slate-50/20">
                         <input 
-                          type="text" 
-                          placeholder="Họ tên nhân viên..." 
-                          value={newStaff.name}
-                          onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold animate-fadeIn"
-                          required
+                          type="checkbox" 
+                          checked={!!systemSettings?.totalFormulaFields?.[field.id]} 
+                          onChange={() => handleFormulaCheckboxChange(field.id)}
+                          className="rounded-sm border-slate-300 text-indigo-600 focus:ring-indigo-500" 
                         />
-                        <input 
-                          type="text" 
-                          placeholder="Chức danh" 
-                          value={newStaff.title}
-                          onChange={(e) => setNewStaff({ ...newStaff, title: e.target.value })}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-medium"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 gap-2">
-                        <input 
-                          type="email" 
-                          placeholder="Email đăng nhập..." 
-                          value={newStaff.email}
-                          onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
-                          required
-                        />
-                        <input 
-                          type="text" 
-                          placeholder="Mã UID (Lấy từ Firebase Authentication)..." 
-                          value={newStaff.uid}
-                          onChange={(e) => setNewStaff({ ...newStaff, uid: e.target.value })}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-mono font-bold animate-fadeIn"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Chọn Vai Trò (Role)</label>
-                        <select 
-                          value={newStaff.role}
-                          onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold cursor-pointer"
-                        >
-                          <option value="nhanvien">nhanvien</option>
-                          <option value="quanly_site">quanly_site</option>
-                          <option value="quanly">quanly</option>
-                          <option value="lanhdao">lanhdao</option>
-                          <option value="admin">admin</option>
-                        </select>
-                      </div>
-                      <button 
-                        type="submit"
-                        className="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center justify-center gap-1"
-                      >
-                        <UserPlus className="w-4 h-4" /> Đăng ký tài khoản nhân viên
-                      </button>
-                    </form>
-                  ) : null}
-
-                  <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
-                    {staffList.map((staff) => (
-                      <div key={staff.uid} className="flex justify-between items-center p-3 rounded-2xl border border-slate-200 bg-slate-50/50">
-                        <div>
-                          <div className="text-xs font-bold text-slate-800">{staff.name}</div>
-                          <div className="text-[9px] text-slate-400 font-mono">{staff.email}</div>
-                          <div className="text-[9px] text-slate-400 italic">UID: {staff.uid} | {staff.title}</div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-black px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-sm uppercase">
-                            {staff.role}
-                          </span>
-                          {userRole === 'admin' && staff.uid !== "acc_admin" && (
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteStaff(staff.uid)}
-                              className="p-1 border border-slate-200 text-slate-400 hover:text-red-500 rounded transition"
-                              title="Xóa"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
+                        <span>{field.label}</span>
+                      </label>
                     ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Thiết lập phương thức tính chiết khấu</h4>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <label className="flex-1 p-3 border border-slate-100 hover:border-slate-200 rounded-2xl flex items-center gap-2.5 text-[11px] font-semibold cursor-pointer transition bg-slate-50/20">
+                      <input 
+                        type="radio" 
+                        name="discountFormula"
+                        checked={systemSettings?.discountFormulaType === 'total_minus_insurance_advance'}
+                        onChange={() => handleDiscountFormulaChange('total_minus_insurance_advance')}
+                        className="text-indigo-600 focus:ring-indigo-500" 
+                      />
+                      <span>Miễn giảm tính sau khi trừ tạm ứng bảo hiểm</span>
+                    </label>
+                    <label className="flex-1 p-3 border border-slate-100 hover:border-slate-200 rounded-2xl flex items-center gap-2.5 text-[11px] font-semibold cursor-pointer transition bg-slate-50/20">
+                      <input 
+                        type="radio" 
+                        name="discountFormula"
+                        checked={systemSettings?.discountFormulaType === 'total_direct'}
+                        onChange={() => handleDiscountFormulaChange('total_direct')}
+                        className="text-indigo-600 focus:ring-indigo-500" 
+                      />
+                      <span>Miễn giảm tính trực tiếp trên tổng hoá đơn</span>
+                    </label>
                   </div>
                 </div>
 
               </div>
 
             </div>
+
+            {/* Mục 2: Quản lý Nhân viên phân quyền (Chỉ Admin) */}
+            <div className="lg:col-span-1">
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xs space-y-6">
+                
+                <div className="space-y-1 pb-4 border-b border-slate-100">
+                  <h3 className="text-base font-black text-slate-900 uppercase tracking-wide">Quản lý Tài khoản (IT Admin)</h3>
+                  <p className="text-xs text-slate-400 font-semibold">Cấp và gỡ bỏ quyền truy cập hệ thống của nhân viên</p>
+                </div>
+
+                {userRole === 'admin' ? (
+                  <form onSubmit={handleCreateStaff} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-505 block">Mã UID Firebase Auth</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="Chuỗi ID tài khoản Firebase"
+                        value={newStaff?.uid}
+                        onChange={(e) => setNewStaff(prev => ({ ...prev, uid: e.target.value }))}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-hidden font-semibold"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-505 block">Họ & Tên nhân viên</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="Nguyễn Văn A"
+                        value={newStaff?.name}
+                        onChange={(e) => setNewStaff(prev => ({ ...prev, name: e.target.value }))}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-hidden font-semibold"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-505 block">Email làm việc</label>
+                      <input 
+                        type="email" 
+                        required
+                        placeholder="email@vip.com"
+                        value={newStaff?.email}
+                        onChange={(e) => setNewStaff(prev => ({ ...prev, email: e.target.value }))}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-hidden font-semibold"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-505 block">Vai trò trên hệ thống</label>
+                      <select 
+                        value={newStaff?.role}
+                        onChange={(e) => setNewStaff(prev => ({ ...prev, role: e.target.value }))}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-hidden font-semibold text-slate-700"
+                      >
+                        <option value="nhanvien">Lễ tân tiếp đón (nhanvien)</option>
+                        <option value="quanly_site">Quản lý site cơ sở (quanly_site)</option>
+                        <option value="quanly">Quản lý chuyên ban (quanly)</option>
+                        <option value="lanhdao">Hội đồng quản trị (lanhdao)</option>
+                        <option value="admin">IT Admin (admin)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-505 block">Chức danh / Tiêu đề hiển thị</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ví dụ: Quản lý chuyên ban Sơn Hòa"
+                        value={newStaff?.title}
+                        onChange={(e) => setNewStaff(prev => ({ ...prev, title: e.target.value }))}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-hidden font-semibold"
+                      />
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase rounded-xl transition flex items-center justify-center gap-1"
+                    >
+                      <UserPlus className="w-4 h-4" /> Kích hoạt tài khoản
+                    </button>
+                  </form>
+                ) : (
+                  <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl text-[11px] text-amber-700 font-semibold flex items-start gap-1.5 leading-relaxed">
+                    <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500" />
+                    Chức năng quản trị và cấp quyền tài khoản bị hạn chế. Chỉ có Admin mới được phép thao tác.
+                  </div>
+                )}
+
+                <div className="space-y-3 pt-4 border-t border-slate-105">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Danh sách tài khoản ({staffList.length})</h4>
+                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                    {staffList.map(staff => (
+                      <div key={staff.uid} className="p-3 border border-slate-100 rounded-2xl flex items-center justify-between gap-2 text-[11px] bg-slate-50/40">
+                        <div className="min-w-0 space-y-0.5">
+                          <span className="font-extrabold text-slate-900 block truncate">{staff.name}</span>
+                          <span className="text-[9px] text-slate-400 font-semibold block uppercase tracking-wider">{staff.role} • {staff.title}</span>
+                        </div>
+                        {userRole === 'admin' && (
+                          <button 
+                            onClick={() => handleDeleteStaff(staff.uid)}
+                            className="p-1 hover:bg-rose-50 text-rose-500 rounded-lg transition flex-shrink-0"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
           </div>
         )}
 
       </main>
 
-      <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
-        <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.0.9</p>
-          <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
+      {/* Mobile Footer Navigation Bar */}
+      <footer className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200/80 shadow-lg md:hidden">
+        <div className="grid grid-cols-4 h-16">
+          <button 
+            onClick={() => { resetForm(); setActiveTab('dashboard'); }}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-black uppercase ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            <span>Tổng quan</span>
+          </button>
+
+          <button 
+            onClick={() => { resetForm(); setActiveTab('register'); }}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-black uppercase ${activeTab === 'register' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <Plus className="w-5 h-5" />
+            <span>Tiếp đón</span>
+          </button>
+
+          <button 
+            onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-black uppercase ${activeTab === 'monitoring' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <ClipboardList className="w-5 h-5" />
+            <span>Theo dõi</span>
+          </button>
+
+          <button 
+            onClick={() => {
+              if (['admin', 'lanhdao', 'quanly'].includes(userRole)) {
+                setActiveTab('settings');
+              } else {
+                showNotification("Phân quyền nhân viên bị hạn chế chức năng cài đặt!", "error");
+              }
+            }}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-black uppercase ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <Settings className="w-5 h-5" />
+            <span>Cấu hình</span>
+          </button>
         </div>
       </footer>
+
     </div>
   );
 }
