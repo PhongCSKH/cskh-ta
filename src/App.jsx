@@ -237,8 +237,7 @@ export default function App() {
   const [leftFormTab, setLeftFormTab] = useState('visitHistory');
   const [isHistoryPanelExpanded, setIsHistoryPanelExpanded] = useState(false);
 
-  // States cho bộ lọc Thống kê Báo cáo ở Dashboard
-  const [dashFilterMode, setDashFilterMode] = useState('today'); // 'today' hoặc 'range'
+  const [dashFilterMode, setDashFilterMode] = useState('today');
   const [dashStartDate, setDashStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [dashEndDate, setDashEndDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -356,12 +355,11 @@ export default function App() {
       if (token) {
         const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userId);
         await updateDoc(userDocRef, { fcmToken: token }).catch(async (e) => {
-          // Ghi đè an toàn nếu tài liệu chưa được khởi tạo đầy đủ trường
           await setDoc(userDocRef, { fcmToken: token }, { merge: true }).catch(err => console.warn(err));
         });
       }
     } catch (err) {
-      console.warn("Lỗi đồng bộ mã thông báo FCM thiết bị:", err);
+      console.warn(err);
     }
   };
 
@@ -444,7 +442,6 @@ export default function App() {
     });
   };
 
-  // Nâng cấp: Khi đăng xuất, thu hồi Token FCM để tránh gửi lầm sang thiết bị khác
   const handleLogout = async () => {
     if (isFirebaseConnected && auth && currentUser) {
       try {
@@ -547,67 +544,10 @@ export default function App() {
   };
 
   useEffect(() => {
-    let html5QrCode;
-    if (isScanning) {
-      const startCamera = async () => {
-        if (typeof window.Html5Qrcode === 'undefined') {
-          await new Promise(resolve => setTimeout(resolve, 800));
-          if (typeof window.Html5Qrcode === 'undefined') {
-            setScannerError("Chưa tải xong thư viện quét mã. Vui lòng thử lại.");
-            return;
-          }
-        }
-
-        try {
-          html5QrCode = new window.Html5Qrcode("reader");
-          html5QrCodeRef.current = html5QrCode;
-          
-          await html5QrCode.start(
-            { facingMode: "environment" },
-            {
-              fps: 15,
-              qrbox: (width, height) => {
-                const size = Math.min(width, height) * 0.75;
-                return { width: size, height: size };
-              }
-            },
-            (decodedText) => {
-              handleInputChange('pid', decodedText);
-              showNotification("Đã quét thành công mã: " + decodedText);
-              stopScanner();
-            },
-            (errorMessage) => {
-            }
-          );
-        } catch (err) {
-          console.error(err);
-          setScannerError("Không thể truy cập camera. Vui lòng cấp quyền camera trong cài đặt trình duyệt.");
-        }
-      };
-      
-      startCamera();
-    }
-
-    return () => {
-      if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().then(() => {
-          html5QrCode.clear();
-        }).catch(e => console.warn(e));
-      }
-    };
-  }, [isScanning]);
-
-  useEffect(() => {
     checkIosPermissionStatus();
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/firebase-messaging-sw.js')
-        .then((registration) => {
-          console.log("Firebase SW registered context scope:", registration.scope);
-        })
-        .catch((err) => {
-          console.warn("Lỗi đăng ký Firebase Service Worker:", err);
-        });
+      navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(err => console.warn(err));
     }
 
     if (!document.getElementById('html5-qrcode-script')) {
@@ -628,197 +568,6 @@ export default function App() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
-  useEffect(() => {
-    const faviconUrl = 'https://iili.io/F66acRs.png';
-    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
-    link.type = 'image/png';
-    link.rel = 'shortcut icon';
-    link.href = faviconUrl;
-    document.getElementsByTagName('head')[0].appendChild(link);
-
-    const savedStaff = localStorage.getItem('crm_staff_accounts');
-    if (!savedStaff) {
-      localStorage.setItem('crm_staff_accounts', JSON.stringify(mockStaffAccounts));
-      setStaffList(mockStaffAccounts);
-    } else {
-      setStaffList(JSON.parse(savedStaff));
-    }
-
-    const savedSettings = localStorage.getItem('local_settings');
-    if (!savedSettings) {
-      localStorage.setItem('local_settings', JSON.stringify(defaultSystemSettings));
-      setSystemSettings(defaultSystemSettings);
-    } else {
-      setSystemSettings(JSON.parse(savedSettings));
-    }
-
-    const savedUser = localStorage.getItem('crm_current_user');
-    if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      setCurrentUser(parsedUser);
-      setUserRole(parsedUser.role || 'nhanvien');
-    }
-
-    if (auth && db && isFirebaseConfigured) {
-      setIsFirebaseConnected(true);
-      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        if (firebaseUser) {
-          try {
-            const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', firebaseUser.uid);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              setCurrentUser(userData);
-              setUserRole(userData.role);
-              saveFcmTokenToDatabase(firebaseUser.uid).catch(e => console.warn(e));
-            } else {
-              const fallbackUser = { 
-                uid: firebaseUser.uid, 
-                email: firebaseUser.email, 
-                role: 'nhanvien', 
-                name: firebaseUser.email.split('@')[0],
-                title: 'Nhân viên chuyên ban'
-              };
-              setCurrentUser(fallbackUser);
-              setUserRole('nhanvien');
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        }
-        setIsLoading(false);
-      });
-      return () => unsubscribe();
-    } else {
-      setIsFirebaseConnected(false);
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!currentUser) return;
-    setIsLoading(true);
-
-    if (isFirebaseConnected && db) {
-      const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
-      const settingsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
-      const usersCol = collection(db, 'artifacts', appId, 'public', 'data', 'users');
-
-      const unsubscribeSettings = onSnapshot(settingsDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          setSystemSettings(docSnap.data());
-        } else {
-          setDoc(settingsDocRef, systemSettings).catch(e => console.warn(e));
-        }
-      }, (err) => console.error(err));
-
-      const unsubscribeUsers = onSnapshot(usersCol, (snapshot) => {
-        const list = [];
-        snapshot.forEach((docSnap) => {
-          list.push({ uid: docSnap.id, ...docSnap.data() });
-        });
-        setStaffList(list);
-      }, (err) => console.error(err));
-
-      const unsubscribePatients = onSnapshot(patientsCol, (snapshot) => {
-        const list = [];
-        snapshot.forEach((docSnap) => {
-          list.push({ id: docSnap.id, ...docSnap.data() });
-        });
-        list.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        if (isInitialMount.current) {
-          isInitialMount.current = false;
-        } else {
-          snapshot.docChanges().forEach((change) => {
-            const data = change.doc.data();
-            const statusLabel = workflowStatuses.find(s => s.id === data.status)?.label || data.status;
-            if (change.type === "added") {
-              triggerPushAlert(
-                `🆕 Tiếp nhận khách ${data.tier}`,
-                `Bệnh nhân: ${data.name} (PID: ${data.pid}) đã được xếp trạng thái: ${statusLabel}.`,
-                data.recipients || [],
-                'info'
-              );
-            }
-            if (change.type === "modified") {
-              triggerPushAlert(
-                `🔄 Cập nhật hành trình`,
-                `Hồ sơ khách hàng ${data.name} (PID: ${data.pid}) vừa đổi trạng thái sang: ${statusLabel}.`,
-                data.recipients || [],
-                'success'
-              );
-            }
-            if (change.type === "removed") {
-              triggerPushAlert(
-                `⚠️ Gỡ bỏ hồ sơ`,
-                `Hồ sơ của một bệnh nhân VIP vừa bị gỡ khỏi hệ thống.`,
-                data.recipients || [],
-                'error'
-              );
-            }
-          });
-        }
-
-        setPatients(list);
-        setIsLoading(false);
-      }, (error) => {
-        console.warn(error);
-        const savedPatients = localStorage.getItem('local_patients');
-        if (savedPatients) {
-          setPatients(JSON.parse(savedPatients));
-        }
-        setIsLoading(false);
-      });
-
-      return () => {
-        unsubscribeSettings();
-        unsubscribeUsers();
-        unsubscribePatients();
-      };
-    } else {
-      const savedPatients = localStorage.getItem('local_patients');
-      if (savedPatients) {
-        setPatients(JSON.parse(savedPatients));
-      }
-      setIsLoading(false);
-    }
-  }, [currentUser, isFirebaseConnected]);
-
-  const calculatedSums = useMemo(() => {
-    if (formData.tier === 'VIP') {
-      return { totalAmount: 0, approvedDiscountAmount: 0 };
-    }
-    const formulas = systemSettings.totalFormulaFields;
-    let total = 0;
-
-    if (formulas.phiKham) total += Number(formData.phiKham || 0);
-    if (formulas.clsCdha) total += Number(formData.clsCdha || 0);
-    if (formulas.thuocVacxin) total += Number(formData.thuocVacxin || 0);
-
-    let discountBase = total;
-    if (systemSettings.discountFormulaType === 'total_minus_insurance_advance') {
-      discountBase = Math.max(0, total - Number(formData.insuranceAdvance || 0));
-    }
-
-    const discountAmount = Math.round(discountBase * (Number(formData.discountRate || 0) / 100));
-
-    return {
-      totalAmount: total,
-      approvedDiscountAmount: discountAmount
-    };
-  }, [formData, systemSettings]);
-
-  useEffect(() => {
-    if (formData.totalAmount !== calculatedSums.totalAmount || formData.approvedDiscountAmount !== calculatedSums.approvedDiscountAmount) {
-      setFormData(prev => ({
-        ...prev,
-        totalAmount: calculatedSums.totalAmount,
-        approvedDiscountAmount: calculatedSums.approvedDiscountAmount
-      }));
-    }
-  }, [calculatedSums.totalAmount, calculatedSums.approvedDiscountAmount]);
 
   const matchedPatientProfile = useMemo(() => {
     if (!formData.pid.trim()) return null;
@@ -953,7 +702,6 @@ export default function App() {
     });
   }, [visiblePatients, searchTerm, filterSpecialty, filterTier, filterDate, filterSite]);
 
-  // Bộ tính toán chỉ số (Metrics) chuyên biệt cho Dashboard dựa trên Hôm nay hoặc Khoảng ngày tùy chọn
   const dashMetrics = useMemo(() => {
     const filtered = visiblePatients.filter(p => {
       if (!p) return false;
@@ -1061,202 +809,6 @@ export default function App() {
     };
   }, [visiblePatients]);
 
-  const savePatient = async (e) => {
-    e.preventDefault();
-    if (!formData.name.trim()) {
-      showNotification("Họ & Tên khách hàng không được để trống!", "error");
-      return;
-    }
-    if (!formData.pid.trim()) {
-      showNotification("Mã PID là bắt buộc!", "error");
-      return;
-    }
-
-    const currentHistory = formData.history || [];
-    let newLog = {};
-    if (currentId) {
-      newLog = {
-        timestamp: new Date().toISOString(),
-        action: "Cập nhật thông tin hồ sơ",
-        user: currentUser.name
-      };
-    } else {
-      newLog = {
-        timestamp: new Date().toISOString(),
-        action: "Tiếp đón khởi tạo hành trình",
-        user: currentUser.name
-      };
-    }
-
-    let payload = {
-      ...formData,
-      status: formData.status || 'Waiting',
-      updatedAt: new Date().toISOString(),
-      updatedBy: currentUser.name,
-      history: [...currentHistory, newLog]
-    };
-
-    if (formData.tier === 'VIP') {
-      payload = {
-        ...payload,
-        phiKham: 0,
-        clsCdha: 0,
-        thuocVacxin: 0,
-        insuranceAdvance: 0,
-        discountRate: 0,
-        approvedDiscountAmount: 0,
-        totalAmount: 0
-      };
-    }
-
-    const firstImg = payload.approvalImages && payload.approvalImages.length > 0 ? payload.approvalImages[0] : '';
-    payload.approvalImage = firstImg;
-
-    try {
-      if (isFirebaseConnected && db) {
-        const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
-        if (currentId) {
-          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payload);
-          showNotification("Cập nhật thành công!");
-        } else {
-          await addDoc(patientsCol, { ...payload, createdAt: new Date().toISOString() });
-          showNotification("Đăng ký thành công!");
-        }
-      } else {
-        let updatedList = [...patients];
-        if (currentId) {
-          updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
-          showNotification("Cập nhật thành công!");
-        } else {
-          const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
-          updatedList.unshift(newDoc);
-          showNotification("Đã lưu hồ sơ thành công!");
-        }
-        setPatients(updatedList);
-        localStorage.setItem('local_patients', JSON.stringify(updatedList));
-      }
-      resetForm();
-      setActiveTab('monitoring');
-    } catch (err) {
-      console.warn(err);
-      let updatedList = [...patients];
-      if (currentId) {
-        updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
-        showNotification("Đã lưu cập nhật vào thiết bị (Chế độ Dự Phòng)!");
-      } else {
-        const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
-        updatedList.unshift(newDoc);
-        showNotification("Đã lưu hồ sơ mới vào thiết bị (Chế độ Dự Phòng)!");
-      }
-      setPatients(updatedList);
-      localStorage.setItem('local_patients', JSON.stringify(updatedList));
-      resetForm();
-      setActiveTab('monitoring');
-    }
-  };
-
-  const handleLoginSubmit = (e) => {
-    handleLogin(e);
-  };
-
-  const initiateEdit = (patient) => {
-    setCurrentId(patient.id);
-    setFormRightTab(patient.tier === 'VIP' ? 'timeline' : 'billing');
-    setIsHistoryPanelExpanded(false);
-    let initTreatmentType = 'Ngoại trú';
-    if (patient.capCuu) initTreatmentType = 'Cấp cứu/Daycare';
-    else if (patient.noiTru) initTreatmentType = 'Nội trú/ICU';
-    else if (patient.ngoaiVien) initTreatmentType = 'Ngoài viện';
-    else if (patient.treatmentType) initTreatmentType = patient.treatmentType;
-
-    setFormData({
-      name: patient.name || '',
-      tier: patient.tier || 'VIP',
-      boardApproval: patient.boardApproval || '',
-      notes: patient.notes || '',
-      pid: patient.pid || '',
-      date: patient.date || new Date().toISOString().split('T')[0],
-      specialties: patient.specialties || [],
-      site: patient.site || 'BV Tâm Anh - Tân Sơn Hòa',
-      examinationArea: patient.examinationArea || 'Khu VIP',
-      ngoaiTru: patient.ngoaiTru !== undefined ? patient.ngoaiTru : (initTreatmentType === 'Ngoại trú'),
-      capCuu: patient.capCuu !== undefined ? patient.capCuu : (initTreatmentType === 'Cấp cứu/Daycare'),
-      noiTru: patient.noiTru !== undefined ? patient.noiTru : (initTreatmentType === 'Nội trú/ICU'),
-      ngoaiVien: patient.ngoaiVien !== undefined ? patient.ngoaiVien : (initTreatmentType === 'Ngoài viện'),
-      treatmentType: initTreatmentType,
-      phiKham: patient.phiKham || 0,
-      clsCdha: patient.clsCdha || 0,
-      thuocVacxin: patient.thuocVacxin || 0,
-      insuranceAdvance: patient.insuranceAdvance || 0,
-      discountRate: patient.discountRate || 0,
-      approvedDiscountAmount: patient.approvedDiscountAmount || 0,
-      totalAmount: patient.totalAmount || 0,
-      approvalImages: patient.approvalImages || (patient.approvalImage ? [patient.approvalImage] : []),
-      status: patient.status || 'Waiting',
-      recipients: patient.recipients || [],
-      history: patient.history || []
-    });
-    setActiveTab('register');
-  };
-
-  const handleUpdateStatus = async (patientId, newStatus) => {
-    const patient = patients.find(p => p.id === patientId);
-    if (!patient) return;
-
-    if (userRole === 'nhanvien') {
-      const currentStatus = patient.status || 'Waiting';
-      const isAllowed = 
-        (currentStatus === 'Waiting' && newStatus === 'Examining') || 
-        (currentStatus === 'Pharmacy' && newStatus === 'Completed');
-
-      if (!isAllowed) {
-        showNotification("Lỗi: Tài khoản nhân viên chỉ được phép chuyển trạng thái theo đúng luồng bàn giao quy định!", "error");
-        return;
-      }
-    }
-
-    const statusLabel = workflowStatuses.find(s => s.id === newStatus)?.label || newStatus;
-    const currentHistory = patient.history || [];
-    const newLog = {
-      timestamp: new Date().toISOString(),
-      action: "Chuyển trạng thái hành trình sang: " + statusLabel,
-      user: currentUser.name
-    };
-    const updatedHistory = [...currentHistory, newLog];
-
-    try {
-      if (isFirebaseConnected && db) {
-        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'patients', patientId);
-        await updateDoc(docRef, {
-          status: newStatus,
-          updatedAt: new Date().toISOString(),
-          updatedBy: currentUser.name,
-          history: updatedHistory
-        });
-      } else {
-        const updatedList = patients.map(p => {
-          if (p.id === patientId) {
-            return { 
-              ...p, 
-              status: newStatus, 
-              updatedAt: new Date().toISOString(), 
-              updatedBy: currentUser.name,
-              history: updatedHistory
-            };
-          }
-          return p;
-        });
-        setPatients(updatedList);
-        localStorage.setItem('local_patients', JSON.stringify(updatedList));
-        triggerPushAlert("🔄 Cập nhật hành trình (Cục bộ)", `Khách hàng ${patient.name} đã được cập nhật trạng thái mới.`, patient.recipients || [], "success");
-      }
-      showNotification("Đã cập nhật trạng thái hành trình khám!");
-    } catch (err) {
-      console.error(err);
-      showNotification("Lỗi đồng bộ trạng thái lên database!", "error");
-    }
-  };
-
   const executeCopyVisit = (visit) => {
     const previousImages = visit.approvalImages || (visit.approvalImage ? [visit.approvalImage] : []);
     setFormData(prev => ({
@@ -1276,131 +828,6 @@ export default function App() {
     }));
     showNotification("Đã sao chép lịch sử thăm khám cũ kèm chứng từ phê duyệt!");
     setCopyConfirmModal({ show: false, visitToCopy: null });
-  };
-
-  const handleCreateStaff = async (e) => {
-    e.preventDefault();
-    if (userRole !== 'admin') {
-      showNotification("Chỉ IT Admin mới được phép thao tác!", "error");
-      return;
-    }
-    if (!newStaff.name.trim() || !newStaff.email.trim() || !newStaff.uid.trim()) {
-      showNotification("Vui lòng điền đầy đủ thông tin!", "error");
-      return;
-    }
-
-    const created = {
-      uid: newStaff.uid.trim(),
-      name: newStaff.name.trim(),
-      email: newStaff.email.trim(),
-      role: newStaff.role,
-      title: newStaff.title.trim() || 'Nhân viên chuyên ban'
-    };
-
-    if (isFirebaseConnected && db) {
-      try {
-        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', created.uid);
-        await setDoc(userDocRef, created);
-        showNotification("Đã đăng ký và đẩy phân quyền lên Firebase Cloud!");
-      } catch (err) {
-        console.error(err);
-        showNotification("Lỗi đồng bộ phân quyền lên Firebase Cloud!", "error");
-      }
-    } else {
-      const updatedList = [...staffList, created];
-      setStaffList(updatedList);
-      localStorage.setItem('crm_staff_accounts', JSON.stringify(updatedList));
-      showNotification("Đã lưu tài khoản nhân viên cục bộ!");
-    }
-
-    setNewStaff({ name: '', email: '', role: 'nhanvien', uid: '', title: '' });
-  };
-
-  const handleDeleteStaff = (uid) => {
-    if (uid === currentUser.uid || uid === "acc_admin") {
-      showNotification("Không thể tự xóa tài khoản chính đang hoạt động!", "error");
-      return;
-    }
-
-    setConfirmModal({
-      show: true,
-      title: "Xác nhận gỡ bỏ tài khoản",
-      message: "Bạn có chắc chắn muốn xóa vĩnh viễn quyền truy cập của tài khoản này khỏi hệ thống database không?",
-      action: async () => {
-        try {
-          if (isFirebaseConnected && db) {
-            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', uid));
-            showNotification("Đã xóa quyền tài khoản khỏi Firebase Cloud!");
-          } else {
-            const updated = staffList.filter(s => s.uid !== uid);
-            setStaffList(updated);
-            localStorage.setItem('crm_staff_accounts', JSON.stringify(updated));
-            showNotification("Đã xóa quyền tài khoản cục bộ!");
-          }
-        } catch (err) {
-          console.error(err);
-          showNotification("Gặp sự cố khi gỡ bỏ tài khoản!", "error");
-        }
-        setConfirmModal({ show: false, action: null, message: '', title: '' });
-      }
-    });
-  };
-
-  const saveSettingsOnDb = async (newSettings) => {
-    setSystemSettings(newSettings);
-    if (isFirebaseConnected && db) {
-      try {
-        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config'), newSettings);
-      } catch (e) {
-        console.error(e);
-      }
-    } else {
-      localStorage.setItem('local_settings', JSON.stringify(newSettings));
-    }
-  };
-
-  const handleAddSpecialty = () => {
-    if (!newSpecialtyInput.trim()) return;
-
-    const inputParts = newSpecialtyInput.split(',').map(p => p.trim()).filter(p => p !== '');
-    let addedCount = 0;
-    let updatedSpecialties = [...systemSettings.specialties];
-
-    inputParts.forEach(spec => {
-      if (!updatedSpecialties.includes(spec)) {
-        updatedSpecialties.push(spec);
-        addedCount++;
-      }
-    });
-
-    if (addedCount === 0) {
-      showNotification("Các chuyên khoa đã tồn tại!", "error");
-      return;
-    }
-
-    saveSettingsOnDb({ ...systemSettings, specialties: updatedSpecialties });
-    setNewSpecialtyInput('');
-    showNotification(`Đã thêm mới ${addedCount} chuyên khoa!`);
-  };
-
-  const handleRemoveSpecialty = (spec) => {
-    const updated = systemSettings.specialties.filter(s => s !== spec);
-    saveSettingsOnDb({ ...systemSettings, specialties: updated });
-    showNotification("Đã gỡ bỏ chuyên khoa.");
-  };
-
-  const handleFormulaCheckboxChange = (field) => {
-    const updatedFormula = {
-      ...systemSettings.totalFormulaFields,
-      [field]: !systemSettings.totalFormulaFields[field]
-    };
-    saveSettingsOnDb({ ...systemSettings, totalFormulaFields: updatedFormula });
-    showNotification("Công thức tổng cộng đã được cập nhật!");
-  };
-
-  const handleDiscountFormulaChange = (type) => {
-    saveSettingsOnDb({ ...systemSettings, discountFormulaType: type });
-    showNotification("Phương thức tính miễn giảm đã thay đổi!");
   };
 
   const handleToggleRecipient = (uid) => {
@@ -1425,80 +852,29 @@ export default function App() {
     setCurrentCalendarDate(nextDate);
   };
 
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-gradient-to-tr from-slate-100 via-indigo-50/20 to-slate-200 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-800">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/5 rounded-full filter blur-3xl -translate-x-12 -translate-y-12"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full filter blur-3xl translate-x-12 translate-y-12"></div>
+  const handleSyncMockUsersToCloud = async () => {
+    if (!isFirebaseConnected || !db || !auth.currentUser) {
+      showNotification("Yêu cầu kết nối Cloud và đăng nhập tài khoản thật!", "error");
+      return;
+    }
+    if (userRole !== 'admin') {
+      showNotification("Chỉ IT Admin mới được phép đồng bộ!", "error");
+      return;
+    }
 
-        <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-200 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
-          <div className="text-center space-y-3">
-            <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2.5 shadow-sm border border-slate-200 mx-auto">
-              <img 
-                src="https://iili.io/F66acRs.png" 
-                alt="Hospital Logo" 
-                className="w-full h-full object-contain" 
-              />
-            </div>
-            <div className="space-y-1">
-              <h1 className="text-2xl font-black tracking-tight text-slate-900">
-                QL KH VIP-VVIP
-              </h1>
-              <p className="text-xs text-slate-400 font-semibold tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
-            </div>
-          </div>
-
-          {authError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-605 text-center font-bold flex items-center gap-1.5 justify-center">
-              <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-500" />
-              {authError}
-            </div>
-          )}
-
-          <form onSubmit={handleLoginSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email </label>
-              <input 
-                type="email" 
-                placeholder="nhập email tại đây"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
-              />
-            </div>
-            
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu</label>
-              <div className="relative">
-                <input 
-                  type={showPassword ? "text" : "password"} 
-                  placeholder="••••••••"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full pl-4 pr-10 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <button 
-              type="submit" 
-              className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
-            >
-              <Lock className="w-4 h-4" /> Xác thực
-            </button>
-          </form>
-
-        </div>
-      </div>
-    );
-  }
+    try {
+      showNotification("Đang xử lý đồng bộ lên Firestore...");
+      for (const account of mockStaffAccounts) {
+        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', account.uid);
+        await setDoc(userDocRef, account);
+      }
+      showNotification("Đã đồng bộ hóa toàn bộ tài khoản mẫu lên Cloud!");
+      triggerPushAlert("⚡ Đồng bộ dữ liệu", "Hồ sơ các nhóm tài khoản đã được đẩy lên Firestore Database thành công.");
+    } catch (e) {
+      console.error(e);
+      showNotification("Lỗi đồng bộ. Hãy kiểm tra lại quy tắc Rules của bạn.", "error");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
@@ -1554,7 +930,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleIn">
             <div className="flex items-center gap-2.5 text-indigo-600">
-              <Copy className="w-5 h-5 flex-shrink-0 text-indigo-500" />
+              <Copy className="w-5 h-5 flex-shrink-0 text-indigo-505" />
               <h3 className="text-base font-extrabold text-slate-955">Xác nhận sao chép lịch sử</h3>
             </div>
             <p className="text-xs text-slate-505 leading-relaxed font-semibold">
@@ -1563,7 +939,7 @@ export default function App() {
             <div className="flex justify-end gap-2 pt-2">
               <button 
                 onClick={() => setCopyConfirmModal({ show: false, visitToCopy: null })}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 rounded-xl transition"
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-605 rounded-xl transition"
               >
                 Hủy bỏ
               </button>
@@ -1579,7 +955,7 @@ export default function App() {
       )}
 
       {isScanning && (
-        <div className="fixed inset-0 z-50 bg-slate-955/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
           <style>{`
             #reader video {
               width: 100% !important;
@@ -1602,7 +978,7 @@ export default function App() {
             </div>
 
             {scannerError ? (
-              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-[11px] text-rose-600 font-semibold space-y-2">
+              <div className="p-4 bg-rose-50 border border-rose-105 rounded-2xl text-[11px] text-rose-600 font-semibold space-y-2">
                 <p>{scannerError}</p>
                 <button 
                   type="button"
@@ -1628,7 +1004,7 @@ export default function App() {
                   <div className="absolute inset-x-0 h-0.5 bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-bounce" style={{ top: '45%' }}></div>
                   <div className="flex justify-between">
                     <div className="w-4 h-4 border-b-4 border-l-4 border-indigo-500 rounded-bl-xs"></div>
-                    <div className="w-4 h-4 border-b-4 border-r-4 border-indigo-500 rounded-tr-xs"></div>
+                    <div className="w-4 h-4 border-b-4 border-r-4 border-indigo-500 rounded-br-xs"></div>
                   </div>
                 </div>
               </div>
@@ -1637,7 +1013,7 @@ export default function App() {
             <button
               type="button"
               onClick={stopScanner}
-              className="px-4 py-1.5 border border-slate-200 text-slate-550 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition w-full"
+              className="px-4 py-1.5 border border-slate-200 text-slate-500 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition w-full"
             >
               Hủy bỏ quét
             </button>
@@ -1662,11 +1038,11 @@ export default function App() {
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="text-xs font-extrabold text-slate-900">{alert.title}</h4>
-              <p className="text-[11px] text-slate-605 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
+              <p className="text-[11px] text-slate-600 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
             </div>
             <button 
               onClick={() => setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id))}
-              className="text-slate-400 hover:text-slate-650 p-0.5 transition"
+              className="text-slate-400 hover:text-slate-600 p-0.5 transition"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -1681,11 +1057,11 @@ export default function App() {
               <ShieldAlert className="w-5 h-5 flex-shrink-0 text-rose-500" />
               <h3 className="text-base font-extrabold text-slate-955">{confirmModal.title || "Xác nhận tác vụ"}</h3>
             </div>
-            <p className="text-sm text-slate-505 leading-relaxed font-medium">{confirmModal.message}</p>
+            <p className="text-sm text-slate-500 leading-relaxed font-medium">{confirmModal.message}</p>
             <div className="flex justify-end gap-2 pt-2">
               <button 
                 onClick={() => setConfirmModal({ show: false, action: null, message: '', title: '' })}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 rounded-xl transition"
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-605 rounded-xl transition"
               >
                 Hủy bỏ
               </button>
@@ -1779,7 +1155,7 @@ export default function App() {
               <button 
                 onClick={() => setShowNotificationCenter(!showNotificationCenter)}
                 className={`p-2 rounded-xl transition-all relative border border-slate-200 ${
-                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-500 hover:bg-slate-100'
+                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-505 hover:bg-slate-105'
                 }`}
                 title="Trung tâm thông báo"
               >
@@ -1820,7 +1196,7 @@ export default function App() {
 
                   <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                     {notifications.length === 0 ? (
-                      <div className="text-center py-8 text-slate-400 space-y-2">
+                      <div className="text-center py-8 text-slate-405 space-y-2">
                         <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400" />
                         <p className="text-[11px] font-bold">Hệ thống chưa ghi nhận thông báo mới.</p>
                       </div>
@@ -1829,7 +1205,7 @@ export default function App() {
                         <div 
                           key={n.id}
                           className={`p-3 rounded-2xl border text-xs transition flex gap-2 items-start ${
-                            n.read ? 'border-slate-200 bg-slate-50/50' : 'border-indigo-100 bg-indigo-50/30'
+                            n.read ? 'border-slate-205 bg-slate-50/50' : 'border-indigo-100 bg-indigo-50/30'
                           }`}
                         >
                           <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
@@ -1852,7 +1228,7 @@ export default function App() {
 
               <div className="hidden sm:block text-right">
                 <div className="text-xs font-extrabold text-slate-955">{currentUser.name}</div>
-                <div className="text-[10px] text-indigo-600 font-extrabold uppercase tracking-wide">{currentUser.title || userRole}</div>
+                <div className="text-[10px] text-indigo-605 font-extrabold uppercase tracking-wide">{currentUser.title || userRole}</div>
               </div>
               <button 
                 onClick={handleLogout}
@@ -1867,7 +1243,7 @@ export default function App() {
         </div>
       </header>
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-100 flex justify-around py-3 shadow-xl rounded-t-3xl">
         <button 
           onClick={() => { resetForm(); setActiveTab('dashboard'); }}
           className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
@@ -1906,178 +1282,97 @@ export default function App() {
         {activeTab === 'dashboard' && (
           <div className="space-y-8 animate-fadeIn">
             
-            {/* Smart Daily Briefing - Virtual assistant scheduling widget */}
-            <div className="bg-gradient-to-tr from-[#312e81] via-[#4338ca] to-[#6d28d9] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-indigo-500/30">
-              <div className="absolute right-0 top-0 w-96 h-96 bg-white/5 rounded-full filter blur-3xl opacity-20 translate-x-24 -translate-y-24"></div>
-              
-              <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div className="space-y-3 max-w-xl">
-                  <span className="px-3 py-1 bg-amber-400 text-[#1e1b4b] rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse">
-                    Trợ lý ảo đón tiếp VIP
-                  </span>
-                  <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight">
-                    Kế Hoạch Chủ Động Cho Ngày Mai & Tuần Tới
-                  </h3>
-                  <div className="space-y-2 text-xs text-indigo-100 font-semibold pt-1">
-                    <p className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                      Ngày mai ({briefingStats.tomorrowDateFormatted}): 
-                      <strong className="text-white ml-1"> {briefingStats.tomorrowPatients.length} ca tiếp đón </strong>
-                    </p>
-                    <p className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-sky-400"></span>
-                      Tuần tới: 
-                      <strong className="text-white ml-1"> {briefingStats.nextWeekCount} ca đón tiếp đã lên lịch </strong>
+            {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && iosNotificationStatus !== 'granted' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-sm">
+                <div className="flex gap-3 items-start">
+                  <div className="p-2 bg-amber-100 text-amber-800 rounded-xl mt-0.5 border border-amber-200">
+                    <Smartphone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase">Chưa kích hoạt cảnh báo ngầm thiết bị</h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5 font-semibold leading-relaxed">
+                      Để nhận thông báo báo cáo ca VVIP và duyệt chi phí ngay cả khi đóng ứng dụng hoặc khóa màn hình iPhone, bạn cần bấm kích hoạt dưới đây.
                     </p>
                   </div>
                 </div>
-
-                <div className="flex gap-2 w-full md:w-auto">
-                  <button 
-                    onClick={() => {
-                      const tomorrow = new Date();
-                      tomorrow.setDate(tomorrow.getDate() + 1);
-                      setFilterDate(tomorrow.toISOString().split('T')[0]);
-                      setCalendarMode('list');
-                      setActiveTab('monitoring');
-                    }}
-                    className="flex-1 md:flex-none px-5 py-3 bg-white text-indigo-900 hover:bg-indigo-50 text-xs font-black rounded-xl shadow-md transition transform active:scale-95 whitespace-nowrap"
-                  >
-                    Xem lịch ngày mai
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setFilterDate('');
-                      setCalendarMode('week');
-                      setActiveTab('monitoring');
-                    }}
-                    className="flex-1 md:flex-none px-5 py-3 bg-indigo-950/30 border border-indigo-400/30 hover:bg-indigo-950/50 text-white text-xs font-black rounded-xl transition transform active:scale-95 whitespace-nowrap"
-                  >
-                    Mở lịch tuần
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Tinh gọn thẻ Chào mừng từ ảnh image_e25702.png */}
-            <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-5 text-white relative overflow-hidden shadow-md border border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20 pointer-events-none"></div>
-              <div className="relative z-10 space-y-1.5 max-w-2xl">
-                <span className="px-2.5 py-0.5 bg-amber-400 text-slate-955 rounded-md text-[9px] font-black uppercase tracking-wider inline-block">
-                  Phòng Chăm Sóc Khách Hàng
-                </span>
-                <h2 className="text-lg sm:text-xl font-black tracking-tight leading-snug">
-                  Chào, {currentUser.name}!
-                </h2>
-                <p className="text-[11px] sm:text-xs text-slate-300 leading-normal font-semibold">
-                  Công cụ hỗ trợ quản lý và theo dõi việc tiếp đón và chi phí của nhóm Khách hàng VIP, VVIP, Ngoại giao của Ban giám đốc.
-                </p>
-              </div>
-              <div className="shrink-0 relative z-10">
-                <button 
-                  onClick={() => { resetForm(); setActiveTab('register'); }}
-                  className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-955 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-1.5 transition transform active:scale-95 whitespace-nowrap"
+                <button
+                  onClick={requestIosNotificationPermission}
+                  className="w-full sm:w-auto px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black rounded-xl transition shadow-xs whitespace-nowrap flex items-center justify-center gap-1"
                 >
-                  <Plus className="w-4 h-4 stroke-[3px]" /> Tiếp nhận hồ sơ mới <ArrowRight className="w-3.5 h-3.5" />
+                  <BellRing className="w-3.5 h-3.5" /> Kích hoạt thông báo
                 </button>
               </div>
+            )}
+
+            <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl shadow-slate-100 border border-slate-700">
+              <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20"></div>
+              <div className="relative z-10 space-y-4 max-w-2xl">
+                <span className="px-3 py-1 bg-amber-400 text-slate-950 rounded-full text-[10px] font-black uppercase tracking-wider">
+                  Phòng Chăm Sóc Khách Hàng
+                </span>
+                <h2 className="text-xl sm:text-3xl font-black tracking-tight leading-tight">
+                  Chào, {currentUser.name}!
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-semibold">
+                  Công cụ hỗ trợ quản lý và theo dõi việc tiếp đón và chi phí của nhóm Khách hàng VIP, VVIP, Ngoại giao của Ban giám đốc.
+                </p>
+                <div className="pt-2">
+                  <button 
+                    onClick={() => { resetForm(); setActiveTab('register'); }}
+                    className="px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-955 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-2 transition transform active:scale-95"
+                  >
+                    <Plus className="w-4.5 h-4.5 stroke-[3px]" /> Tiếp nhận hồ sơ mới <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Panel Thống kê Báo cáo Ngày Hiện Tại / Khoảng ngày tùy chọn */}
             {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
               <div className="space-y-4">
-                
-                {/* Thanh điều khiển bộ lọc Báo cáo Ngày / Khoảng ngày */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-3xs animate-fadeIn">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-                    <h3 className="text-xs font-black text-slate-850 uppercase tracking-wider">
-                      {dashFilterMode === 'today' ? "Nhật ký chỉ số của ngày hôm nay" : "Chỉ số thống kê theo khoảng ngày"}
-                    </h3>
-                  </div>
-                  
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                      <button
-                        type="button"
-                        onClick={() => setDashFilterMode('today')}
-                        className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition ${
-                          dashFilterMode === 'today' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-500 hover:text-slate-850'
-                        }`}
-                      >
-                        Hôm nay
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDashFilterMode('range')}
-                        className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
-                          dashFilterMode === 'range' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-500 hover:text-slate-850'
-                        }`}
-                      >
-                        Tùy chọn 📅
-                      </button>
-                    </div>
-
-                    {dashFilterMode === 'range' && (
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-655 animate-fadeIn">
-                        <div className="flex items-center gap-1">
-                          <span>Từ:</span>
-                          <input 
-                            type="date" 
-                            value={dashStartDate}
-                            onChange={(e) => setDashStartDate(e.target.value)}
-                            className="bg-transparent border-none text-[11px] font-black text-slate-800 focus:outline-hidden cursor-pointer"
-                          />
-                        </div>
-                        <span className="hidden sm:inline text-slate-300">➔</span>
-                        <div className="flex items-center gap-1">
-                          <span>Đến:</span>
-                          <input 
-                            type="date" 
-                            value={dashEndDate}
-                            onChange={(e) => setDashEndDate(e.target.value)}
-                            className="bg-transparent border-none text-[11px] font-black text-slate-800 focus:outline-hidden cursor-pointer"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                    Những gì của ngày hôm nay
+                  </h3>
+                  <span className="text-[10px] bg-indigo-50 border border-indigo-200 text-indigo-750 px-2.5 py-1 rounded-full font-extrabold">
+                    {isFirebaseConnected ? 'Live' : 'Offline'}
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
                     <div className="p-3.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
                       <Users className="w-6 h-6" />
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Khách hàng</span>
-                      <span className="text-xl font-black text-slate-900">{dashMetrics.totalPatients}</span>
+                      <span className="text-xl font-black text-slate-900">{metrics.totalPatients}</span>
                       <span className="text-[11px] text-slate-500 block">
-                        VIP: {dashMetrics.vipCount} | VVIP: {dashMetrics.vvipCount}
+                        VIP: {metrics.vipCount} | VVIP: {metrics.vvipCount}
                       </span>
                     </div>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
                     <div className="p-3.5 rounded-xl bg-indigo-50 text-indigo-600 border-indigo-100">
                       <Activity className="w-6 h-6" />
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Tổng chi phí</span>
-                      <span className="text-xl font-black text-slate-900">{formatCurrency(dashMetrics.totalRevenue)}</span>
+                      <span className="text-xl font-black text-slate-900">{formatCurrency(metrics.totalRevenue)}</span>
                       <span className="text-[11px] text-slate-500 block">
-                        Tổng chi phí sử dụng (VVIP)
+                        Tổng chi phí sử dụng
                       </span>
                     </div>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
-                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-100">
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Tổng duyệt giảm</span>
-                      <span className="text-xl font-black text-rose-605">-{formatCurrency(dashMetrics.totalDiscount)}</span>
+                      <span className="text-xl font-black text-rose-600">-{formatCurrency(metrics.totalDiscount)}</span>
                       <span className="text-[11px] text-rose-400 block font-bold">
                         Ban lãnh đạo duyệt
                       </span>
@@ -2088,7 +1383,7 @@ export default function App() {
             )}
 
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn">
-              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
                   <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
                     <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
@@ -2096,72 +1391,26 @@ export default function App() {
                   </h3>
                   <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng.</p>
                 </div>
-                
-                <div className="flex flex-wrap gap-2 items-center w-full lg:w-auto">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Lọc nhanh:</span>
-                  <select 
-                    value={filterSite}
-                    onChange={(e) => setFilterSite(e.target.value)}
-                    className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white cursor-pointer"
-                  >
-                    <option value="">Tất cả các Site</option>
-                    {sites.map(s => (
-                      <option key={s.id} value={s.label}>{s.label}</option>
-                    ))}
-                  </select>
-                  
-                  <input 
-                    type="date"
-                    value={filterDate}
-                    onChange={(e) => setFilterDate(e.target.value)}
-                    className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white cursor-pointer"
-                  />
-
-                  {(filterSite || filterDate) && (
-                    <button 
-                      onClick={() => { setFilterSite(''); setFilterDate(''); }}
-                      className="px-2.5 py-1 text-rose-500 hover:bg-rose-50 rounded-xl text-[11px] font-black transition"
-                    >
-                      Xóa bộ lọc
-                    </button>
-                  )}
+                <div className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-black rounded-lg">
+                  Tổng lượt khám: {kanbanPatients.length}
                 </div>
               </div>
 
-              <div className="flex gap-4 overflow-x-auto pb-4 items-stretch select-none">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4 overflow-x-auto pb-4">
                 {workflowStatuses.map(col => {
                   const colPatients = kanbanPatients.filter(p => (p.status || 'Waiting') === col.id);
-                  const isEmpty = colPatients.length === 0;
-
-                  if (isEmpty) {
-                    return (
-                      <div 
-                        key={col.id} 
-                        className="w-12 bg-slate-100/40 rounded-2xl py-3 px-1 border border-slate-200 flex flex-col items-center justify-start transition-all duration-300 ease-in-out shrink-0 select-none cursor-pointer"
-                        title={`Trống: ${col.label}`}
-                      >
-                        <span className={`w-2 h-2 rounded-full ${col.dot} mb-2`}></span>
-                        <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-550 mb-2 font-mono">
-                          0
-                        </span>
-                        <span className="text-[9px] font-extrabold text-slate-400 whitespace-nowrap [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
-                          {col.label}
-                        </span>
-                      </div>
-                    );
-                  }
 
                   return (
                     <div 
                       key={col.id} 
-                      className="bg-slate-50/60 rounded-2xl p-3 border border-slate-200 flex flex-col min-w-[180px] flex-1 transition-all duration-300 ease-in-out shrink-0"
+                      className="bg-slate-50/60 rounded-2xl p-3 border border-slate-200 flex flex-col min-w-[150px] min-h-[350px]"
                     >
                       <div className="flex justify-between items-center pb-3 border-b border-slate-200 mb-3">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className={`w-2 h-2 rounded-full ${col.dot}`}></span>
                           <span className="text-[10px] font-black text-slate-700 truncate">{col.label}</span>
                         </div>
-                        <span className="text-[10px] font-black bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-555 font-mono">
+                        <span className="text-[10px] font-black bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-550">
                           {colPatients.length}
                         </span>
                       </div>
@@ -2172,22 +1421,15 @@ export default function App() {
                           return (
                             <div 
                               key={p.id}
-                              className={`p-3 rounded-xl border shadow-2xs hover:shadow-xs transition duration-150 space-y-2.5 relative group ${patientSite.cardBg}`}
+                              className={`bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition duration-150 space-y-2.5 relative group ${patientSite.marker}`}
                             >
                               <div className="flex justify-between items-start gap-1">
-                                <span className="text-[8px] text-slate-550 font-mono font-black truncate">PID: {p.pid}</span>
-                                <div className="flex gap-1">
-                                  <span className={`px-1 py-0.5 rounded-xs text-[7px] font-bold uppercase ${
-                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-100 text-indigo-800' : 'bg-teal-100 text-teal-800'
-                                  }`}>
-                                    {p.examinationArea === 'Khu VIP' ? 'VIP' : 'TC'}
-                                  </span>
-                                  <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
-                                    p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
-                                  }`}>
-                                    {p.tier}
-                                  </span>
-                                </div>
+                                <span className="text-[8px] text-indigo-600 font-mono font-black truncate">PID: {p.pid}</span>
+                                <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
+                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                                }`}>
+                                  {p.tier}
+                                </span>
                               </div>
 
                               <div className="font-extrabold text-[11px] text-slate-800 leading-tight truncate" title={p.name}>
@@ -2205,9 +1447,22 @@ export default function App() {
                                   ))}
                                 </select>
                               </div>
+
+                              <div className="flex flex-col gap-0.5 text-[8px] text-slate-400 border-t border-slate-200 pt-1.5 font-semibold">
+                                <span className="truncate">NV cập nhật: {p.updatedBy || 'Lễ tân'}</span>
+                                <span className="flex-shrink-0 text-slate-305 font-mono">
+                                  {p.updatedAt ? new Date(p.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date(p.updatedAt).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'}) : '---'}
+                                </span>
+                              </div>
                             </div>
                           );
                         })}
+
+                        {colPatients.length === 0 && (
+                          <div className="text-center py-8 text-slate-300 text-[10px] font-bold border-2 border-dashed border-slate-200 rounded-xl">
+                            Trống
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -2216,26 +1471,32 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                 <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                   <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo dõi hồ sơ
                 </h4>
+                <p className="text-xs text-slate-555 leading-relaxed font-semibold">
+                  Truy cập nhanh danh sách bệnh nhân VIP/VVIP đang điều trị tại phòng khám và bệnh viện chuyên khoa. Thực hiện tra cứu tiến trình và biên lai đính kèm.
+                </p>
                 <button 
-                  onClick={() => { setCalendarMode('list'); setActiveTab('monitoring'); }}
-                  className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
+                  onClick={() => setActiveTab('monitoring')}
+                  className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition"
                 >
                   Đến bảng giám sát <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
 
               {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                   <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
                     <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống
                   </h4>
+                  <p className="text-xs text-slate-555 leading-relaxed font-semibold">
+                    Thiết lập công thức tính tổng phí điều trị, cấu hình các chuyên khoa tiếp nhận và phân quyền tài khoản cho đội ngũ tiếp đón.
+                  </p>
                   <button 
                     onClick={() => setActiveTab('settings')}
-                    className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
+                    className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition"
                   >
                     Đến trang cấu hình <ChevronRight className="w-4 h-4" />
                   </button>
@@ -2246,22 +1507,20 @@ export default function App() {
           </div>
         )}
 
-        {/* ========================== GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI ========================== */}
         {activeTab === 'register' && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
-            {/* Sticky Header */}
             <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-md">
               <div>
                 <h2 className="text-base font-black text-slate-955 flex items-center gap-1.5">
-                  {currentId ? "Cập Nhật Tiến Độ" : "Tạo lượt Tiếp Đón VIP/VVIP"}
+                  {currentId ? "Cập Nhật Tiến Độ" : "Tạo lượt VIP/VVIP Mới"}
                 </h2>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 <button 
                   type="button" 
                   onClick={() => { resetForm(); setActiveTab('monitoring'); }}
-                  className="px-4 py-2 border border-slate-200 text-slate-605 hover:bg-slate-50 text-xs font-bold rounded-xl transition"
+                  className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold rounded-xl transition"
                 >
                   Hủy bỏ
                 </button>
@@ -2274,13 +1533,10 @@ export default function App() {
               </div>
             </div>
 
-            {/* Form Body - Grid Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
               
-              {/* Left Column (lg:col-span-2) */}
               <div className="lg:col-span-2 space-y-6">
                 
-                {/* Block 1: Thông Tin Hành Chính */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -2288,8 +1544,18 @@ export default function App() {
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    
-                    {/* Mã PID ở dòng đầu tiên */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách hàng *</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nhập họ và tên Khách hàng"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800"
+                        required
+                      />
+                    </div>
+
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-600 block">Mã PID *</label>
                       <div className="flex gap-2">
@@ -2298,7 +1564,7 @@ export default function App() {
                           placeholder="Nhập/Quét mã bệnh nhân PID..."
                           value={formData.pid}
                           onChange={(e) => handleInputChange('pid', e.target.value)}
-                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-mono font-black bg-white text-slate-800 animate-fadeIn"
+                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-mono font-black bg-white text-slate-800"
                           required
                         />
                         <button
@@ -2312,60 +1578,34 @@ export default function App() {
                           <Scan className="w-4 h-4 text-slate-500" /> Quét mã
                         </button>
                       </div>
-                      {matchedPatientProfile && (
-                        <div className="text-emerald-600 font-extrabold text-[11px] animate-fadeIn">
-                          🟢 Đã tìm thấy KH: {matchedPatientProfile.name}
-                        </div>
-                      )}
                     </div>
 
-                    {/* Họ & Tên khách hàng bên dưới Mã PID */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách hàng *</label>
-                      <input 
-                        type="text" 
-                        placeholder="Nhập họ và tên Khách hàng"
-                        value={formData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 animate-fadeIn"
-                        required
-                      />
-                    </div>
-
-                    {/* Phân hạng */}
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">Phân Hạng Tiếp Đón</label>
-                      <div className="grid grid-cols-2 gap-3">
+                      <label className="text-xs font-bold text-slate-605 block">Phân Hạng Tiếp Đón</label>
+                      <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
-                          onClick={() => {
-                            handleInputChange('tier', 'VIP');
-                            setFormRightTab('timeline');
-                          }}
-                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 ${
-                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          onClick={() => handleInputChange('tier', 'VIP')}
+                          className={`py-2 px-4 rounded-xl text-xs font-bold border transition ${
+                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700 font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
-                          <span className="font-black text-sm">VIP</span>
+                          Hạng VIP
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            handleInputChange('tier', 'VVIP');
-                            setFormRightTab('billing');
-                          }}
-                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 ${
-                            formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          onClick={() => handleInputChange('tier', 'VVIP')}
+                          className={`py-2 px-4 rounded-xl text-xs font-bold border transition ${
+                            formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-200 text-amber-700 font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
-                          <span className="font-black text-sm text-amber-600">VVIP</span>
+                          Hạng VVIP
                         </button>
                       </div>
                     </div>
 
-                    {/* Ngày khám */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 block">Ngày khám / Điều trị</label>
+                      <label className="text-xs font-bold text-slate-605 block">Ngày khám / Điều trị</label>
                       <input 
                         type="date" 
                         value={formData.date}
@@ -2374,7 +1614,6 @@ export default function App() {
                       />
                     </div>
 
-                    {/* Site thăm khám */}
                     <div className="space-y-1.5 md:col-span-2">
                       <label className="text-xs font-bold text-slate-605 block">Site thăm khám</label>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -2384,7 +1623,7 @@ export default function App() {
                             type="button"
                             onClick={() => handleInputChange('site', s.label)}
                             className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center ${
-                              formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
+                              formData.site === s.label ? `${s.bg} border-slate-400 font-black` : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                             }`}
                           >
                             {s.label}
@@ -2393,34 +1632,8 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Khu vực khám */}
-                    <div className="space-y-1.5 md:col-span-2 animate-fadeIn">
-                      <label className="text-xs font-bold text-slate-605 block">Khu Vực Khám</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          type="button"
-                          onClick={() => handleInputChange('examinationArea', 'Khu Tiêu Chuẩn')}
-                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center ${
-                            formData.examinationArea === 'Khu Tiêu Chuẩn' ? 'bg-teal-50 border-teal-500 text-teal-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
-                          }`}
-                        >
-                          Khu Tiêu Chuẩn
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleInputChange('examinationArea', 'Khu VIP')}
-                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center ${
-                            formData.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-50'
-                          }`}
-                        >
-                          Khu VIP
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Trạng thái */}
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">Trạng thái</label>
+                      <label className="text-xs font-bold text-slate-605 block">Trạng Thái (Vị Trí Kanban Ban Đầu)</label>
                       <select
                         value={formData.status}
                         onChange={(e) => handleInputChange('status', e.target.value)}
@@ -2432,48 +1645,8 @@ export default function App() {
                       </select>
                     </div>
 
-                    {/* Chỉ định nhân viên tiếp đón */}
-                    {['Scheduled', 'Preparing', 'ReceivedInfo'].includes(formData.status) && (
-                      <div className="space-y-2 md:col-span-2 p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl animate-fadeIn">
-                        <label className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-                          <UserCheck className="w-4.5 h-4.5 text-indigo-600" /> Nhân Sự Đón Tiếp Chỉ Định *
-                        </label>
-                        <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
-                          Chọn lễ tân hoặc quản lý site chịu trách nhiệm chuẩn bị và nắm thông tin hành trình đón khách này:
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                          {registrableStaffList.map(staff => {
-                            const isAssigned = (formData.recipients || []).includes(staff.uid);
-                            return (
-                              <button
-                                key={staff.uid}
-                                type="button"
-                                onClick={() => handleToggleRecipient(staff.uid)}
-                                className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition ${
-                                  isAssigned 
-                                    ? 'bg-white border-indigo-600 text-indigo-900 shadow-2xs font-extrabold' 
-                                    : 'bg-white/40 border-slate-200 text-slate-600 hover:bg-white'
-                                }`}
-                              >
-                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                                  isAssigned ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
-                                }`}>
-                                  {isAssigned && <Check className="w-2.5 h-2.5 text-white stroke-[3px]" />}
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="text-xs truncate">{staff.name}</div>
-                                  <div className="text-[9px] text-slate-400 font-medium truncate uppercase">{staff.role} • {staff.title}</div>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* HĐQT Phê duyệt */}
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">HĐQT Phê Duyệt/Chỉ đạo</label>
+                      <label className="text-xs font-bold text-slate-605 block">HĐQT Phê Duyệt</label>
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-1.5">
                           {["Sếp Dũng", "Sếp Hoa", "Sếp Nga", "Sếp Thông"].map((boss) => (
@@ -2493,17 +1666,16 @@ export default function App() {
                         </div>
                         <input 
                           type="text" 
-                          placeholder="Thành viên hội đồng quản trị chỉ đạo..."
+                          placeholder="Thành viên hội đồng quản trị duyệt..."
                           value={formData.boardApproval}
                           onChange={(e) => handleInputChange('boardApproval', e.target.value)}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-semibold bg-white text-slate-800 animate-fadeIn"
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-semibold bg-white text-slate-800"
                         />
                       </div>
                     </div>
 
-                    {/* Ghi chú */}
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">Ghi chú</label>
+                      <label className="text-xs font-bold text-slate-605 block">Ghi chú</label>
                       <textarea 
                         rows="5"
                         placeholder="Mô tả ghi chú nếu có..."
@@ -2512,157 +1684,10 @@ export default function App() {
                         className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-medium bg-white text-slate-800"
                       ></textarea>
                     </div>
-
                   </div>
                 </div>
 
-                {/* Block 2: Bảng Nhật ký & Lịch sử tiếp đón thu gọn mặc định */}
-                {(patientVisitHistory.length > 0 || (formData.history && formData.history.length > 0)) && (
-                  <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
-                    
-                    {/* Header đóng mở linh hoạt */}
-                    <button
-                      type="button"
-                      onClick={() => setIsHistoryPanelExpanded(!isHistoryPanelExpanded)}
-                      className="w-full flex justify-between items-center text-xs font-black text-slate-800 hover:text-indigo-600 transition focus:outline-hidden"
-                    >
-                      <span className="flex items-center gap-2">
-                        <History className="w-4.5 h-4.5 text-indigo-600" />
-                        Lịch sử & Nhật ký hoạt động ({patientVisitHistory.length} lượt khám cũ)
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-slate-400 font-bold">
-                          {isHistoryPanelExpanded ? "Thu nhỏ" : "Bấm để xem"}
-                        </span>
-                        <ChevronDown className={`w-4 h-4 transition-transform duration-250 ${isHistoryPanelExpanded ? 'rotate-180' : ''}`} />
-                      </div>
-                    </button>
-
-                    {/* Nội dung chỉ hiển thị khi expand */}
-                    {isHistoryPanelExpanded && (
-                      <div className="space-y-4 pt-4 border-t border-slate-100 animate-fadeIn">
-                        <div className="flex border-b border-slate-100 pb-2 overflow-x-auto gap-2">
-                          {patientVisitHistory.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => setLeftFormTab('visitHistory')}
-                              className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 flex items-center gap-1 ${
-                                leftFormTab === 'visitHistory' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-655'
-                              }`}
-                            >
-                              <History className="w-3.5 h-3.5" />
-                              Lịch sử tiếp đón ({patientVisitHistory.length})
-                            </button>
-                          )}
-
-                          {formData.history && formData.history.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => setLeftFormTab('timeline')}
-                              className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 ${
-                                leftFormTab === 'timeline' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-655'
-                              }`}
-                            >
-                              Lịch sử Timeline
-                            </button>
-                          )}
-                        </div>
-
-                        {leftFormTab === 'visitHistory' && patientVisitHistory.length > 0 && (
-                          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1 animate-fadeIn">
-                            <div className="space-y-3">
-                              {patientVisitHistory.map((visit) => {
-                                const vSite = sites.find(s => s.label === visit.site) || sites[0];
-                                return (
-                                  <div key={visit.id} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-3 relative hover:shadow-xs transition duration-150">
-                                    
-                                    <div className="flex justify-between items-start gap-1">
-                                      <div>
-                                        <div className="font-bold text-[11px] text-slate-900">
-                                          {visit.date ? formatDateVN(visit.date) : "Lượt khám cũ"}
-                                        </div>
-                                        <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1 ${vSite.bg}`}>
-                                          {vSite.label}
-                                        </span>
-                                      </div>
-                                      
-                                      <button
-                                        type="button"
-                                        onClick={() => setCopyConfirmModal({ show: true, visitToCopy: visit })}
-                                        className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-lg text-[9px] font-black flex items-center gap-1 transition shadow-2xs"
-                                        title="Sao chép toàn bộ thông tin chỉ định này sang lượt mới"
-                                      >
-                                        <Copy className="w-3 h-3" /> Sao chép nhanh
-                                      </button>
-                                    </div>
-
-                                    <div className="space-y-1 text-[10px] text-slate-655 font-semibold">
-                                      <div>Khu vực: <strong className="text-slate-800">{visit.examinationArea || 'Khu VIP'}</strong></div>
-                                      {visit.boardApproval && (
-                                        <div>Chỉ đạo: <span className="bg-slate-900 text-white font-black px-1.5 py-0.5 rounded-xs text-[8px]">{visit.boardApproval}</span></div>
-                                      )}
-                                      {visit.notes && <div className="italic text-slate-400 truncate">"{visit.notes}"</div>}
-                                    </div>
-
-                                    {visit.specialties && visit.specialties.length > 0 && (
-                                      <div className="flex flex-wrap gap-1">
-                                        {visit.specialties.map((spec, i) => (
-                                          <span key={i} className="px-1.5 py-0.5 bg-slate-200/60 text-slate-700 rounded-xs text-[8px] font-bold">
-                                            {spec}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-
-                                    {((visit.approvalImages && visit.approvalImages.length > 0) || visit.approvalImage) && (
-                                      <div className="pt-1.5 border-t border-slate-200 flex gap-2 overflow-x-auto">
-                                        {(visit.approvalImages || [visit.approvalImage]).map((img, imgIdx) => (
-                                          <button
-                                            key={imgIdx}
-                                            type="button"
-                                            onClick={() => {
-                                              setLightboxImages(visit.approvalImages || [visit.approvalImage]);
-                                              setLightboxIndex(imgIdx);
-                                            }}
-                                            className="w-12 h-8 rounded-lg overflow-hidden border border-slate-200/80 shrink-0 hover:border-slate-400 transition"
-                                          >
-                                            <img src={img} alt="Văn bản cũ" className="w-full h-full object-cover" />
-                                          </button>
-                                        ))}
-                                      </div>
-                                    )}
-
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {leftFormTab === 'timeline' && (
-                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-h-[350px] overflow-y-auto pr-1 animate-fadeIn">
-                            <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
-                              {formData.history?.map((log, index) => (
-                                <div key={index} className="relative">
-                                  <span className="absolute -left-[22px] top-1 bg-indigo-60 text-indigo-655 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
-                                  <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
-                                  <div className="text-[9px] text-slate-400 mt-1 flex justify-between font-bold">
-                                    <span>Bởi: {log.user}</span>
-                                    <span className="font-mono">
-                                      {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'})}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Block 3: Chuyên khoa thăm khám */}
+                {/* Chuyên khoa thăm khám multi-select + search */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4" ref={specRef}>
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -2678,7 +1703,7 @@ export default function App() {
                         setIsSpecDropdownOpen(true);
                       }}
                       onFocus={() => setIsSpecDropdownOpen(true)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-bold bg-white text-slate-800"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800"
                     />
                     {isSpecDropdownOpen && (
                       <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-fadeIn">
@@ -2693,7 +1718,7 @@ export default function App() {
                                 type="button"
                                 onClick={() => toggleSpecialtySelection(spec)}
                                 className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${
-                                  isSelected ? 'bg-indigo-50 text-indigo-750' : 'hover:bg-slate-50 text-slate-700'
+                                  isSelected ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-700'
                                 }`}
                               >
                                 <span>{spec}</span>
@@ -2710,7 +1735,7 @@ export default function App() {
                       {formData.specialties.map((spec) => (
                         <span
                           key={spec}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold animate-scaleIn"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold"
                         >
                           {spec}
                           <button
@@ -2726,90 +1751,109 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Block 4: Chi Phí Điều Trị & Lâm Sàng Thực Tế */}
-                {formData.tier === 'VVIP' && (
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
-                      <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                      Chi Phí Điều Trị & Lâm Sàng Thực Tế
-                    </h3>
+                {/* Chi Phí Điều Trị & Lâm Sàng Thực Tế */}
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Chi Phí Điều Trị & Lâm Sàng Thực Tế
+                  </h3>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      
-                      <div className="space-y-1.5 md:col-span-2">
-                        <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
-                        <select
-                          value={formData.treatmentType || 'Ngoại trú'}
-                          onChange={(e) => handleTreatmentTypeChange(e.target.value)}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 cursor-pointer"
-                        >
-                          <option value="Ngoại trú">Ngoại trú</option>
-                          <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
-                          <option value="Nội trú/ICU">Nội trú/ICU</option>
-                          <option value="Ngoài viện">Ngoài viện</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
-                        <div className="relative">
-                          <input 
-                            type="text" 
-                            value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
-                            onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
-                            placeholder="0"
-                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
-                          />
-                          <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
-                        <div className="relative">
-                          <input 
-                            type="text" 
-                            value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
-                            onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
-                            placeholder="0"
-                            className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
-                          />
-                      <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
+                      <select
+                        value={formData.treatmentType || 'Ngoại trú'}
+                        onChange={(e) => handleTreatmentTypeChange(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 cursor-pointer"
+                      >
+                        <option value="Ngoại trú">Ngoại trú</option>
+                        <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
+                        <option value="Nội trú/ICU">Nội trú/ICU</option>
+                        <option value="Ngoài viện">Ngoài viện</option>
+                      </select>
                     </div>
-                  </div>
 
-                  <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-655 block">Thuốc/vacxin</label>
-                    <div className="relative">
-                      <input 
-                        type="text" 
-                        value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
-                        onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
-                        placeholder="0"
-                        className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
-                      />
-                      <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
+                      <div className="relative">
+                        <input 
+                          type="text" 
+                          value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
+                          onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
+                          placeholder="0"
+                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
+                        />
+                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                      </div>
                     </div>
-                  </div>
 
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
+                      <div className="relative">
+                        <input 
+                          type="text" 
+                          value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
+                          onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
+                          placeholder="0"
+                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
+                        />
+                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-655 block">Thuốc/vacxin</label>
+                      <div className="relative">
+                        <input 
+                          type="text" 
+                          value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
+                          onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
+                          placeholder="0"
+                          className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
+                        />
+                        <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                      </div>
+                    </div>
+
+                  </div>
                 </div>
-              </div>
-            )}
 
               </div>
 
-              {/* Right Column (space-y-6) */}
               <div className="space-y-6">
                 
-                {/* Bảng chi phí/duyệt giảm */}
-                {formData.tier === 'VVIP' && (
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
-                    <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                  <div className="flex border-b border-slate-100 pb-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormRightTab('billing')}
+                      className={`flex-1 py-2 text-xs font-black text-center transition border-b-2 ${
+                        formRightTab === 'billing' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      Bảng tổng hợp
+                    </button>
+                    {currentId && (
+                      <button
+                        type="button"
+                        onClick={() => setFormRightTab('timeline')}
+                        className={`flex-1 py-2 text-xs font-black text-center transition border-b-2 ${
+                          formRightTab === 'timeline' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'
+                        }`}
+                      >
+                        Lịch sử Timeline
+                      </button>
+                    )}
+                  </div>
+
+                  {formRightTab === 'billing' ? (
+                    <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800 animate-fadeIn">
                       <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
                       
                       <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
                         <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
-                        Bảng chi phí/duyệt giảm
+                        Biên lai chi phí
                       </h3>
 
                       <div className="space-y-1.5 pt-2 relative z-10">
@@ -2820,7 +1864,7 @@ export default function App() {
                             value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
                             onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
                             placeholder="0"
-                            className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-505 font-mono"
+                            className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-bold text-white placeholder-slate-500 font-mono"
                           />
                           <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">VNĐ</span>
                         </div>
@@ -2842,11 +1886,11 @@ export default function App() {
                               placeholder="0"
                               className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-505 ${
                                 userRole === 'nhanvien'
-                                  ? 'bg-slate-800 border-slate-700 text-slate-550 cursor-not-allowed'
+                                  ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
                                   : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
                               }`}
                             />
-                            <span className="absolute right-3 top-3 text-[10px] text-slate-550 font-bold font-mono">%</span>
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-500 font-bold font-mono">%</span>
                           </div>
                         </div>
                       </div>
@@ -2894,10 +1938,30 @@ export default function App() {
 
                       </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-h-[350px] overflow-y-auto pr-1 animate-fadeIn">
+                      {(!formData.history || formData.history.length === 0) ? (
+                        <p className="text-xs text-slate-400 font-bold text-center py-6">Chưa có hoạt động nào được ghi nhận.</p>
+                      ) : (
+                        <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
+                          {formData.history.map((log, index) => (
+                            <div key={index} className="relative">
+                              <span className="absolute -left-[22px] top-1 bg-indigo-600 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
+                              <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
+                              <div className="text-[9px] text-slate-400 mt-1 flex justify-between font-bold">
+                                <span>Bởi: {log.user}</span>
+                                <span className="font-mono">
+                                  {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'})}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-                {/* Ảnh Phê Duyệt Gửi Kèm */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
@@ -2931,14 +1995,11 @@ export default function App() {
                   </div>
                 </div>
 
-              </div> {/* Close right column */}
-
-            </div> {/* Close outer body grid layout */}
-
+              </div>
+            </div>
           </form>
         )}
 
-        {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ & BỘ LỊCH ========================== */}
         {activeTab === 'monitoring' && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -2956,515 +2017,327 @@ export default function App() {
               </button>
             </div>
 
-            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex justify-between items-center flex-wrap gap-3">
-              <div className="flex bg-slate-100 p-1 rounded-xl">
-                <button 
-                  onClick={() => setCalendarMode('list')}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'list' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
-                >
-                  Dạng Danh Sách
-                </button>
-                <button 
-                  onClick={() => { setCalendarMode('week'); setCurrentCalendarDate(new Date()); }}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'week' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
-                >
-                  Lịch Tuần Động
-                </button>
-                <button 
-                  onClick={() => { setCalendarMode('month'); setCurrentCalendarDate(new Date()); }}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'month' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
-                >
-                  Lịch Tháng Chi Tiết
-                </button>
-              </div>
-
-              {calendarMode !== 'list' && (
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => handleCalendarNavigate('prev')}
-                    className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <span className="text-xs font-extrabold text-slate-800 min-w-[120px] text-center">
-                    {calendarMode === 'week' ? (
-                      `Tuần ${formatDateVN(weekDays[0].toISOString().split('T')[0])}`
-                    ) : (
-                      `Tháng ${currentCalendarDate.getMonth() + 1} / ${currentCalendarDate.getFullYear()}`
-                    )}
-                  </span>
-                  <button 
-                    onClick={() => handleCalendarNavigate('next')}
-                    className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {calendarMode === 'list' && (
-              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                <div className="flex flex-col md:flex-row gap-3">
-                  <div className="flex-1 relative">
-                    <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-400" />
-                    <input 
-                      type="text" 
-                      placeholder="Tìm theo tên, mã PID, ghi chú..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-xs font-bold bg-white"
-                    />
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    <select 
-                      value={filterTier}
-                      onChange={(e) => setFilterTier(e.target.value)}
-                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
-                    >
-                      <option value="">Tất cả hạng</option>
-                      <option value="VIP">VIP</option>
-                      <option value="VVIP">VVIP</option>
-                    </select>
-
-                    <select 
-                      value={filterSpecialty}
-                      onChange={(e) => setFilterSpecialty(e.target.value)}
-                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
-                    >
-                      <option value="">Tất cả chuyên khoa</option>
-                      {systemSettings.specialties.map((spec, idx) => (
-                        <option key={idx} value={spec}>{spec}</option>
-                      ))}
-                    </select>
-
-                    <select 
-                      value={filterSite}
-                      onChange={(e) => setFilterSite(e.target.value)}
-                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
-                    >
-                      <option value="">Tất cả Site</option>
-                      {sites.map(s => (
-                        <option key={s.id} value={s.label}>{s.label}</option>
-                      ))}
-                    </select>
-
-                    <input 
-                      type="date"
-                      value={filterDate}
-                      onChange={(e) => setFilterDate(e.target.value)}
-                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
-                    />
-
-                    {(searchTerm || filterTier || filterSpecialty || filterDate || filterSite) && (
-                      <button 
-                        onClick={() => { setSearchTerm(''); setFilterTier(''); setFilterSpecialty(''); setFilterDate(''); setFilterSite(''); }}
-                        className="px-3 py-2 text-rose-500 hover:bg-rose-50 rounded-xl text-xs font-bold transition"
-                      >
-                        Xóa lọc
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {calendarMode === 'week' && (
-              <div className="grid grid-cols-1 md:grid-cols-7 gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm overflow-x-auto min-w-full">
-                {weekDays.map((day, idx) => {
-                  const dateStr = day.toISOString().split('T')[0];
-                  const dayPatients = visiblePatients.filter(p => p.date === dateStr);
-                  const isCurrentToday = dateStr === todayStr;
-
-                  return (
-                    <div 
-                      key={idx} 
-                      className={`p-3 rounded-2xl border min-h-[220px] flex flex-col space-y-3 ${
-                        isCurrentToday ? 'bg-indigo-50/40 border-indigo-200' : 'bg-slate-50/40 border-slate-150'
-                      }`}
-                    >
-                      <div className="text-center pb-2 border-b border-slate-250">
-                        <span className="text-[10px] uppercase font-black text-slate-400 block">
-                          {day.toLocaleDateString('vi-VN', { weekday: 'short' })}
-                        </span>
-                        <span className={`text-sm font-extrabold font-mono inline-block px-2 py-0.5 rounded-full ${
-                          isCurrentToday ? 'bg-indigo-600 text-white' : 'text-slate-800'
-                        }`}>
-                          {day.getDate()}
-                        </span>
-                      </div>
-
-                      <div className="flex-1 space-y-2 overflow-y-auto max-h-[300px]">
-                        {dayPatients.length === 0 ? (
-                          <div className="text-center text-[10px] text-slate-300 font-bold pt-8">Không có ca</div>
-                        ) : (
-                          dayPatients.map(p => (
-                            <div 
-                              key={p.id}
-                              onClick={() => initiateEdit(p)}
-                              className="p-2 bg-white border border-slate-200 rounded-xl shadow-3xs hover:border-indigo-400 transition cursor-pointer space-y-1 animate-scaleIn text-left"
-                            >
-                              <div className="font-extrabold text-[10px] text-slate-800 truncate">{p.name}</div>
-                              <div className="flex items-center justify-between gap-1 text-[8px] text-slate-450">
-                                <span className="font-mono">PID: {p.pid}</span>
-                                <span className={`px-1 rounded-sm uppercase font-black text-[7px] ${
-                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
-                                }`}>
-                                  {p.tier}
-                                </span>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {calendarMode === 'month' && (
-              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-black uppercase text-slate-400 pb-2 border-b border-slate-100">
-                  <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span>
+            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="flex-1 relative">
+                  <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Tìm theo tên, mã PID, ghi chú..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-xs font-bold bg-white"
+                  />
                 </div>
                 
-                <div className="grid grid-cols-7 gap-2">
-                  {monthDays.map((day, idx) => {
-                    if (!day) return <div key={idx} className="aspect-square bg-slate-50/20 rounded-xl border border-transparent"></div>;
+                <div className="flex flex-wrap gap-2">
+                  <select 
+                    value={filterTier}
+                    onChange={(e) => setFilterTier(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                  >
+                    <option value="">Tất cả hạng</option>
+                    <option value="VIP">VIP</option>
+                    <option value="VVIP">VVIP</option>
+                  </select>
 
-                    const dateStr = day.toISOString().split('T')[0];
-                    const dayPatients = visiblePatients.filter(p => p.date === dateStr);
-                    const isCurrentToday = dateStr === todayStr;
+                  <select 
+                    value={filterSpecialty}
+                    onChange={(e) => setFilterSpecialty(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                  >
+                    <option value="">Tất cả chuyên khoa</option>
+                    {systemSettings.specialties.map((spec, idx) => (
+                      <option key={idx} value={spec}>{spec}</option>
+                    ))}
+                  </select>
 
+                  <select 
+                    value={filterSite}
+                    onChange={(e) => setFilterSite(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                  >
+                    <option value="">Tất cả Site</option>
+                    {sites.map(s => (
+                      <option key={s.id} value={s.label}>{s.label}</option>
+                    ))}
+                  </select>
+
+                  <input 
+                    type="date"
+                    value={filterDate}
+                    onChange={(e) => setFilterDate(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                  />
+
+                  {(searchTerm || filterTier || filterSpecialty || filterDate || filterSite) && (
+                    <button 
+                      onClick={() => { setSearchTerm(''); setFilterTier(''); setFilterSpecialty(''); setFilterDate(''); setFilterSite(''); }}
+                      className="px-3 py-2 text-rose-500 hover:bg-rose-50 rounded-xl text-xs font-bold transition"
+                    >
+                      Xóa lọc
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
+                <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+                <p className="text-slate-400 font-semibold text-xs animate-pulse">Đang cập nhật...</p>
+              </div>
+            ) : filteredPatients.length === 0 ? (
+              <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
+                <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto text-slate-400">
+                  <ClipboardList className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy gì hết nè</h3>
+                  <p className="text-slate-400 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="hidden lg:block bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                          <th className="py-4 px-5">PID / Khách Hàng</th>
+                          <th className="py-4 px-3">Phân hạng</th>
+                          <th className="py-4 px-3">Ngày Khám / Site</th>
+                          <th className="py-4 px-3">Chuyên Khoa</th>
+                          <th className="py-4 px-3">HĐQT Phê Duyệt</th>
+                          <th className="py-4 px-3 text-right">Tổng Chi Phí</th>
+                          <th className="py-4 px-3 text-right">Duyệt Giảm</th>
+                          <th className="py-4 px-3 text-right">Thực Thu</th>
+                          <th className="py-4 px-5 text-right">Tác vụ</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 text-xs">
+                        {filteredPatients.map((p) => {
+                          const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
+                          const pSite = sites.find(s => s.label === p.site) || sites[0];
+                          return (
+                            <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 animate-fadeIn">
+                              <td className="py-4 px-5">
+                                <div className="font-extrabold text-slate-955 text-sm">{p.name}</div>
+                                <div className="text-[10px] text-indigo-600 font-mono font-black mt-0.5">PID: {p.pid}</div>
+                              </td>
+                              <td className="py-4 px-3">
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${
+                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                                }`}>
+                                  <Sparkles className="w-3 h-3" />
+                                  {p.tier}
+                                </span>
+                              </td>
+                              <td className="py-4 px-3">
+                                <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
+                                <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1 ${pSite.bg}`}>
+                                  {pSite.label}
+                                </div>
+                              </td>
+                              <td className="py-4 px-3">
+                                <div className="flex flex-wrap gap-1 max-w-[180px]">
+                                  {p.specialties?.map((s, idx) => (
+                                    <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded font-bold">
+                                      {s}
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="py-4 px-3">
+                                <div className="font-bold text-slate-700">{p.boardApproval || '---'}</div>
+                                {p.notes && <div className="text-[10px] text-slate-400 max-w-[150px] truncate" title={p.notes}>{p.notes}</div>}
+                              </td>
+                              <td className="py-4 px-3 text-right font-bold text-slate-900 font-mono">
+                                {formatCurrency(p.totalAmount)}
+                              </td>
+                              <td className="py-4 px-3 text-right">
+                                <div className="font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</div>
+                                <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
+                              </td>
+                              <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
+                                {formatCurrency(realCollected)}
+                              </td>
+                              <td className="py-4 px-5 text-right whitespace-nowrap">
+                                <div className="flex justify-end gap-1.5">
+                                  {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
+                                    <button 
+                                      onClick={() => {
+                                        const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
+                                        setLightboxImages(imgs);
+                                        setLightboxIndex(0);
+                                      }}
+                                      className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl transition" 
+                                      title="Ảnh duyệt"
+                                    >
+                                      <ImageIcon className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                  <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
+                                    <Edit3 className="w-4 h-4" />
+                                  </button>
+                                  
+                                  {userRole !== 'nhanvien' ? (
+                                    <button 
+                                      onClick={() => {
+                                        setConfirmModal({
+                                          show: true,
+                                          title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
+                                          message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+                                          action: async () => {
+                                            try {
+                                              if (isFirebaseConnected && db) {
+                                                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
+                                                showNotification("Đã xóa hồ sơ thành công!");
+                                              } else {
+                                                const updated = patients.filter(item => item.id !== p.id);
+                                                setPatients(updated);
+                                                localStorage.setItem('local_patients', JSON.stringify(updated));
+                                                showNotification("Đã xóa hồ sơ cục bộ!");
+                                              }
+                                              setConfirmModal({ show: false, action: null, message: '', title: '' });
+                                            } catch (err) {
+                                              console.error(err);
+                                            }
+                                          }
+                                        });
+                                      }} 
+                                      className="p-1.5 bg-rose-50 border border-rose-200 text-rose-605 hover:bg-rose-500 hover:text-white rounded-xl transition" 
+                                      title="Xóa"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  ) : (
+                                    <span className="p-1.5 text-slate-300 cursor-not-allowed">
+                                      <Lock className="w-4 h-4" />
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
+                  {filteredPatients.map((p) => {
+                    const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
+                    const pSite = sites.find(s => s.label === p.site) || sites[0];
                     return (
-                      <div 
-                        key={idx}
-                        onClick={() => {
-                          if (dayPatients.length > 0) {
-                            setFilterDate(dateStr);
-                            setCalendarMode('list');
-                          }
-                        }}
-                        className={`aspect-square p-2 rounded-2xl border flex flex-col justify-between transition-all relative ${
-                          dayPatients.length > 0 ? 'cursor-pointer hover:border-indigo-400 shadow-3xs' : ''
-                        } ${
-                          isCurrentToday ? 'bg-indigo-50/50 border-indigo-200' : 'bg-white border-slate-150'
-                        }`}
-                      >
-                        <span className={`text-[11px] font-black font-mono leading-none ${
-                          isCurrentToday ? 'text-indigo-600 font-black' : 'text-slate-550'
-                        }`}>
-                          {day.getDate()}
-                        </span>
-
-                        {dayPatients.length > 0 && (
-                          <div className="flex gap-1 flex-wrap justify-end">
-                            {dayPatients.slice(0, 3).map((p, pIdx) => (
-                              <span 
-                                key={pIdx} 
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  p.tier === 'VVIP' ? 'bg-amber-400' : 'bg-indigo-500'
-                                }`} 
-                                title={`${p.name} (${p.tier})`}
-                              />
-                            ))}
-                            {dayPatients.length > 3 && (
-                              <span className="text-[7px] text-slate-400 font-bold">+{dayPatients.length - 3}</span>
-                            )}
+                      <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
+                            <h4 className="font-extrabold text-slate-900 text-sm">{p.name}</h4>
+                            <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5" />
+                              Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
+                            </p>
+                            <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1.5 ${pSite.bg}`}>
+                              {pSite.label}
+                            </span>
                           </div>
-                        )}
+                          <span className={`inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[9px] font-black ${
+                            p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                          }`}>
+                            {p.tier}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1">
+                          {p.specialties?.map((s, idx) => (
+                            <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-2.5 py-0.5 rounded font-bold">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div className="bg-slate-50 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-655">
+                          <div>Phê duyệt: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
+                          {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
+                          <div>
+                            <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
+                            <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
+                          </div>
+                          <div>
+                            <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
+                            <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
+                          </div>
+                          <div>
+                            <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
+                            <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-1">
+                          {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
+                                setLightboxImages(imgs);
+                                setLightboxIndex(0);
+                              }}
+                              className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-605 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
+                            >
+                              <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
+                            </button>
+                          )}
+                          <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-705 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
+                            <Edit3 className="w-3.5 h-3.5" /> Sửa
+                          </button>
+                          
+                          {userRole !== 'nhanvien' && (
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                setConfirmModal({
+                                  title: "Xác nhận gỡ bỏ dữ liệu",
+                                  message: "Bạn có chắc chắn muốn gỡ bỏ vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+                                  show: true,
+                                  action: async () => {
+                                    try {
+                                      if (isFirebaseConnected && db) {
+                                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
+                                        showNotification("Đã xóa dữ liệu đám mây!");
+                                      } else {
+                                        const updated = patients.filter(item => item.id !== p.id);
+                                        setPatients(updated);
+                                        localStorage.setItem('local_patients', JSON.stringify(updated));
+                                        showNotification("Đã xóa dữ liệu!");
+                                      }
+                                      setConfirmModal({ show: false, action: null, message: '', title: '' });
+                                    } catch (err) {
+                                      console.error(err);
+                                    }
+                                  }
+                                });
+                              }}
+                              className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Xóa
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-              </div>
-            )}
-
-            {calendarMode === 'list' && (
-              <>
-                {isLoading ? (
-                  <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
-                    <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
-                    <p className="text-slate-400 font-semibold text-xs animate-pulse">Đang cập nhật...</p>
-                  </div>
-                ) : filteredPatients.length === 0 ? (
-                  <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
-                    <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto text-slate-400">
-                      <ClipboardList className="w-8 h-8" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy hồ sơ nào phù hợp</h3>
-                      <p className="text-slate-400 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="hidden lg:block bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-fadeIn">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className="bg-slate-55 border-b border-slate-200 text-[10px] text-slate-400 font-black uppercase tracking-wider">
-                              <th className="py-4 px-5">PID / Khách Hàng</th>
-                              <th className="py-4 px-3">Phân hạng</th>
-                              <th className="py-4 px-3">Ngày Khám / Site / Khu vực</th>
-                              <th className="py-4 px-3">Chuyên Khoa</th>
-                              <th className="py-4 px-3">HĐQT Chỉ Đạo</th>
-                              <th className="py-4 px-3 text-right">Tổng Chi Phí</th>
-                              <th className="py-4 px-3 text-right">Duyệt Giảm</th>
-                              <th className="py-4 px-3 text-right">Thực Thu</th>
-                              <th className="py-4 px-5 text-right">Tác vụ</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-200 text-xs">
-                            {filteredPatients.map((p) => {
-                              const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
-                              const pSite = sites.find(s => s.label === p.site) || sites[0];
-                              return (
-                                <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 animate-fadeIn">
-                                  <td className="py-4 px-5">
-                                    <div className="font-extrabold text-slate-955 text-sm">{p.name}</div>
-                                    <div className="text-[10px] text-indigo-600 font-mono font-black mt-0.5">PID: {p.pid}</div>
-                                  </td>
-                                  <td className="py-4 px-3">
-                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${
-                                      p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                                    }`}>
-                                      <Sparkles className="w-3 h-3" />
-                                      {p.tier}
-                                    </span>
-                                  </td>
-                                  <td className="py-4 px-3">
-                                    <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
-                                    <div className="flex flex-wrap gap-1 mt-1">
-                                      <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
-                                        {pSite.label}
-                                      </div>
-                                      <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
-                                        p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
-                                      }`}>
-                                        {p.examinationArea || 'Khu VIP'}
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="py-4 px-3">
-                                    <div className="flex flex-wrap gap-1 max-w-[180px]">
-                                      {p.specialties?.map((s, idx) => (
-                                        <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded font-bold">
-                                          {s}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </td>
-                                  <td className="py-4 px-3">
-                                    <div className="font-bold text-slate-700">{p.boardApproval || '---'}</div>
-                                    {p.notes && <div className="text-[10px] text-slate-400 max-w-[150px] truncate" title={p.notes}>{p.notes}</div>}
-                                  </td>
-                                  <td className="py-4 px-3 text-right font-bold text-slate-900 font-mono">
-                                    {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Thanh toán quầy</span> : formatCurrency(p.totalAmount)}
-                                  </td>
-                                  <td className="py-4 px-3 text-right">
-                                    {p.tier === 'VIP' ? (
-                                      <span className="text-slate-400 font-sans text-[10px]">---</span>
-                                    ) : (
-                                      <>
-                                        <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
-                                        <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
-                                      </>
-                                    )}
-                                  </td>
-                                  <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
-                                    {p.tier === 'VIP' ? <span className="text-slate-400 font-sans text-[10px]">Hóa đơn gốc</span> : formatCurrency(realCollected)}
-                                  </td>
-                                  <td className="py-4 px-5 text-right whitespace-nowrap">
-                                    <div className="flex justify-end gap-1.5">
-                                      {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
-                                        <button 
-                                          onClick={() => {
-                                            const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
-                                            setLightboxImages(imgs);
-                                            setLightboxIndex(0);
-                                          }}
-                                          className="p-1.5 bg-slate-50 border border-slate-200 text-slate-605 hover:bg-slate-100 rounded-xl transition" 
-                                          title="Ảnh duyệt"
-                                        >
-                                          <ImageIcon className="w-4 h-4" />
-                                        </button>
-                                      )}
-                                      <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
-                                        <Edit3 className="w-4 h-4" />
-                                      </button>
-                                      
-                                      {userRole !== 'nhanvien' ? (
-                                        <button 
-                                          onClick={() => {
-                                            setConfirmModal({
-                                              show: true,
-                                              title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
-                                              message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
-                                              action: async () => {
-                                                try {
-                                                  if (isFirebaseConnected && db) {
-                                                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
-                                                    showNotification("Đã xóa hồ sơ thành công!");
-                                                  } else {
-                                                    const updated = patients.filter(item => item.id !== p.id);
-                                                    setPatients(updated);
-                                                    localStorage.setItem('local_patients', JSON.stringify(updated));
-                                                    showNotification("Đã xóa hồ sơ cục bộ!");
-                                                  }
-                                                  setConfirmModal({ show: false, action: null, message: '', title: '' });
-                                                } catch (err) {
-                                                  console.error(err);
-                                                }
-                                              }
-                                            });
-                                          }} 
-                                          className="p-1.5 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" 
-                                          title="Xóa"
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </button>
-                                      ) : (
-                                        <span className="p-1.5 text-slate-300 cursor-not-allowed">
-                                          <Lock className="w-4 h-4" />
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
-                      {filteredPatients.map((p) => {
-                        const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
-                        const pSite = sites.find(s => s.label === p.site) || sites[0];
-                        return (
-                          <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
-                                <h4 className="font-extrabold text-slate-900 text-sm">{p.name}</h4>
-                                <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 animate-fadeIn">
-                                  <Calendar className="w-3.5 h-3.5" />
-                                  Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
-                                </p>
-                                <div className="flex flex-wrap gap-1 mt-1.5">
-                                  <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
-                                    {pSite.label}
-                                  </span>
-                                  <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
-                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
-                                  }`}>
-                                    {p.examinationArea || 'Khu VIP'}
-                                  </span>
-                                </div>
-                              </div>
-                              <span className={`inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[9px] font-black ${
-                                p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
-                              }`}>
-                                {p.tier}
-                              </span>
-                            </div>
-
-                            <div className="flex flex-wrap gap-1">
-                              {p.specialties?.map((s, idx) => (
-                                <span key={idx} className="text-[9px] bg-slate-50 text-slate-605 border border-slate-200 px-2.5 py-0.5 rounded font-bold">
-                                  {s}
-                                </span>
-                              ))}
-                            </div>
-
-                            <div className="bg-slate-55 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-655">
-                              <div>Phê duyệt/Chỉ đạo: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
-                              {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
-                            </div>
-
-                            {p.tier === 'VVIP' ? (
-                              <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
-                                <div>
-                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
-                                  <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
-                                </div>
-                                <div>
-                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
-                                  <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
-                                </div>
-                                <div>
-                                  <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
-                                  <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
-                                </div>
-                              </div>
-                            ) : null}
-
-                            <div className="flex justify-end gap-2 pt-1">
-                              {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
-                                <button 
-                                  type="button"
-                                  onClick={() => {
-                                    const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
-                                    setLightboxImages(imgs);
-                                    setLightboxIndex(0);
-                                  }}
-                                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
-                                >
-                                  <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
-                                </button>
-                              )}
-                              <button onClick={() => initiateEdit(p)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
-                                <Edit3 className="w-3.5 h-3.5" /> Sửa
-                              </button>
-                              
-                              {userRole !== 'nhanvien' && (
-                                <button 
-                                  type="button"
-                                  onClick={() => {
-                                    setConfirmModal({
-                                      title: "Xác nhận gỡ bỏ dữ liệu",
-                                      message: "Bạn có chắc chắn muốn gỡ bỏ vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
-                                      show: true,
-                                      action: async () => {
-                                        try {
-                                          if (isFirebaseConnected && db) {
-                                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
-                                            showNotification("Đã xóa dữ liệu đám mây!");
-                                          } else {
-                                            const updated = patients.filter(item => item.id !== p.id);
-                                            setPatients(updated);
-                                            localStorage.setItem('local_patients', JSON.stringify(updated));
-                                            showNotification("Đã xóa dữ liệu!");
-                                          }
-                                          setConfirmModal({ show: false, action: null, message: '', title: '' });
-                                        } catch (err) {
-                                          console.error(err);
-                                        }
-                                      }
-                                    });
-                                  }}
-                                  className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-605 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" /> Xóa
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
               </>
             )}
           </div>
         )}
 
-        {/* ========================== GIAO DIỆN 4: CẤU HÌNH THAM SỐ ========================== */}
         {activeTab === 'settings' && (userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -3493,7 +2366,7 @@ export default function App() {
                     { key: 'clsCdha', label: 'CLS/CDHA' },
                     { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
                   ].map((field) => (
-                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-150 hover:bg-slate-50 cursor-pointer transition">
+                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-150 hover:bg-slate-55 cursor-pointer transition">
                       <input 
                         type="checkbox"
                         checked={systemSettings.totalFormulaFields[field.key] || false}
@@ -3568,7 +2441,7 @@ export default function App() {
                       placeholder="Thêm chuyên khoa mới..."
                       value={newSpecialtyInput}
                       onChange={(e) => setNewSpecialtyInput(e.target.value)}
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
                     />
                     <button
                       type="button"
@@ -3586,7 +2459,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => handleRemoveSpecialty(spec)}
-                          className="p-1 text-slate-405 hover:text-red-500 rounded-lg transition"
+                          className="p-1 text-slate-400 hover:text-red-500 rounded-lg transition"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -3619,7 +2492,7 @@ export default function App() {
                           placeholder="Chức danh" 
                           value={newStaff.title}
                           onChange={(e) => setNewStaff({ ...newStaff, title: e.target.value })}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-medium"
                         />
                       </div>
                       <div className="grid grid-cols-1 gap-2">
@@ -3641,7 +2514,7 @@ export default function App() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Vai trò phân quyền</label>
+                        <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Chọn Vai Trò (Role)</label>
                         <select 
                           value={newStaff.role}
                           onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
