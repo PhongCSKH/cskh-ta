@@ -65,7 +65,7 @@ import {
   ChevronLeft
 } from 'lucide-react';
 
-const WEBPUSH_VAPID_KEY = "BFjwAUlwacxhmYk0TiQdDTDYJKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQIAcSuG3iAAqtNnkPtJAW_s"; 
+const WEBPUSH_VAPID_KEY = "BFjwAUlwacxhmYk0TiQdDTDJYKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQlAcSuG3iAAqtNnkPtJAW_s"; 
 
 const defaultFirebaseConfig = {
   apiKey: "AIzaSyBMmXRbUFvXRsUH6anb22sKlY8JlqiF7Lk",
