@@ -1,21 +1,35 @@
-  - name: Setup Node.js
-    uses: actions/setup-node@v4
-    with:
-      node-version: 20
-      cache: 'npm'
+name: Deploy to Firebase
 
-  - name: Install Frontend Dependencies
-    run: npm install
+on:
+  push:
+    branches:
+      - main
 
-  - name: Build Frontend
-    run: npm run build
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
 
-  - name: Install Functions Dependencies
-    run: npm --prefix functions install
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
 
-  - name: Deploy to Firebase
-    uses: w9jds/firebase-action@v2.0.0
-    with:
-      args: deploy
-    env:
-      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+      - name: Install Frontend Dependencies
+        run: npm install
+
+      - name: Build Frontend
+        run: npm run build
+
+      - name: Install Functions Dependencies
+        run: npm --prefix functions install
+
+      - name: Deploy to Firebase
+        uses: w9jds/firebase-action@v2.0.0
+        with:
+          args: deploy
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
