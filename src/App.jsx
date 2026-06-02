@@ -119,48 +119,48 @@ const mockStaffAccounts = [
 ];
 
 const defaultSpecialties = [
-  "CK Chấn thương chỉnh hình", 
-  "CK Cơ xương khớp", 
-  "CK Da Liễu", 
-  "CK Dinh dưỡng", 
-  "CK Đầu - Mặt - Cổ", 
-  "CK Điều trị béo phì", 
-  "CK HEP-D", 
-  "CK Hô Hấp", 
-  "CK Hỗ trợ sinh sản", 
-  "CK Huyết học", 
-  "CK Mắt", 
-  "CK Miễn dịch lâm sàng", 
-  "CK Nam học", 
-  "CK Ngoại Lồng ngực - Mạch máu", 
-  "CK Ngoại Nhi", 
-  "CK Ngoại Thần Kinh", 
-  "CK Ngoại Tim Mạch", 
-  "CK Ngoại tổng quát", 
-  "CK Ngoại Vú", 
-  "CK Nhi", 
-  "CK Nội soi", 
-  "CK Nội Thận", 
-  "CK Nội tiết", 
-  "CK Nội tổng quát", 
-  "CK Phục hồi Chức năng", 
-  "CK Răng Hàm Mặt", 
-  "CK Sản phụ khoa", 
-  "CK Sơ sinh", 
-  "CK Tai mũi họng", 
-  "CK Tâm thần", 
-  "CK Thần kinh", 
-  "CK Thần kinh - Cột sống", 
-  "CK Tiết Niệu", 
-  "CK Tiêu hóa", 
-  "CK Tim mạch", 
-  "CK Tim mạch can thiệp", 
-  "CK Ung Bướu", 
-  "CK Viêm gan và gan nhiễm mỡ", 
-  "CK Vista", 
-  "CK Xạ trị", 
-  "CK Y học bào thai", 
-  "Khác", 
+  "CK Chấn thương chỉnh hình",
+  "CK Cơ xương khớp",
+  "CK Da Liễu",
+  "CK Dinh dưỡng",
+  "CK Đầu - Mặt - Cổ",
+  "CK Điều trị béo phì",
+  "CK HEP-D",
+  "CK Hô Hấp",
+  "CK Hỗ trợ sinh sản",
+  "CK Huyết học",
+  "CK Mắt",
+  "CK Miễn dịch lâm sàng",
+  "CK Nam học",
+  "CK Ngoại Lồng ngực - Mạch máu",
+  "CK Ngoại Nhi",
+  "CK Ngoại Thần Kinh",
+  "CK Ngoại Tim Mạch",
+  "CK Ngoại tổng quát",
+  "CK Ngoại Vú",
+  "CK Nhi",
+  "CK Nội soi",
+  "CK Nội Thận",
+  "CK Nội tiết",
+  "CK Nội tổng quát",
+  "CK Phục hồi Chức năng",
+  "CK Răng Hàm Mặt",
+  "CK Sản phụ khoa",
+  "CK Sơ sinh",
+  "CK Tai mũi họng",
+  "CK Tâm thần",
+  "CK Thần kinh",
+  "CK Thần kinh - Cột sống",
+  "CK Tiết Niệu",
+  "CK Tiêu hóa",
+  "CK Tim mạch",
+  "CK Tim mạch can thiệp",
+  "CK Ung Bướu",
+  "CK Viêm gan và gan nhiễm mỡ",
+  "CK Vista",
+  "CK Xạ trị",
+  "CK Y học bào thai",
+  "Khác",
   "Khám sàng lọc trước tiêm"
 ];
 
@@ -229,7 +229,7 @@ export default function App() {
   const [filterDate, setFilterDate] = useState('');
   const [filterSite, setFilterSite] = useState('');
 
-  const [calendarMode, setCalendarMode] = useState('list'); 
+  const [calendarMode, setCalendarMode] = useState('list');
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
 
   const [currentId, setCurrentId] = useState(null);
@@ -291,10 +291,10 @@ export default function App() {
 
   const triggerPushAlert = (title, message, dataRecipients = [], type = 'info') => {
     const hasTargetedRecipients = Array.isArray(dataRecipients) && dataRecipients.length > 0;
-    
+
     if (currentUser) {
-      const isManagerOrAdmin = ['admin', 'lanhdao', 'quanly'].includes(currentUser?.role);
-      const isAssigned = hasTargetedRecipients && dataRecipients.includes(currentUser?.uid);
+      const isManagerOrAdmin = ['admin', 'lanhdao', 'quanly'].includes(currentUser.role);
+      const isAssigned = hasTargetedRecipients && dataRecipients.includes(currentUser.uid);
       
       if (hasTargetedRecipients && !isManagerOrAdmin && !isAssigned) {
         return;
@@ -303,9 +303,9 @@ export default function App() {
 
     const id = Date.now() + Math.random().toString(36).substr(2, 9);
     const newAlert = { id, title, message, type };
-    
+
     setActivePushAlerts(prev => [newAlert, ...prev]);
-    
+
     setNotifications(prev => [
       {
         id,
@@ -350,19 +350,18 @@ export default function App() {
   const saveFcmTokenToDatabase = async (userId) => {
     if (!db || !messaging) return;
     try {
-      const token = await getToken(messaging, { 
-        vapidKey: "BFjwAUlwacxhmYk0TiQdDTDYJKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQIAcSuG3iAAqtNnkPtJAW_s" 
-      }).catch(err => {
-        return null;
+      const token = await getToken(messaging, {
+        vapidKey: "BFjwAUlwacxhmYk0TiQdDTDYJKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQIAcSuG3iAAqtNnkPtJAW_s"
       });
       if (token) {
         const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userId);
         await updateDoc(userDocRef, { fcmToken: token }).catch(async (e) => {
+          // Ghi đè an toàn nếu tài liệu chưa được khởi tạo đầy đủ trường
           await setDoc(userDocRef, { fcmToken: token }, { merge: true }).catch(err => console.warn(err));
         });
       }
     } catch (err) {
-      console.warn(err);
+      console.warn("Lỗi đồng bộ mã thông báo FCM thiết bị:", err);
     }
   };
 
@@ -382,8 +381,8 @@ export default function App() {
       
       if (permission === 'granted') {
         showNotification("Đã kích hoạt thành công thông báo!");
-        if (currentUser && currentUser?.uid) {
-          await saveFcmTokenToDatabase(currentUser?.uid);
+        if (currentUser && currentUser.uid) {
+          await saveFcmTokenToDatabase(currentUser.uid);
         }
         triggerPushAlert("🟢 Đã bật thông báo", "Hệ thống sẵn sàng nhận dữ liệu thời gian thực.");
       } else {
@@ -445,10 +444,11 @@ export default function App() {
     });
   };
 
+  // Nâng cấp: Khi đăng xuất, thu hồi Token FCM để tránh gửi lầm sang thiết bị khác
   const handleLogout = async () => {
     if (isFirebaseConnected && auth && currentUser) {
       try {
-        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser?.uid);
+        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser.uid);
         await updateDoc(userDocRef, { fcmToken: null }).catch(e => console.warn(e));
       } catch (err) {
         console.warn(err);
@@ -469,7 +469,7 @@ export default function App() {
     }
 
     const localAccount = staffList.find(
-      (acc) => acc?.email?.toLowerCase() === loginEmail.trim().toLowerCase()
+      (acc) => acc.email.toLowerCase() === loginEmail.trim().toLowerCase()
     );
 
     if (isFirebaseConnected && auth) {
@@ -482,25 +482,25 @@ export default function App() {
             uid: user.uid,
             email: user.email,
             role: 'nhanvien',
-            name: user.email ? user.email.split('@')[0] : 'Nhân viên',
+            name: user.email.split('@')[0],
             title: 'Nhân viên chuyên ban'
           };
           if (userDoc.exists()) {
             userData = userDoc.data();
           }
           setCurrentUser(userData);
-          setUserRole(userData?.role || 'nhanvien');
+          setUserRole(userData.role);
           localStorage.setItem('crm_current_user', JSON.stringify(userData));
           setAuthError('');
-          showNotification(`Đăng nhập thành công! Chào ${userData?.name || 'Nhân viên'}`);
+          showNotification(`Đăng nhập thành công! Chào ${userData.name}`);
         })
         .catch((error) => {
           if (localAccount && localAccount.pass === loginPassword) {
             setCurrentUser(localAccount);
-            setUserRole(localAccount?.role || 'nhanvien');
+            setUserRole(localAccount.role);
             localStorage.setItem('crm_current_user', JSON.stringify(localAccount));
             setAuthError('');
-            showNotification(`Đăng nhập (Chế độ Dự Phòng): Chào ${localAccount?.name || 'Nhân viên'}`);
+            showNotification(`Đăng nhập (Chế độ Dự Phòng): Chào ${localAccount.name}`);
             return;
           }
           console.error(error);
@@ -509,10 +509,10 @@ export default function App() {
     } else {
       if (localAccount && localAccount.pass === loginPassword) {
         setCurrentUser(localAccount);
-        setUserRole(localAccount?.role || 'nhanvien');
+        setUserRole(localAccount.role);
         localStorage.setItem('crm_current_user', JSON.stringify(localAccount));
         setAuthError('');
-        showNotification(`Đăng nhập ngoại tuyến thành công: Chào ${localAccount?.name || 'Nhân viên'}`);
+        showNotification(`Đăng nhập ngoại tuyến thành công: Chào ${localAccount.name}`);
       } else {
         setAuthError("Sai thông tin tài khoản hoặc hệ thống offline.");
       }
@@ -530,10 +530,10 @@ export default function App() {
   }, []);
 
   const filteredSpecialties = useMemo(() => {
-    return (systemSettings?.specialties || []).filter(s =>
-      s?.toLowerCase().includes(specSearch.toLowerCase())
+    return systemSettings.specialties.filter(s =>
+      s.toLowerCase().includes(specSearch.toLowerCase())
     );
-  }, [systemSettings?.specialties, specSearch]);
+  }, [systemSettings.specialties, specSearch]);
 
   const handleTreatmentTypeChange = (value) => {
     setFormData(prev => ({
@@ -557,7 +557,7 @@ export default function App() {
             return;
           }
         }
-        
+
         try {
           html5QrCode = new window.Html5Qrcode("reader");
           html5QrCodeRef.current = html5QrCode;
@@ -587,7 +587,7 @@ export default function App() {
       
       startCamera();
     }
-    
+
     return () => {
       if (html5QrCode && html5QrCode.isScanning) {
         html5QrCode.stop().then(() => {
@@ -600,8 +600,14 @@ export default function App() {
   useEffect(() => {
     checkIosPermissionStatus();
 
-    if ('serviceWorker' in navigator && Notification.permission === 'granted') {
-      navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(e => console.warn(e));
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        .then((registration) => {
+          console.log("Firebase SW registered context scope:", registration.scope);
+        })
+        .catch((err) => {
+          console.warn("Lỗi đăng ký Firebase Service Worker:", err);
+        });
     }
 
     if (!document.getElementById('html5-qrcode-script')) {
@@ -649,15 +655,9 @@ export default function App() {
 
     const savedUser = localStorage.getItem('crm_current_user');
     if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        if (parsedUser) {
-          setCurrentUser(parsedUser);
-          setUserRole(parsedUser.role || 'nhanvien');
-        }
-      } catch (err) {
-        console.error(err);
-      }
+      const parsedUser = JSON.parse(savedUser);
+      setCurrentUser(parsedUser);
+      setUserRole(parsedUser.role || 'nhanvien');
     }
 
     if (auth && db && isFirebaseConfigured) {
@@ -670,14 +670,14 @@ export default function App() {
             if (userDoc.exists()) {
               const userData = userDoc.data();
               setCurrentUser(userData);
-              setUserRole(userData.role || 'nhanvien');
+              setUserRole(userData.role);
               saveFcmTokenToDatabase(firebaseUser.uid).catch(e => console.warn(e));
             } else {
               const fallbackUser = { 
                 uid: firebaseUser.uid, 
                 email: firebaseUser.email, 
                 role: 'nhanvien', 
-                name: firebaseUser.email ? firebaseUser.email.split('@')[0] : 'Nhân viên',
+                name: firebaseUser.email.split('@')[0],
                 title: 'Nhân viên chuyên ban'
               };
               setCurrentUser(fallbackUser);
@@ -736,17 +736,17 @@ export default function App() {
             const statusLabel = workflowStatuses.find(s => s.id === data.status)?.label || data.status;
             if (change.type === "added") {
               triggerPushAlert(
-                `🆕 Tiếp nhận khách ${data?.tier || 'VIP'}`,
-                `Bệnh nhân: ${data?.name || '---'} (PID: ${data?.pid || '---'}) đã được xếp trạng thái: ${statusLabel}.`,
-                data?.recipients || [],
+                `🆕 Tiếp nhận khách ${data.tier}`,
+                `Bệnh nhân: ${data.name} (PID: ${data.pid}) đã được xếp trạng thái: ${statusLabel}.`,
+                data.recipients || [],
                 'info'
               );
             }
             if (change.type === "modified") {
               triggerPushAlert(
                 `🔄 Cập nhật hành trình`,
-                `Hồ sơ khách hàng ${data?.name || '---'} (PID: ${data?.pid || '---'}) vừa đổi trạng thái sang: ${statusLabel}.`,
-                data?.recipients || [],
+                `Hồ sơ khách hàng ${data.name} (PID: ${data.pid}) vừa đổi trạng thái sang: ${statusLabel}.`,
+                data.recipients || [],
                 'success'
               );
             }
@@ -754,7 +754,7 @@ export default function App() {
               triggerPushAlert(
                 `⚠️ Gỡ bỏ hồ sơ`,
                 `Hồ sơ của một bệnh nhân VIP vừa bị gỡ khỏi hệ thống.`,
-                data?.recipients || [],
+                data.recipients || [],
                 'error'
               );
             }
@@ -787,22 +787,22 @@ export default function App() {
   }, [currentUser, isFirebaseConnected]);
 
   const calculatedSums = useMemo(() => {
-    if (formData?.tier === 'VIP') {
+    if (formData.tier === 'VIP') {
       return { totalAmount: 0, approvedDiscountAmount: 0 };
     }
-    const formulas = systemSettings?.totalFormulaFields || {};
+    const formulas = systemSettings.totalFormulaFields;
     let total = 0;
-    
-    if (formulas.phiKham) total += Number(formData?.phiKham || 0);
-    if (formulas.clsCdha) total += Number(formData?.clsCdha || 0);
-    if (formulas.thuocVacxin) total += Number(formData?.thuocVacxin || 0);
+
+    if (formulas.phiKham) total += Number(formData.phiKham || 0);
+    if (formulas.clsCdha) total += Number(formData.clsCdha || 0);
+    if (formulas.thuocVacxin) total += Number(formData.thuocVacxin || 0);
 
     let discountBase = total;
-    if (systemSettings?.discountFormulaType === 'total_minus_insurance_advance') {
-      discountBase = Math.max(0, total - Number(formData?.insuranceAdvance || 0));
+    if (systemSettings.discountFormulaType === 'total_minus_insurance_advance') {
+      discountBase = Math.max(0, total - Number(formData.insuranceAdvance || 0));
     }
 
-    const discountAmount = Math.round(discountBase * (Number(formData?.discountRate || 0) / 100));
+    const discountAmount = Math.round(discountBase * (Number(formData.discountRate || 0) / 100));
 
     return {
       totalAmount: total,
@@ -811,7 +811,7 @@ export default function App() {
   }, [formData, systemSettings]);
 
   useEffect(() => {
-    if (formData?.totalAmount !== calculatedSums.totalAmount || formData?.approvedDiscountAmount !== calculatedSums.approvedDiscountAmount) {
+    if (formData.totalAmount !== calculatedSums.totalAmount || formData.approvedDiscountAmount !== calculatedSums.approvedDiscountAmount) {
       setFormData(prev => ({
         ...prev,
         totalAmount: calculatedSums.totalAmount,
@@ -821,14 +821,14 @@ export default function App() {
   }, [calculatedSums.totalAmount, calculatedSums.approvedDiscountAmount]);
 
   const matchedPatientProfile = useMemo(() => {
-    if (!formData?.pid?.trim()) return null;
-    return patients.find(p => p?.pid?.trim().toLowerCase() === formData?.pid?.trim().toLowerCase());
-  }, [formData?.pid, patients]);
+    if (!formData.pid.trim()) return null;
+    return patients.find(p => p.pid.trim().toLowerCase() === formData.pid.trim().toLowerCase());
+  }, [formData.pid, patients]);
 
   const patientVisitHistory = useMemo(() => {
-    if (!formData?.pid?.trim()) return [];
-    return patients.filter(p => p?.pid?.trim().toLowerCase() === formData?.pid?.trim().toLowerCase() && p.id !== currentId);
-  }, [formData?.pid, patients, currentId]);
+    if (!formData.pid.trim()) return [];
+    return patients.filter(p => p.pid.trim().toLowerCase() === formData.pid.trim().toLowerCase() && p.id !== currentId);
+  }, [formData.pid, patients, currentId]);
 
   useEffect(() => {
     if (patientVisitHistory.length > 0) {
@@ -841,8 +841,8 @@ export default function App() {
   useEffect(() => {
     if (matchedPatientProfile && !currentId) {
       setFormData(prev => {
-        if (prev?.name !== matchedPatientProfile?.name) {
-          return { ...prev, name: matchedPatientProfile?.name || '' };
+        if (prev.name !== matchedPatientProfile.name) {
+          return { ...prev, name: matchedPatientProfile.name };
         }
         return prev;
       });
@@ -865,11 +865,11 @@ export default function App() {
 
   const toggleSpecialtySelection = (spec) => {
     setFormData(prev => {
-      const exists = prev?.specialties?.includes(spec);
+      const exists = prev.specialties.includes(spec);
       if (exists) {
-        return { ...prev, specialties: prev?.specialties?.filter(s => s !== spec) };
+        return { ...prev, specialties: prev.specialties.filter(s => s !== spec) };
       } else {
-        return { ...prev, specialties: [...(prev?.specialties || []), spec] };
+        return { ...prev, specialties: [...prev.specialties, spec] };
       }
     });
   };
@@ -877,7 +877,7 @@ export default function App() {
   const handleMultipleImagesUpload = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
-    
+
     const readers = files.map(file => {
       return new Promise((resolve) => {
         const reader = new FileReader();
@@ -902,7 +902,7 @@ export default function App() {
     Promise.all(readers).then((newImages) => {
       setFormData(prev => ({
         ...prev,
-        approvalImages: [...(prev?.approvalImages || []), ...newImages]
+        approvalImages: [...(prev.approvalImages || []), ...newImages]
       }));
       showNotification("Đã thêm các ảnh phê duyệt thành công!");
     });
@@ -911,15 +911,14 @@ export default function App() {
   const todayStr = new Date().toISOString().split('T')[0];
 
   const isFutureOrPreArrival = (patient) => {
-    if (!patient) return false;
-    const isPreArrivalStatus = ['Scheduled', 'Preparing', 'ReceivedInfo'].includes(patient?.status);
-    const isFutureDate = patient?.date > todayStr;
+    const isPreArrivalStatus = ['Scheduled', 'Preparing', 'ReceivedInfo'].includes(patient.status);
+    const isFutureDate = patient.date > todayStr;
     return isPreArrivalStatus || isFutureDate;
   };
 
   const isUserAssignedToPatient = (patient) => {
-    if (!currentUser || !patient) return false;
-    if (Array.isArray(patient?.recipients) && patient?.recipients.includes(currentUser?.uid)) {
+    if (!currentUser) return false;
+    if (Array.isArray(patient.recipients) && patient.recipients.includes(currentUser.uid)) {
       return true;
     }
     return false;
@@ -927,8 +926,7 @@ export default function App() {
 
   const visiblePatients = useMemo(() => {
     return patients.filter(p => {
-      if (!p) return false;
-      if (currentUser && ['nhanvien', 'quanly_site'].includes(currentUser?.role)) {
+      if (currentUser && ['nhanvien', 'quanly_site'].includes(currentUser.role)) {
         if (isFutureOrPreArrival(p)) {
           return isUserAssignedToPatient(p);
         }
@@ -940,16 +938,16 @@ export default function App() {
   const filteredPatients = useMemo(() => {
     return visiblePatients.filter(p => {
       if (!p) return false;
-      const matchSearch = 
-        p?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p?.pid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p?.boardApproval?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p?.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchSearch =
+        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.pid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.boardApproval?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.notes?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchSpecialty = !filterSpecialty || p?.specialties?.includes(filterSpecialty);
-      const matchTier = !filterTier || p?.tier === filterTier;
-      const matchDate = !filterDate || p?.date === filterDate;
-      const matchSite = !filterSite || p?.site === filterSite;
+      const matchSpecialty = !filterSpecialty || p.specialties?.includes(filterSpecialty);
+      const matchTier = !filterTier || p.tier === filterTier;
+      const matchDate = !filterDate || p.date === filterDate;
+      const matchSite = !filterSite || p.site === filterSite;
 
       return matchSearch && matchSpecialty && matchTier && matchDate && matchSite;
     });
@@ -960,29 +958,29 @@ export default function App() {
     const filtered = visiblePatients.filter(p => {
       if (!p) return false;
       if (dashFilterMode === 'today') {
-        return p?.date === todayStr;
+        return p.date === todayStr;
       } else {
-        return p?.date >= dashStartDate && p?.date <= dashEndDate;
+        return p.date >= dashStartDate && p.date <= dashEndDate;
       }
     });
 
     let totalPatients = filtered.length;
-    let vipCount = filtered.filter(p => p?.tier === 'VIP').length;
-    let vvipCount = filtered.filter(p => p?.tier === 'VVIP').length;
-    let totalRevenue = filtered.reduce((sum, p) => sum + (p?.totalAmount || 0), 0);
-    let totalDiscount = filtered.reduce((sum, p) => sum + (p?.approvedDiscountAmount || 0), 0);
-    let totalCollected = filtered.reduce((sum, p) => sum + Math.max(0, (p?.totalAmount || 0) - (p?.approvedDiscountAmount || 0)), 0);
+    let vipCount = filtered.filter(p => p.tier === 'VIP').length;
+    let vvipCount = filtered.filter(p => p.tier === 'VVIP').length;
+    let totalRevenue = filtered.reduce((sum, p) => sum + (p.totalAmount || 0), 0);
+    let totalDiscount = filtered.reduce((sum, p) => sum + (p.approvedDiscountAmount || 0), 0);
+    let totalCollected = filtered.reduce((sum, p) => sum + Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0)), 0);
 
     return { totalPatients, vipCount, vvipCount, totalRevenue, totalDiscount, totalCollected };
   }, [visiblePatients, dashFilterMode, dashStartDate, dashEndDate, todayStr]);
 
   const metrics = useMemo(() => {
     let totalPatients = filteredPatients.length;
-    let vipCount = filteredPatients.filter(p => p?.tier === 'VIP').length;
-    let vvipCount = filteredPatients.filter(p => p?.tier === 'VVIP').length;
-    let totalRevenue = filteredPatients.reduce((sum, p) => sum + (p?.totalAmount || 0), 0);
-    let totalDiscount = filteredPatients.reduce((sum, p) => sum + (p?.approvedDiscountAmount || 0), 0);
-    let totalCollected = filteredPatients.reduce((sum, p) => sum + Math.max(0, (p?.totalAmount || 0) - (p?.approvedDiscountAmount || 0)), 0);
+    let vipCount = filteredPatients.filter(p => p.tier === 'VIP').length;
+    let vvipCount = filteredPatients.filter(p => p.tier === 'VVIP').length;
+    let totalRevenue = filteredPatients.reduce((sum, p) => sum + (p.totalAmount || 0), 0);
+    let totalDiscount = filteredPatients.reduce((sum, p) => sum + (p.approvedDiscountAmount || 0), 0);
+    let totalCollected = filteredPatients.reduce((sum, p) => sum + Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0)), 0);
 
     return { totalPatients, vipCount, vvipCount, totalRevenue, totalDiscount, totalCollected };
   }, [filteredPatients]);
@@ -990,10 +988,10 @@ export default function App() {
   const kanbanPatients = useMemo(() => {
     return visiblePatients.filter(p => {
       if (!p) return false;
-      const isToday = p?.date === todayStr;
-      const isNotCompleted = p?.status !== 'Completed';
-      const matchDate = !filterDate ? (isToday || isNotCompleted) : p?.date === filterDate;
-      const matchSite = !filterSite || p?.site === filterSite;
+      const isToday = p.date === todayStr;
+      const isNotCompleted = p.status !== 'Completed';
+      const matchDate = !filterDate ? (isToday || isNotCompleted) : p.date === filterDate;
+      const matchSite = !filterSite || p.site === filterSite;
       return matchDate && matchSite;
     });
   }, [visiblePatients, filterDate, filterSite, todayStr]);
@@ -1013,7 +1011,7 @@ export default function App() {
   const weekDays = useMemo(() => {
     const startOfWeek = new Date(currentCalendarDate);
     const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); 
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
     startOfWeek.setDate(diff);
 
     const days = [];
@@ -1028,7 +1026,7 @@ export default function App() {
   const monthDays = useMemo(() => {
     const year = currentCalendarDate.getFullYear();
     const month = currentCalendarDate.getMonth();
-    
+
     const firstDayIndex = new Date(year, month, 1).getDay();
     const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1; 
     const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
@@ -1048,13 +1046,13 @@ export default function App() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-    const tomorrowPatients = visiblePatients.filter(p => p && p?.date === tomorrowStr);
-    
+    const tomorrowPatients = visiblePatients.filter(p => p && p.date === tomorrowStr);
+
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 8);
     const sevenDaysStr = sevenDaysFromNow.toISOString().split('T')[0];
 
-    const nextWeekPatients = visiblePatients.filter(p => p && p?.date > tomorrowStr && p?.date <= sevenDaysStr);
+    const nextWeekPatients = visiblePatients.filter(p => p && p.date > tomorrowStr && p.date <= sevenDaysStr);
 
     return {
       tomorrowPatients,
@@ -1065,40 +1063,40 @@ export default function App() {
 
   const savePatient = async (e) => {
     e.preventDefault();
-    if (!formData?.name?.trim()) {
+    if (!formData.name.trim()) {
       showNotification("Họ & Tên khách hàng không được để trống!", "error");
       return;
     }
-    if (!formData?.pid?.trim()) {
+    if (!formData.pid.trim()) {
       showNotification("Mã PID là bắt buộc!", "error");
       return;
     }
 
-    const currentHistory = formData?.history || [];
+    const currentHistory = formData.history || [];
     let newLog = {};
     if (currentId) {
       newLog = {
         timestamp: new Date().toISOString(),
         action: "Cập nhật thông tin hồ sơ",
-        user: currentUser?.name || 'Hệ thống'
+        user: currentUser.name
       };
     } else {
       newLog = {
         timestamp: new Date().toISOString(),
         action: "Tiếp đón khởi tạo hành trình",
-        user: currentUser?.name || 'Hệ thống'
+        user: currentUser.name
       };
     }
 
     let payload = {
       ...formData,
-      status: formData?.status || 'Waiting',
+      status: formData.status || 'Waiting',
       updatedAt: new Date().toISOString(),
-      updatedBy: currentUser?.name || 'Hệ thống',
+      updatedBy: currentUser.name,
       history: [...currentHistory, newLog]
     };
 
-    if (formData?.tier === 'VIP') {
+    if (formData.tier === 'VIP') {
       payload = {
         ...payload,
         phiKham: 0,
@@ -1162,7 +1160,6 @@ export default function App() {
   };
 
   const initiateEdit = (patient) => {
-    if (!patient) return;
     setCurrentId(patient.id);
     setFormRightTab(patient.tier === 'VIP' ? 'timeline' : 'billing');
     setIsHistoryPanelExpanded(false);
@@ -1173,31 +1170,31 @@ export default function App() {
     else if (patient.treatmentType) initTreatmentType = patient.treatmentType;
 
     setFormData({
-      name: patient?.name || '',
-      tier: patient?.tier || 'VIP',
-      boardApproval: patient?.boardApproval || '',
-      notes: patient?.notes || '',
-      pid: patient?.pid || '',
-      date: patient?.date || new Date().toISOString().split('T')[0],
-      specialties: patient?.specialties || [],
-      site: patient?.site || 'BV Tâm Anh - Tân Sơn Hòa',
-      examinationArea: patient?.examinationArea || 'Khu VIP',
-      ngoaiTru: patient?.ngoaiTru !== undefined ? patient?.ngoaiTru : (initTreatmentType === 'Ngoại trú'),
-      capCuu: patient?.capCuu !== undefined ? patient?.capCuu : (initTreatmentType === 'Cấp cứu/Daycare'),
-      noiTru: patient?.noiTru !== undefined ? patient?.noiTru : (initTreatmentType === 'Nội trú/ICU'),
-      ngoaiVien: patient?.ngoaiVien !== undefined ? patient?.ngoaiVien : (initTreatmentType === 'Ngoài viện'),
+      name: patient.name || '',
+      tier: patient.tier || 'VIP',
+      boardApproval: patient.boardApproval || '',
+      notes: patient.notes || '',
+      pid: patient.pid || '',
+      date: patient.date || new Date().toISOString().split('T')[0],
+      specialties: patient.specialties || [],
+      site: patient.site || 'BV Tâm Anh - Tân Sơn Hòa',
+      examinationArea: patient.examinationArea || 'Khu VIP',
+      ngoaiTru: patient.ngoaiTru !== undefined ? patient.ngoaiTru : (initTreatmentType === 'Ngoại trú'),
+      capCuu: patient.capCuu !== undefined ? patient.capCuu : (initTreatmentType === 'Cấp cứu/Daycare'),
+      noiTru: patient.noiTru !== undefined ? patient.noiTru : (initTreatmentType === 'Nội trú/ICU'),
+      ngoaiVien: patient.ngoaiVien !== undefined ? patient.ngoaiVien : (initTreatmentType === 'Ngoài viện'),
       treatmentType: initTreatmentType,
-      phiKham: patient?.phiKham || 0,
-      clsCdha: patient?.clsCdha || 0,
-      thuocVacxin: patient?.thuocVacxin || 0,
-      insuranceAdvance: patient?.insuranceAdvance || 0,
-      discountRate: patient?.discountRate || 0,
-      approvedDiscountAmount: patient?.approvedDiscountAmount || 0,
-      totalAmount: patient?.totalAmount || 0,
-      approvalImages: patient?.approvalImages || (patient?.approvalImage ? [patient?.approvalImage] : []),
-      status: patient?.status || 'Waiting',
-      recipients: patient?.recipients || [],
-      history: patient?.history || []
+      phiKham: patient.phiKham || 0,
+      clsCdha: patient.clsCdha || 0,
+      thuocVacxin: patient.thuocVacxin || 0,
+      insuranceAdvance: patient.insuranceAdvance || 0,
+      discountRate: patient.discountRate || 0,
+      approvedDiscountAmount: patient.approvedDiscountAmount || 0,
+      totalAmount: patient.totalAmount || 0,
+      approvalImages: patient.approvalImages || (patient.approvalImage ? [patient.approvalImage] : []),
+      status: patient.status || 'Waiting',
+      recipients: patient.recipients || [],
+      history: patient.history || []
     });
     setActiveTab('register');
   };
@@ -1207,7 +1204,7 @@ export default function App() {
     if (!patient) return;
 
     if (userRole === 'nhanvien') {
-      const currentStatus = patient?.status || 'Waiting';
+      const currentStatus = patient.status || 'Waiting';
       const isAllowed = 
         (currentStatus === 'Waiting' && newStatus === 'Examining') || 
         (currentStatus === 'Pharmacy' && newStatus === 'Completed');
@@ -1219,11 +1216,11 @@ export default function App() {
     }
 
     const statusLabel = workflowStatuses.find(s => s.id === newStatus)?.label || newStatus;
-    const currentHistory = patient?.history || [];
+    const currentHistory = patient.history || [];
     const newLog = {
       timestamp: new Date().toISOString(),
       action: "Chuyển trạng thái hành trình sang: " + statusLabel,
-      user: currentUser?.name || 'Hệ thống'
+      user: currentUser.name
     };
     const updatedHistory = [...currentHistory, newLog];
 
@@ -1233,7 +1230,7 @@ export default function App() {
         await updateDoc(docRef, {
           status: newStatus,
           updatedAt: new Date().toISOString(),
-          updatedBy: currentUser?.name || 'Hệ thống',
+          updatedBy: currentUser.name,
           history: updatedHistory
         });
       } else {
@@ -1243,7 +1240,7 @@ export default function App() {
               ...p, 
               status: newStatus, 
               updatedAt: new Date().toISOString(), 
-              updatedBy: currentUser?.name || 'Hệ thống',
+              updatedBy: currentUser.name,
               history: updatedHistory
             };
           }
@@ -1251,7 +1248,7 @@ export default function App() {
         });
         setPatients(updatedList);
         localStorage.setItem('local_patients', JSON.stringify(updatedList));
-        triggerPushAlert("🔄 Cập nhật hành trình (Cục bộ)", `Khách hàng ${patient?.name || 'VIP'} đã được cập nhật trạng thái mới.`, patient?.recipients || [], "success");
+        triggerPushAlert("🔄 Cập nhật hành trình (Cục bộ)", `Khách hàng ${patient.name} đã được cập nhật trạng thái mới.`, patient.recipients || [], "success");
       }
       showNotification("Đã cập nhật trạng thái hành trình khám!");
     } catch (err) {
@@ -1261,22 +1258,21 @@ export default function App() {
   };
 
   const executeCopyVisit = (visit) => {
-    if (!visit) return;
-    const previousImages = visit?.approvalImages || (visit?.approvalImage ? [visit?.approvalImage] : []);
+    const previousImages = visit.approvalImages || (visit.approvalImage ? [visit.approvalImage] : []);
     setFormData(prev => ({
       ...prev,
-      specialties: visit?.specialties || [],
-      site: visit?.site || 'BV Tâm Anh - Tân Sơn Hòa',
-      examinationArea: visit?.examinationArea || 'Khu VIP',
-      boardApproval: visit?.boardApproval || '',
-      notes: visit?.notes || '',
-      treatmentType: visit?.treatmentType || 'Ngoại trú',
-      ngoaiTru: visit?.ngoaiTru !== undefined ? visit?.ngoaiTru : (visit?.treatmentType === 'Ngoại trú'),
-      capCuu: visit?.capCuu !== undefined ? visit?.capCuu : (visit?.treatmentType === 'Cấp cứu/Daycare'),
-      noiTru: visit?.noiTru !== undefined ? visit?.noiTru : (visit?.treatmentType === 'Nội trú/ICU'),
-      ngoaiVien: visit?.ngoaiVien !== undefined ? visit?.ngoaiVien : (visit?.treatmentType === 'Ngoài viện'),
+      specialties: visit.specialties || [],
+      site: visit.site || 'BV Tâm Anh - Tân Sơn Hòa',
+      examinationArea: visit.examinationArea || 'Khu VIP',
+      boardApproval: visit.boardApproval || '',
+      notes: visit.notes || '',
+      treatmentType: visit.treatmentType || 'Ngoại trú',
+      ngoaiTru: visit.ngoaiTru !== undefined ? visit.ngoaiTru : (visit.treatmentType === 'Ngoại trú'),
+      capCuu: visit.capCuu !== undefined ? visit.capCuu : (visit.treatmentType === 'Cấp cứu/Daycare'),
+      noiTru: visit.noiTru !== undefined ? visit.noiTru : (visit.treatmentType === 'Nội trú/ICU'),
+      ngoaiVien: visit.ngoaiVien !== undefined ? visit.ngoaiVien : (visit.treatmentType === 'Ngoài viện'),
       approvalImages: previousImages,
-      recipients: visit?.recipients || []
+      recipients: visit.recipients || []
     }));
     showNotification("Đã sao chép lịch sử thăm khám cũ kèm chứng từ phê duyệt!");
     setCopyConfirmModal({ show: false, visitToCopy: null });
@@ -1288,17 +1284,17 @@ export default function App() {
       showNotification("Chỉ IT Admin mới được phép thao tác!", "error");
       return;
     }
-    if (!newStaff?.name?.trim() || !newStaff?.email?.trim() || !newStaff?.uid?.trim()) {
+    if (!newStaff.name.trim() || !newStaff.email.trim() || !newStaff.uid.trim()) {
       showNotification("Vui lòng điền đầy đủ thông tin!", "error");
       return;
     }
 
     const created = {
-      uid: newStaff?.uid?.trim(),
-      name: newStaff?.name?.trim(),
-      email: newStaff?.email?.trim(),
-      role: newStaff?.role || 'nhanvien',
-      title: newStaff?.title?.trim() || 'Nhân viên chuyên ban'
+      uid: newStaff.uid.trim(),
+      name: newStaff.name.trim(),
+      email: newStaff.email.trim(),
+      role: newStaff.role,
+      title: newStaff.title.trim() || 'Nhân viên chuyên ban'
     };
 
     if (isFirebaseConnected && db) {
@@ -1321,7 +1317,7 @@ export default function App() {
   };
 
   const handleDeleteStaff = (uid) => {
-    if (uid === currentUser?.uid || uid === "acc_admin") {
+    if (uid === currentUser.uid || uid === "acc_admin") {
       showNotification("Không thể tự xóa tài khoản chính đang hoạt động!", "error");
       return;
     }
@@ -1368,7 +1364,7 @@ export default function App() {
 
     const inputParts = newSpecialtyInput.split(',').map(p => p.trim()).filter(p => p !== '');
     let addedCount = 0;
-    let updatedSpecialties = [...(systemSettings?.specialties || [])];
+    let updatedSpecialties = [...systemSettings.specialties];
 
     inputParts.forEach(spec => {
       if (!updatedSpecialties.includes(spec)) {
@@ -1388,15 +1384,15 @@ export default function App() {
   };
 
   const handleRemoveSpecialty = (spec) => {
-    const updated = (systemSettings?.specialties || []).filter(s => s !== spec);
+    const updated = systemSettings.specialties.filter(s => s !== spec);
     saveSettingsOnDb({ ...systemSettings, specialties: updated });
     showNotification("Đã gỡ bỏ chuyên khoa.");
   };
 
   const handleFormulaCheckboxChange = (field) => {
     const updatedFormula = {
-      ...(systemSettings?.totalFormulaFields || {}),
-      [field]: !systemSettings?.totalFormulaFields?.[field]
+      ...systemSettings.totalFormulaFields,
+      [field]: !systemSettings.totalFormulaFields[field]
     };
     saveSettingsOnDb({ ...systemSettings, totalFormulaFields: updatedFormula });
     showNotification("Công thức tổng cộng đã được cập nhật!");
@@ -1409,14 +1405,14 @@ export default function App() {
 
   const handleToggleRecipient = (uid) => {
     setFormData(prev => {
-      const exist = prev?.recipients || [];
+      const exist = prev.recipients || [];
       const updated = exist.includes(uid) ? exist.filter(id => id !== uid) : [...exist, uid];
       return { ...prev, recipients: updated };
     });
   };
 
   const registrableStaffList = useMemo(() => {
-    return staffList.filter(s => s && ['nhanvien', 'quanly_site'].includes(s?.role));
+    return staffList.filter(s => ['nhanvien', 'quanly_site'].includes(s.role));
   }, [staffList]);
 
   const handleCalendarNavigate = (direction) => {
@@ -1583,7 +1579,7 @@ export default function App() {
       )}
 
       {isScanning && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-50 bg-slate-955/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
           <style>{`
             #reader video {
               width: 100% !important;
@@ -1649,7 +1645,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Header alert notification popups */}
       <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
         {activePushAlerts.map(alert => (
           <div 
@@ -1671,7 +1666,7 @@ export default function App() {
             </div>
             <button 
               onClick={() => setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id))}
-              className="text-slate-400 hover:text-slate-600 p-0.5 transition"
+              className="text-slate-400 hover:text-slate-650 p-0.5 transition"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -1712,7 +1707,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Navigation Header */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1857,8 +1851,8 @@ export default function App() {
               )}
 
               <div className="hidden sm:block text-right">
-                <div className="text-xs font-extrabold text-slate-955">{currentUser?.name || ''}</div>
-                <div className="text-[10px] text-indigo-600 font-extrabold uppercase tracking-wide">{currentUser?.title || userRole}</div>
+                <div className="text-xs font-extrabold text-slate-955">{currentUser.name}</div>
+                <div className="text-[10px] text-indigo-600 font-extrabold uppercase tracking-wide">{currentUser.title || userRole}</div>
               </div>
               <button 
                 onClick={handleLogout}
@@ -1873,7 +1867,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* Mobile navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
         <button 
           onClick={() => { resetForm(); setActiveTab('dashboard'); }}
@@ -1907,7 +1900,6 @@ export default function App() {
         )}
       </div>
 
-      {/* Main container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {/* ========================== GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN ========================== */}
@@ -1967,7 +1959,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Compact Greeting Card */}
+            {/* Tinh gọn thẻ Chào mừng từ ảnh image_e25702.png */}
             <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-5 text-white relative overflow-hidden shadow-md border border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20 pointer-events-none"></div>
               <div className="relative z-10 space-y-1.5 max-w-2xl">
@@ -1975,7 +1967,7 @@ export default function App() {
                   Phòng Chăm Sóc Khách Hàng
                 </span>
                 <h2 className="text-lg sm:text-xl font-black tracking-tight leading-snug">
-                  Chào, {currentUser?.name || 'Nhân viên'}!
+                  Chào, {currentUser.name}!
                 </h2>
                 <p className="text-[11px] sm:text-xs text-slate-300 leading-normal font-semibold">
                   Công cụ hỗ trợ quản lý và theo dõi việc tiếp đón và chi phí của nhóm Khách hàng VIP, VVIP, Ngoại giao của Ban giám đốc.
@@ -1991,11 +1983,11 @@ export default function App() {
               </div>
             </div>
 
-            {/* Metrics Dashboard */}
+            {/* Panel Thống kê Báo cáo Ngày Hiện Tại / Khoảng ngày tùy chọn */}
             {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
               <div className="space-y-4">
                 
-                {/* Metrics Date Filtering Panel */}
+                {/* Thanh điều khiển bộ lọc Báo cáo Ngày / Khoảng ngày */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-3xs animate-fadeIn">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
@@ -2080,7 +2072,7 @@ export default function App() {
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
-                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-100">
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
@@ -2095,7 +2087,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Kanban section */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
@@ -2137,7 +2128,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Kanban columns */}
               <div className="flex gap-4 overflow-x-auto pb-4 items-stretch select-none">
                 {workflowStatuses.map(col => {
                   const colPatients = kanbanPatients.filter(p => (p.status || 'Waiting') === col.id);
@@ -2185,7 +2175,7 @@ export default function App() {
                               className={`p-3 rounded-xl border shadow-2xs hover:shadow-xs transition duration-150 space-y-2.5 relative group ${patientSite.cardBg}`}
                             >
                               <div className="flex justify-between items-start gap-1">
-                                <span className="text-[8px] text-slate-500 font-mono font-black truncate">PID: {p.pid}</span>
+                                <span className="text-[8px] text-slate-550 font-mono font-black truncate">PID: {p.pid}</span>
                                 <div className="flex gap-1">
                                   <span className={`px-1 py-0.5 rounded-xs text-[7px] font-bold uppercase ${
                                     p.examinationArea === 'Khu VIP' ? 'bg-indigo-100 text-indigo-800' : 'bg-teal-100 text-teal-800'
@@ -2225,7 +2215,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Quick navigations */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
                 <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
@@ -2507,7 +2496,7 @@ export default function App() {
                           placeholder="Thành viên hội đồng quản trị chỉ đạo..."
                           value={formData.boardApproval}
                           onChange={(e) => handleInputChange('boardApproval', e.target.value)}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-semibold bg-white text-slate-800 animate-fadeIn"
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-950 text-xs font-semibold bg-white text-slate-800 animate-fadeIn"
                         />
                       </div>
                     </div>
@@ -2857,7 +2846,7 @@ export default function App() {
                                   : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
                               }`}
                             />
-                            <span className="absolute right-3 top-3 text-[10px] text-slate-555 font-bold font-mono">%</span>
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-550 font-bold font-mono">%</span>
                           </div>
                         </div>
                       </div>
@@ -3292,18 +3281,18 @@ export default function App() {
                                     <div className="flex justify-end gap-1.5">
                                       {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
                                         <button 
-                                          type="button"
                                           onClick={() => {
                                             const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
                                             setLightboxImages(imgs);
                                             setLightboxIndex(0);
                                           }}
-                                          className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
+                                          className="p-1.5 bg-slate-50 border border-slate-200 text-slate-605 hover:bg-slate-100 rounded-xl transition" 
+                                          title="Ảnh duyệt"
                                         >
-                                          <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
+                                          <ImageIcon className="w-4 h-4" />
                                         </button>
                                       )}
-                                      <button onClick={() => initiateEdit(p)} className="px-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
+                                      <button onClick={() => initiateEdit(p)} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
                                         <Edit3 className="w-4 h-4" />
                                       </button>
                                       
@@ -3423,7 +3412,7 @@ export default function App() {
                                     setLightboxImages(imgs);
                                     setLightboxIndex(0);
                                   }}
-                                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-605 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
+                                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
                                 >
                                   <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
                                 </button>
