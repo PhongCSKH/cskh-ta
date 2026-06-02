@@ -3,7 +3,7 @@ name: Deploy to Firebase
 on:
   push:
     branches:
-      - main
+      - main # Tự động chạy mỗi khi push code lên nhánh main
 
 jobs:
   build_and_deploy:
@@ -16,7 +16,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          # Đã lược bỏ hoàn toàn 'cache: npm' để khắc phục triệt để lỗi "Dependencies lock file is not found"
 
       - name: Install Frontend Dependencies
         run: npm install
@@ -28,8 +28,9 @@ jobs:
         run: npm --prefix functions install
 
       - name: Deploy to Firebase
-        uses: w9jds/firebase-action@v2.0.0
+        uses: w9jds/firebase-action@master
         with:
-          args: deploy
+          # Đã thêm tham số --force để bỏ qua lỗi cảnh báo thiết lập dọn dẹp container ảnh của Artifact Registry
+          args: deploy --only hosting,functions --force
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
