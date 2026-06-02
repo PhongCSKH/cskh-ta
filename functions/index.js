@@ -12,7 +12,7 @@ exports.sendPatientNotification = functions.firestore
     const oldData = change.before.exists ? change.before.data() : null;
     
     if (!data) {
-      console.log(`Hồ sơ bệnh nhân ${patientId} đã bị xóa.`);
+      console.log(`Khách hàng ${patientId} đã bị xóa.`);
       return null;
     }
 
@@ -68,7 +68,7 @@ exports.sendPatientNotification = functions.firestore
 
     const payload = {
       notification: {
-        title: isNew ? `🆕 Đón tiếp VIP mới: ${data.name}` : `🔄 Cập nhật hành trình: ${data.name}`,
+        title: isNew ? `🆕 Đón tiếp: ${data.name}` : `🔄 Cập nhật: ${data.name}`,
         body: `Hạng: ${data.tier} • Trạng thái: ${statusText} • PID: ${data.pid}`,
         icon: 'https://iili.io/F66acRs.png',
         clickAction: 'https://cskh-ta.firebaseapp.com'
@@ -82,7 +82,7 @@ exports.sendPatientNotification = functions.firestore
 
     try {
       const response = await admin.messaging().sendToDevice(tokens, payload);
-      console.log(`Đã gửi thông báo đẩy ngầm thành công đến ${tokens.length} thiết bị:`, JSON.stringify(response));
+      console.log(`Đã gửi thông báo thành công đến ${tokens.length} thiết bị:`, JSON.stringify(response));
       return response;
     } catch (error) {
       console.error("Lỗi hệ thống khi gửi Firebase Push Notification:", error);
