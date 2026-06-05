@@ -1,1320 +1,4071 @@
-import React, { useState, useEffect } from "react";
-import { 
-  Shield, 
-  Users, 
-  User, 
-  Phone, 
-  Smartphone, 
-  LogOut, 
-  Search, 
-  Filter, 
-  Download, 
-  Upload, 
-  CheckCircle, 
-  AlertCircle, 
-  ChevronRight, 
-  Edit, 
-  Eye, 
-  Plus, 
-  Grid, 
-  List,
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  deleteDoc
+} from 'firebase/firestore';
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from 'firebase/auth';
+import { getMessaging, getToken } from 'firebase/messaging';
+import {
+  Users,
+  Plus,
+  Settings,
+  DollarSign,
+  Calendar,
+  ShieldCheck,
+  FileText,
+  Check,
+  Trash2,
+  Search,
+  Filter,
+  Upload,
   X,
+  Sparkles,
+  TrendingUp,
+  Building,
+  Activity,
+  CreditCard,
   FileSpreadsheet,
-  UserPlus
-} from "lucide-react";
-import { initializeApp } from "firebase/app";
-import { 
-  getAuth, 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged,
-  createUserWithEmailAndPassword
-} from "firebase/auth";
-import { 
-  getFirestore, 
-  doc, 
-  setDoc, 
-  getDoc, 
-  deleteDoc,
-  collection, 
-  onSnapshot, 
-  writeBatch 
-} from "firebase/firestore";
+  Edit3,
+  ChevronRight,
+  Info,
+  Lock,
+  UserCheck,
+  LogOut,
+  Eye,
+  EyeOff,
+  UserPlus,
+  ShieldAlert,
+  ClipboardList,
+  LayoutDashboard,
+  ArrowRight,
+  Bell,
+  BellRing,
+  Clock,
+  CheckCircle2,
+  ChevronDown,
+  ArrowRightLeft,
+  Image as ImageIcon,
+  Scan,
+  Smartphone,
+  Copy,
+  History,
+  ChevronLeft,
+  MapPin,
+  Globe,
+  Unlock
+} from 'lucide-react';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyD0Y8Ub38jO7VGqxB57DcXdJqVcz8kUSvs",
-  authDomain: "cskh-tahcm.firebaseapp.com",
-  projectId: "cskh-tahcm",
-  storageBucket: "cskh-tahcm.firebasestorage.app",
-  messagingSenderId: "443698020583",
-  appId: "1:443698020583:web:618766cb1bb69aa63da242"
+const WEBPUSH_VAPID_KEY = "BFjwAUlwacxhmYk0TiQdDTDJYKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQlAcSuG3iAAqtNnkPtJAW_s"; 
+
+const defaultFirebaseConfig = {
+  apiKey: "AIzaSyBMmXRbUFvXRsUH6anb22sKlY8JlqiF7Lk",
+  authDomain: "cskh-ta.firebaseapp.com",
+  projectId: "cskh-ta",
+  storageBucket: "cskh-ta.firebasestorage.app",
+  messagingSenderId: "271160621415",
+  appId: "1:271160621415:web:778102be1efcd5ba4717c2"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = "cskh-tahcm";
-const APP_VERSION = "v1.2.3";
+const isFirebaseConfigured = true;
+let firebaseConfig = defaultFirebaseConfig;
+if (typeof __firebase_config !== 'undefined') {
+  try {
+    firebaseConfig = JSON.parse(__firebase_config);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'cskh-ta';
+let app, auth, db, messaging;
+try {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    messaging = getMessaging(app);
+  }
+} catch (error) {
+  console.warn(error);
+}
+
+const formatCurrency = (number) => {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(number || 0);
+};
+
+const formatDateVN = (dateStr) => {
+  if (!dateStr) return '---';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const [year, month, day] = parts;
+  return `${day}/${month}/${year}`;
+};
+
+const mockStaffAccounts = [
+  { uid: "acc_admin", email: "admin@vip.com", name: "Nguyễn Minh Trí", title: "IT Admin", role: "admin", pass: "CSKH@abc456", assignedSite: "Tất cả" },
+  { uid: "acc_lanhdao", email: "lanhdao@vip.com", name: "Trần Thế Phương", title: "Thành viên HĐQT", role: "lanhdao", pass: "CSKH@abc456", assignedSite: "Tất cả" },
+  { uid: "acc_quanly", email: "quanly@vip.com", name: "Lê Thu Thảo", title: "Quản Lý Chăm Sóc VIP", role: "quanly", pass: "CSKH@abc456", assignedSite: "Tất cả" },
+  { uid: "acc_qlsite_tsh", email: "qlsite_tsh@vip.com", name: "Trần Tuấn Kiệt", title: "Quản Lý Site Sơn Hòa", role: "quanly_site", pass: "CSKH@abc456", assignedSite: "BV Tâm Anh - Tân Sơn Hòa" },
+  { uid: "acc_qlsite_th", email: "qlsite_th@vip.com", name: "Lâm Thùy Dương", title: "Quản Lý Site Tân Hưng", role: "quanly_site", pass: "CSKH@abc456", assignedSite: "PK Tâm Anh - Tân Hưng" },
+  { uid: "acc_nhanvien", email: "nhanvien@vip.com", name: "Phạm Hoàng Nam", title: "Lễ Tân Phòng Khám VIP", role: "nhanvien", pass: "CSKH@abc456", assignedSite: "BV Tâm Anh - Tân Sơn Hòa" }
+];
+
+const defaultSpecialties = [
+  "CK Chấn thương chỉnh hình",
+  "CK Cơ xương khớp",
+  "CK Da Liễu",
+  "CK Dinh dưỡng",
+  "CK Đầu - Mặt - Cổ",
+  "CK Điều trị béo phì",
+  "CK HEP-D",
+  "CK Hô Hấp",
+  "CK Hỗ trợ sinh sản",
+  "CK Huyết học",
+  "CK Mắt",
+  "CK Miễn dịch lâm sàng",
+  "CK Nam học",
+  "CK Ngoại Lồng ngực - Mạch máu",
+  "CK Ngoại Nhi",
+  "CK Ngoại Thần Kinh",
+  "CK Ngoại Tim Mạch",
+  "CK Ngoại tổng quát",
+  "CK Ngoại Vú",
+  "CK Nhi",
+  "CK Nội soi",
+  "CK Nội Thận",
+  "CK Nội tiết",
+  "CK Nội tổng quát",
+  "CK Phục hồi Chức năng",
+  "CK Răng Hàm Mặt",
+  "CK Sản phụ khoa",
+  "CK Sơ sinh",
+  "CK Tai mũi họng",
+  "CK Tâm thần",
+  "CK Thần kinh",
+  "CK Thần kinh - Cột sống",
+  "CK Tiết Niệu",
+  "CK Tiêu hóa",
+  "CK Tim mạch",
+  "CK Tim mạch can thiệp",
+  "CK Ung Bướu",
+  "CK Viêm gan và gan nhiễm mỡ",
+  "CK Vista",
+  "CK Xạ trị",
+  "CK Y học bào thai",
+  "Khác",
+  "Khám sàng lọc trước tiêm"
+];
+
+const defaultSystemSettings = {
+  specialties: defaultSpecialties,
+  totalFormulaFields: {
+    phiKham: true,
+    ngoaiTru: true,
+    capCuu: true,
+    noiTru: true,
+    ngoaiVien: true,
+    clsCdha: true,
+    thuocVacxin: true
+  },
+  discountFormulaType: 'total_minus_insurance_advance',
+  permissions: {
+    'patients:view': { nhanvien: 'view_assigned', quanly_site: 'view_assigned', quanly: 'all', lanhdao: 'all', admin: 'all' },
+    'patients:create': { nhanvien: 'write_assigned', quanly_site: 'write_assigned', quanly: 'all', lanhdao: 'none', admin: 'all' },
+    'patients:update': { nhanvien: 'write_assigned', quanly_site: 'write_assigned', quanly: 'all', lanhdao: 'none', admin: 'all' },
+    'patients:delete': { nhanvien: 'none', quanly_site: 'none', quanly: 'all', lanhdao: 'none', admin: 'all' },
+    'billing:view': { nhanvien: 'none', quanly_site: 'view_assigned', quanly: 'all', lanhdao: 'all', admin: 'all' },
+    'billing:discount': { nhanvien: 'none', quanly_site: 'write_assigned', quanly: 'all', lanhdao: 'all', admin: 'all' }
+  }
+};
+
+const workflowStatuses = [
+  { id: 'Scheduled', label: 'Đã lên lịch', color: 'bg-sky-50 text-sky-700 border-sky-200/80', dot: 'bg-sky-500' },
+  { id: 'Preparing', label: 'Đang chuẩn bị', color: 'bg-amber-50 text-amber-700 border-amber-200/80', dot: 'bg-amber-500' },
+  { id: 'ReceivedInfo', label: 'Đã nhận thông tin', color: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500' },
+  { id: 'Waiting', label: 'Chờ Tiếp Đón', color: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-400' },
+  { id: 'Received', label: 'Đã Tiếp Đón', color: 'bg-indigo-50 text-indigo-700 border-indigo-200/80', dot: 'bg-indigo-500' },
+  { id: 'Examining', label: 'Đang Khám', color: 'bg-blue-50 text-blue-700 border-blue-200/80', dot: 'bg-blue-500' },
+  { id: 'Testing', label: 'Đang Làm CLS/CĐHA', color: 'bg-amber-50 text-amber-700 border-amber-200/80', dot: 'bg-amber-500' },
+  { id: 'Reviewing', label: 'Chờ Kết Luận', color: 'bg-purple-50 text-purple-700 border-purple-200/80', dot: 'bg-purple-500' },
+  { id: 'Pharmacy', label: 'Đang Chờ Thuốc/Tiêm Ngừa', color: 'bg-yellow-50 text-yellow-850 border-yellow-200/80', dot: 'bg-yellow-500' },
+  { id: 'Inpatient', label: 'Đang Nằm Viện', color: 'bg-rose-50 text-rose-700 border-rose-200/80', dot: 'bg-rose-500' },
+  { id: 'Completed', label: 'Đã Hoàn Tất', color: 'bg-emerald-50 text-emerald-700 border-emerald-200/80', dot: 'bg-emerald-500' }
+];
+
+const sites = [
+  { id: 'tsh', label: 'BV Tâm Anh - Tân Sơn Hòa', bg: 'bg-sky-50 text-sky-700 border-sky-200/80', dot: 'bg-sky-500', cardBg: 'bg-[#f0f9ff] border-[#bae6fd] hover:border-[#7dd3fc]' },
+  { id: 'th', label: 'PK Tâm Anh - Tân Hưng', bg: 'bg-violet-50 text-violet-700 border-violet-200/80', dot: 'bg-violet-500', cardBg: 'bg-[#faf5ff] border-[#e9d5ff] hover:border-[#d8b4fe]' },
+  { id: 'ch', label: 'BV Tâm Anh - Chánh Hưng', bg: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500', cardBg: 'bg-[#f0fdf4] border-[#bbf7d0] hover:border-[#86efac]' }
+];
 
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [authError, setAuthError] = useState("");
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authMode, setAuthMode] = useState("login");
-  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userRole, setUserRole] = useState('nhanvien');
+  const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [patients, setPatients] = useState([]);
+  const [staffList, setStaffList] = useState([]);
+  const [systemSettings, setSystemSettings] = useState(defaultSystemSettings);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [currentTab, setCurrentTab] = useState("profile");
-  const [allUsers, setAllUsers] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterPresence, setFilterPresence] = useState("all");
-  const [filterRole, setFilterRole] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterDept, setFilterDept] = useState("all");
-  const [viewMode, setViewMode] = useState("table");
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState('');
 
-  const [previewData, setPreviewData] = useState([]);
-  const [importLoading, setImportLoading] = useState(false);
-  const [importStatus, setImportStatus] = useState(null);
-  const [xlsxReady, setXlsxReady] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ show: false, action: null, message: '', title: '' });
+  const [copyConfirmModal, setCopyConfirmModal] = useState({ show: false, visitToCopy: null });
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannerError, setScannerError] = useState('');
+  const html5QrCodeRef = useRef(null);
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [customAlert, setCustomAlert] = useState(null);
+  const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'nhanvien', uid: '', title: '', assignedSite: 'Tất cả' });
+  const [editingStaffUid, setEditingStaffUid] = useState(null);
 
-  const [newEmployeeId, setNewEmployeeId] = useState("");
-  const [newFullName, setNewFullName] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [newPhone, setNewPhone] = useState("");
-  const [newGender, setNewGender] = useState("Nữ");
-  const [newRole, setNewRole] = useState("Nhân viên CSKH");
-  const [newPresence, setNewPresence] = useState("Tân Bình hiện hữu");
-  const [newDept, setNewDept] = useState("Khu Tiêu Chuẩn (Tầng 1 Tầng 2A B)");
-  const [newGroup, setNewGroup] = useState("KHU A TẦNG 1 - TIÊU HÓA");
-  const [newBirthDate, setNewBirthDate] = useState("");
-  const [newHireDate, setNewHireDate] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterSpecialty, setFilterSpecialty] = useState('');
+  const [filterTier, setFilterTier] = useState('');
+  const [filterDate, setFilterDate] = useState('');
+  const [filterSite, setFilterSite] = useState('');
 
-  useEffect(() => {
-    if (window.XLSX) {
-      setXlsxReady(true);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
-    script.async = true;
-    script.onload = () => {
-      setXlsxReady(true);
-    };
-    script.onerror = () => {
-      console.error("Lỗi tải CDN XLSX");
-    };
-    document.head.appendChild(script);
-  }, []);
+  const [calendarMode, setCalendarMode] = useState('list');
+  const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
 
-  const formatDate = (val) => {
-    if (!val) return "";
-    if (typeof val === "number") {
-      const date = new Date((val - 25569) * 86400 * 1000);
-      const d = String(date.getDate()).padStart(2, "0");
-      const m = String(date.getMonth() + 1).padStart(2, "0");
-      const y = date.getFullYear();
-      return `${d}/${m}/${y}`;
-    }
-    const str = String(val).trim();
-    if (str.includes("/")) {
-      return str; 
-    }
-    if (str.includes("-")) {
-      const parts = str.split("-");
-      if (parts.length === 3) {
-        if (parts[0].length === 4) {
-          return `${parts[2].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${parts[0]}`;
-        }
-        return `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${parts[2]}`;
-      }
-    }
-    return str;
-  };
+  const [currentId, setCurrentId] = useState(null);
+  const [formRightTab, setFormRightTab] = useState('billing');
+  const [leftFormTab, setLeftFormTab] = useState('visitHistory');
+  const [isHistoryPanelExpanded, setIsHistoryPanelExpanded] = useState(false);
 
-  const convertToDDMMYYYY = (yyyyMMdd) => {
-    if (!yyyyMMdd) return "";
-    const parts = yyyyMMdd.split("-");
-    if (parts.length !== 3) return yyyyMMdd;
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  };
+  const [dashFilterMode, setDashFilterMode] = useState('today'); 
+  const [dashStartDate, setDashStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dashEndDate, setDashEndDate] = useState(new Date().toISOString().split('T')[0]);
 
-  const calculateSeniority = (hireDateStr) => {
-    if (!hireDateStr) return "Chưa rõ";
-    let day, month, year;
-    if (hireDateStr.includes("/")) {
-      const parts = hireDateStr.split("/");
-      if (parts.length === 3) {
-        day = parseInt(parts[0], 10);
-        month = parseInt(parts[1], 10) - 1;
-        year = parseInt(parts[2], 10);
-      }
-    } else if (hireDateStr.includes("-")) {
-      const parts = hireDateStr.split("-");
-      if (parts.length === 3) {
-        if (parts[0].length === 4) {
-          year = parseInt(parts[0], 10);
-          month = parseInt(parts[1], 10) - 1;
-          day = parseInt(parts[2], 10);
-        } else {
-          day = parseInt(parts[0], 10);
-          month = parseInt(parts[1], 10) - 1;
-          year = parseInt(parts[2], 10);
-        }
-      }
-    }
-    if (day === undefined || month === undefined || year === undefined) return "Chưa rõ";
-    const hireDate = new Date(year, month, day);
-    if (isNaN(hireDate.getTime())) return "Chưa rõ";
-    
-    const today = new Date();
-    let diffYears = today.getFullYear() - hireDate.getFullYear();
-    let diffMonths = today.getMonth() - hireDate.getMonth();
-    
-    if (diffMonths < 0) {
-      diffYears--;
-      diffMonths += 12;
-    }
-    
-    if (diffYears > 0) {
-      return `${diffYears} năm ${diffMonths} tháng`;
-    }
-    return `${diffMonths} tháng`;
-  };
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        const userDocRef = doc(db, "artifacts", appId, "public", "data", "users", currentUser.uid);
-        let userDoc = await getDoc(userDocRef);
-        
-        if (!userDoc.exists() && currentUser.email) {
-          const emailKey = currentUser.email.toLowerCase().trim();
-          const tempDocRef = doc(db, "artifacts", appId, "public", "data", "users", emailKey);
-          const tempDoc = await getDoc(tempDocRef);
-          
-          if (tempDoc.exists()) {
-            const data = tempDoc.data();
-            data.uid = currentUser.uid;
-            if (data.systemAuth) {
-              data.systemAuth.uid = currentUser.uid;
-            }
-            await setDoc(userDocRef, data);
-            try {
-              await deleteDoc(tempDocRef);
-            } catch (e) {
-              console.error(e);
-            }
-            userDoc = await getDoc(userDocRef);
-          }
-        }
-
-        if (userDoc.exists()) {
-          setUser({ uid: currentUser.uid, ...userDoc.data() });
-        } else {
-          const isDomainAllowed = currentUser.email && (
-            currentUser.email.includes("cuongngq") || 
-            currentUser.email.includes("admin") || 
-            currentUser.email.endsWith("tahospital.vn") || 
-            currentUser.email.endsWith("tamanhhospital.vn")
-          );
-          if (isDomainAllowed) {
-            const bootstrapData = {
-              uid: currentUser.uid,
-              systemAuth: {
-                email: currentUser.email,
-                role: "admin",
-                uid: currentUser.uid
-              },
-              personalInfo: {
-                fullName: currentUser.email.split("@")[0].toUpperCase(),
-                employeeId: "TA-BOOTSTRAP",
-                gender: "Nam",
-                phone: "0909000000",
-                birthDate: "24/12/1997"
-              },
-              orgStructure: {
-                department: "Ban Giám Đốc",
-                division: "Ban Giám Đốc",
-                group: "VĂN PHÒNG"
-              },
-              jobInfo: {
-                roleTitle: "Quản trị hệ thống khởi tạo",
-                competencyLevel: "O",
-                legalEntity: "Bệnh viện Đa khoa Tâm Anh",
-                specialization: "Hành chính"
-              },
-              employmentLifecycle: {
-                status: "working",
-                presenceStatus: "Tân Bình hiện hữu",
-                onboardingBatch: "O",
-                hireDate: "09/03/2021"
-              }
-            };
-            await setDoc(userDocRef, bootstrapData);
-            setUser({ uid: currentUser.uid, ...bootstrapData });
-          } else {
-            setAuthError("Email này chưa được phê duyệt kích hoạt Whitelist. Vui lòng liên hệ Admin.");
-            await signOut(auth);
-            setUser(null);
-          }
-        }
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    const usersCollection = collection(db, "artifacts", appId, "public", "data", "users");
-    const unsubscribe = onSnapshot(usersCollection, (snapshot) => {
-      const usersList = [];
-      snapshot.forEach((doc) => {
-        usersList.push({ id: doc.id, ...doc.data() });
-      });
-      setAllUsers(usersList);
-    }, (error) => {
-      console.error(error);
-    });
-    return () => unsubscribe();
-  }, [user]);
-
-  const showNotification = (title, message, type = "info") => {
-    setCustomAlert({ title, message, type });
-  };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setAuthError("");
-    try {
-      await signInWithEmailAndPassword(auth, authEmail, authPassword);
-    } catch (err) {
-      setAuthError("Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản và mật khẩu.");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setAuthError("");
-    
-    if (authPassword !== registerConfirmPassword) {
-      setAuthError("Mật khẩu nhập lại không khớp.");
-      setAuthLoading(false);
-      return;
-    }
-
-    const emailKey = authEmail.toLowerCase().trim();
-    try {
-      const tempDocRef = doc(db, "artifacts", appId, "public", "data", "users", emailKey);
-      const tempDoc = await getDoc(tempDocRef);
-      
-      if (!tempDoc.exists()) {
-        setAuthError("Email của bạn không nằm trong danh sách Whitelist của bệnh viện. Vui lòng liên hệ Admin.");
-        setAuthLoading(false);
-        return;
-      }
-
-      await createUserWithEmailAndPassword(auth, emailKey, authPassword);
-      showNotification("Thành công", "Tài khoản của bạn đã được kích hoạt thành công trên hệ thống!", "success");
-      setAuthMode("login");
-    } catch (err) {
-      if (err.code === "auth/email-already-in-use") {
-        setAuthError("Email này đã được kích hoạt tài khoản trước đó.");
-      } else {
-        setAuthError("Lỗi đăng ký kích hoạt: " + err.message);
-      }
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      setUser(null);
-      setCurrentTab("profile");
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleCreateUser = async (e) => {
-    e.preventDefault();
-    if (!newEmployeeId || !newFullName || !newEmail) {
-      showNotification("Cảnh báo", "Vui lòng điền đầy đủ các trường thông tin bắt buộc.", "error");
-      return;
-    }
-    const emailKey = newEmail.toLowerCase().trim();
-    try {
-      const userDocRef = doc(db, "artifacts", appId, "public", "data", "users", emailKey);
-      const payload = {
-        uid: emailKey,
-        systemAuth: {
-          email: emailKey,
-          role: newRole.includes("Admin") || newRole.includes("Quản trị") ? "admin" : "user",
-          uid: emailKey
-        },
-        personalInfo: {
-          fullName: newFullName,
-          employeeId: newEmployeeId,
-          gender: newGender,
-          phone: newPhone,
-          birthDate: convertToDDMMYYYY(newBirthDate)
-        },
-        orgStructure: {
-          department: newDept,
-          division: "Phòng Chăm Sóc Khách Hàng",
-          group: newGroup
-        },
-        jobInfo: {
-          roleTitle: newRole,
-          competencyLevel: "O",
-          legalEntity: "Bệnh viện Đa khoa Tâm Anh TP Hồ Chí Minh",
-          specialization: "CSKH"
-        },
-        employmentLifecycle: {
-          status: "working",
-          presenceStatus: newPresence,
-          onboardingBatch: "O",
-          hireDate: convertToDDMMYYYY(newHireDate)
-        }
-      };
-      await setDoc(userDocRef, payload);
-      showNotification("Thành công", "Đã thêm thành công nhân viên vào danh sách Whitelist!", "success");
-      setNewEmployeeId("");
-      setNewFullName("");
-      setNewEmail("");
-      setNewPhone("");
-      setNewBirthDate("");
-      setNewHireDate("");
-    } catch (err) {
-      showNotification("Lỗi", "Lỗi khi thêm nhân viên: " + err.message, "error");
-    }
-  };
-
-  const handleUpdateUserStatus = async (userId, newStatus) => {
-    try {
-      const userDocRef = doc(db, "artifacts", appId, "public", "data", "users", userId);
-      const userSnapshot = await getDoc(userDocRef);
-      if (userSnapshot.exists()) {
-        const userData = userSnapshot.data();
-        const updatedData = {
-          ...userData,
-          employmentLifecycle: {
-            ...userData.employmentLifecycle,
-            status: newStatus
-          }
-        };
-        await setDoc(userDocRef, updatedData);
-        setIsEditModalOpen(false);
-        showNotification("Thành công", "Đã cập nhật trạng thái nhân viên thành công.", "success");
-      }
-    } catch (err) {
-      showNotification("Lỗi", "Lỗi cập nhật: " + err.message, "error");
-    }
-  };
-
-  const downloadTemplate = () => {
-    const XLSXLib = window.XLSX;
-    if (!XLSXLib) {
-      showNotification("Thông báo", "Thư viện Excel đang được tải. Vui lòng đợi trong giây lát.", "info");
-      return;
-    }
-    const headers = [
-      ["Mã Nhân Viên", "Họ Và Tên", "Email", "Số Điện Thoại", "Giới Tính", "Ngày Sinh", "Ngày Nhận Việc", "Vai Trò Hệ Thống", "Hiện Hữu", "Đơn Vị", "Nhóm Trực"]
-    ];
-    const sampleData = [
-      ["TA2.1421", "Nguyễn Quốc Cường", "cuongnq@tahospital.vn", "0376317501", "Nam", "24/12/1997", "09/03/2021", "Quản trị hệ thống", "Tân Bình hiện hữu", "Phòng Chăm Sóc Khách Hàng", "Khu Tiêu chuẩn Tòa D"],
-      ["TA2.3005", "Trần Thị Mai", "maitt@tahospital.vn", "0909123456", "Nữ", "15/08/1995", "01/06/2026", "Nhân viên CSKH", "Tân Bình hiện hữu", "Khu Tiêu Chuẩn (Tầng 1 Tầng 2A B)", "KHU A TẦNG 1 - TIÊU HÓA"]
-    ];
-    const ws = XLSXLib.utils.aoa_to_sheet([...headers, ...sampleData]);
-    const wb = XLSXLib.utils.book_new();
-    XLSXLib.utils.book_append_sheet(wb, ws, "Danh_Sach_Nhan_Su");
-    XLSXLib.writeFile(wb, "File_Mau_Import_Nhan_Su.xlsx");
-  };
-
-  const handleFileUpload = (e) => {
-    const XLSXLib = window.XLSX;
-    if (!XLSXLib) {
-      setImportStatus({ type: "error", message: "Hệ thống đang tải nạp thư viện bổ trợ. Vui lòng thử lại." });
-      return;
-    }
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = XLSXLib.read(data, { type: "array" });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        const rawJson = XLSXLib.utils.sheet_to_json(worksheet, { header: 1 });
-        if (rawJson.length <= 1) {
-          setImportStatus({ type: "error", message: "File rỗng hoặc không đúng định dạng mẫu." });
-          return;
-        }
-        const rows = rawJson.slice(1);
-        const parsedRows = rows.map((row) => {
-          return {
-            employeeId: row[0] ? String(row[0]).trim() : "",
-            fullName: row[1] ? String(row[1]).trim() : "",
-            email: row[2] ? String(row[2]).trim() : "",
-            phone: row[3] ? String(row[3]).trim() : "",
-            gender: row[4] ? String(row[4]).trim() : "Nữ",
-            birthDate: formatDate(row[5]),
-            hireDate: formatDate(row[6]),
-            role: row[7] ? String(row[7]).trim() : "Nhân viên CSKH",
-            presence: row[8] ? String(row[8]).trim() : "Tân Bình hiện hữu",
-            dept: row[9] ? String(row[9]).trim() : "Phòng Chăm Sóc Khách Hàng",
-            group: row[10] ? String(row[10]).trim() : "VĂN PHÒNG"
-          };
-        }).filter(item => item.email && item.employeeId && item.fullName);
-        setPreviewData(parsedRows);
-        setImportStatus({ type: "info", message: `Đã đọc thành công ${parsedRows.length} dòng dữ liệu hợp lệ. Vui lòng kiểm tra lại bảng xem trước.` });
-      } catch (err) {
-        setImportStatus({ type: "error", message: "Đọc file lỗi: " + err.message });
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
-  const handleBatchImport = async () => {
-    if (previewData.length === 0) {
-      showNotification("Cảnh báo", "Không có dữ liệu xem trước để nạp.", "error");
-      return;
-    }
-    setImportLoading(true);
-    setImportStatus({ type: "info", message: "Đang tiến hành nạp dữ liệu lên Firestore..." });
-    try {
-      const batchSize = 100;
-      let count = 0;
-      for (let i = 0; i < previewData.length; i += batchSize) {
-        const chunk = previewData.slice(i, i + batchSize);
-        const batch = writeBatch(db);
-        chunk.forEach((item) => {
-          const emailKey = item.email.toLowerCase().trim();
-          const userDocRef = doc(db, "artifacts", appId, "public", "data", "users", emailKey);
-          const payload = {
-            uid: emailKey,
-            systemAuth: {
-              email: emailKey,
-              role: item.role.includes("Admin") || item.role.includes("Quản trị") ? "admin" : "user",
-              uid: emailKey
-            },
-            personalInfo: {
-              fullName: item.fullName,
-              employeeId: item.employeeId,
-              gender: item.gender,
-              phone: item.phone,
-              birthDate: item.birthDate
-            },
-            orgStructure: {
-              department: item.dept,
-              division: "Phòng Chăm Sóc Khách Hàng",
-              group: item.group
-            },
-            jobInfo: {
-              roleTitle: item.role,
-              competencyLevel: "O",
-              legalEntity: "Bệnh viện Đa khoa Tâm Anh TP Hồ Chí Minh",
-              specialization: "CSKH"
-            },
-            employmentLifecycle: {
-              status: "working",
-              presenceStatus: item.presence,
-              onboardingBatch: "O",
-              hireDate: item.hireDate
-            }
-          };
-          batch.set(userDocRef, payload);
-          count++;
-        });
-        await batch.commit();
-      }
-      setImportStatus({ type: "success", message: `Đồng bộ thành công ${count} nhân sự lên hệ thống Cloud Firestore!` });
-      setPreviewData([]);
-      showNotification("Thành công", `Đã nạp thành công ${count} nhân viên mới vào danh sách Whitelist. Nhân viên có thể tự kích hoạt tài khoản của họ ngay bây giờ.`, "success");
-    } catch (err) {
-      setImportStatus({ type: "error", message: "Lỗi đồng bộ hàng loạt: " + err.message });
-      showNotification("Lỗi", "Không thể nạp dữ liệu hàng loạt: " + err.message, "error");
-    } finally {
-      setImportLoading(false);
-    }
-  };
-
-  const filteredUsers = allUsers.filter((u) => {
-    const fullName = u.personalInfo?.fullName || "";
-    const empId = u.personalInfo?.employeeId || "";
-    const email = u.systemAuth?.email || "";
-    const matchesSearch = 
-      fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      empId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      email.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const presence = u.employmentLifecycle?.presenceStatus || "";
-    const matchesPresence = filterPresence === "all" || presence === filterPresence;
-
-    const role = u.systemAuth?.role || "";
-    const matchesRole = filterRole === "all" || role === filterRole;
-
-    const status = u.employmentLifecycle?.status || "";
-    const matchesStatus = filterStatus === "all" || status === filterStatus;
-
-    const dept = u.orgStructure?.department || "";
-    const matchesDept = filterDept === "all" || dept === filterDept;
-
-    return matchesSearch && matchesPresence && matchesRole && matchesStatus && matchesDept;
+  const [formData, setFormData] = useState({
+    name: '',
+    tier: 'VIP',
+    boardApproval: '',
+    notes: '',
+    pid: '',
+    date: new Date().toISOString().split('T')[0],
+    specialties: [],
+    site: 'BV Tâm Anh - Tân Sơn Hòa',
+    examinationArea: 'Khu VIP',
+    ngoaiTru: true,
+    capCuu: false,
+    noiTru: false,
+    ngoaiVien: false,
+    treatmentType: 'Ngoại trú',
+    phiKham: 0,
+    clsCdha: 0,
+    thuocVacxin: 0,
+    insuranceAdvance: 0,
+    discountRate: 0,
+    approvedDiscountAmount: 0,
+    totalAmount: 0,
+    approvalImages: [],
+    status: 'Waiting',
+    recipients: [],
+    history: []
   });
 
-  const totalEmployees = allUsers.length;
-  const workingEmployees = allUsers.filter(u => u.employmentLifecycle?.status === "working").length;
-  const leaveEmployees = allUsers.filter(u => u.employmentLifecycle?.status === "leave").length;
-  const trainingEmployees = allUsers.filter(u => u.employmentLifecycle?.status === "training").length;
+  const [newSpecialtyInput, setNewSpecialtyInput] = useState('');
+  const [notification, setNotification] = useState(null);
+  const [iosNotificationStatus, setIosNotificationStatus] = useState('unknown');
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-        <p className="text-slate-600 font-medium">Đang kết nối hệ thống bảo mật...</p>
-      </div>
+  const [notifications, setNotifications] = useState([]);
+  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+  const [activePushAlerts, setActivePushAlerts] = useState([]);
+  const isInitialMount = useRef(true);
+  const notificationCenterRef = useRef(null);
+
+  const [specSearch, setSpecSearch] = useState('');
+  const [isSpecDropdownOpen, setIsSpecDropdownOpen] = useState(false);
+  const specRef = useRef(null);
+
+  const [isReadOnly, setIsReadOnly] = useState(true);
+  const appStartTime = useRef(new Date());
+  const patientsRef = useRef([]);
+
+  useEffect(() => {
+    patientsRef.current = patients;
+  }, [patients]);
+
+  const canShowTab = (tabName) => {
+    if (!currentUser) return false;
+    const role = currentUser.role || 'nhanvien';
+    if (role === 'admin') return true;
+    if (role === 'lanhdao') {
+      return ['dashboard', 'monitoring'].includes(tabName);
+    }
+    return ['dashboard', 'register', 'monitoring'].includes(tabName);
+  };
+
+  const hasAccessToPatient = (patient, action) => {
+    if (!currentUser) return false;
+    const role = currentUser.role || 'nhanvien';
+    const userSite = currentUser.assignedSite || 'Tất cả';
+    
+    const permLevel = systemSettings?.permissions?.[action]?.[role] || 'none';
+    if (permLevel === 'none') return false;
+    if (permLevel === 'all') return true;
+    
+    if (permLevel === 'write_assigned' || permLevel === 'view_assigned') {
+      if (userSite === 'Tất cả') return true;
+      return patient?.site === userSite;
+    }
+    return false;
+  };
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3500);
+  };
+
+  const triggerPushAlert = (title, message, dataRecipients = [], type = 'info', patientId = null) => {
+    const hasTargetedRecipients = Array.isArray(dataRecipients) && dataRecipients.length > 0;
+
+    if (currentUser) {
+      const isManagerOrAdmin = ['admin', 'lanhdao', 'quanly'].includes(currentUser?.role);
+      const isAssigned = hasTargetedRecipients && dataRecipients.includes(currentUser?.uid);
+      
+      if (hasTargetedRecipients && !isManagerOrAdmin && !isAssigned) {
+        return;
+      }
+    }
+
+    const id = Date.now() + Math.random().toString(36).substr(2, 9);
+    const newAlert = { id, title, message, type, patientId };
+
+    setActivePushAlerts(prev => [newAlert, ...prev]);
+
+    setNotifications(prev => [
+      {
+        id,
+        title,
+        message,
+        type,
+        timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        read: false,
+        patientId
+      },
+      ...prev
+    ]);
+
+    if (Notification.permission === 'granted') {
+      try {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification(title, {
+            body: message,
+            icon: 'https://iili.io/F66acRs.png',
+            badge: 'https://iili.io/F66acRs.png'
+          });
+        });
+      } catch (e) {
+        try {
+          new Notification(title, { body: message, icon: 'https://iili.io/F66acRs.png' });
+        } catch (err) {
+          console.warn(err);
+        }
+      }
+    }
+
+    setTimeout(() => {
+      setActivePushAlerts(prev => prev.filter(alert => alert.id !== id));
+    }, 6000);
+  };
+
+  const handleNotificationClick = (patientId) => {
+    if (!patientId) return;
+    const targetPatient = patients.find(p => p.id === patientId);
+    if (targetPatient) {
+      initiateView(targetPatient);
+    }
+  };
+
+  const checkIosPermissionStatus = () => {
+    if ('Notification' in window) {
+      setIosNotificationStatus(Notification.permission);
+    }
+  };
+
+  const saveFcmTokenToDatabase = async (userId) => {
+    if (!db || !messaging) return;
+    try {
+      const token = await getToken(messaging, {
+        vapidKey: WEBPUSH_VAPID_KEY
+      });
+      if (token) {
+        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userId);
+        await updateDoc(userDocRef, { fcmToken: token }).catch(async (e) => {
+          await setDoc(userDocRef, { fcmToken: token }, { merge: true }).catch(err => console.warn(err));
+        });
+      }
+    } catch (err) {
+      console.warn(err);
+    }
+  };
+
+  const requestIosNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      showNotification("Thiết bị không hỗ trợ thông báo đẩy.", "error");
+      return;
+    }
+
+    try {
+      if ('serviceWorker' in navigator) {
+        await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      }
+      
+      const permission = await Notification.requestPermission();
+      setIosNotificationStatus(permission);
+      
+      if (permission === 'granted') {
+        showNotification("Đã kích hoạt thành công thông báo!");
+        if (currentUser && currentUser?.uid) {
+          await saveFcmTokenToDatabase(currentUser?.uid);
+        }
+        triggerPushAlert("🟢 Đã bật thông báo", "Hệ thống sẵn sàng nhận dữ liệu thời gian thực.");
+      } else {
+        showNotification("Quyền thông báo bị từ chối.", "error");
+      }
+    } catch (error) {
+      console.error(error);
+      showNotification("Không thể xin quyền. Hãy mở ứng dụng từ Màn hình chính.", "error");
+    }
+  };
+
+  const stopScanner = () => {
+    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+      html5QrCodeRef.current.stop().then(() => {
+        html5QrCodeRef.current.clear();
+        setIsScanning(false);
+        setScannerError('');
+      }).catch(err => {
+        console.error(err);
+        setIsScanning(false);
+        setScannerError('');
+      });
+    } else {
+      setIsScanning(false);
+      setScannerError('');
+    }
+  };
+
+  const resetForm = () => {
+    setCurrentId(null);
+    setFormRightTab('billing');
+    setIsHistoryPanelExpanded(false);
+    setIsReadOnly(false);
+
+    const userSite = currentUser?.assignedSite || 'Tất cả';
+    const defaultSite = userSite !== 'Tất cả' ? userSite : 'BV Tâm Anh - Tân Sơn Hòa';
+
+    setFormData({
+      name: '',
+      tier: 'VIP',
+      boardApproval: '',
+      notes: '',
+      pid: '',
+      date: new Date().toISOString().split('T')[0],
+      specialties: [],
+      site: defaultSite,
+      examinationArea: 'Khu VIP',
+      ngoaiTru: true,
+      capCuu: false,
+      noiTru: false,
+      ngoaiVien: false,
+      treatmentType: 'Ngoại trú',
+      phiKham: 0,
+      clsCdha: 0,
+      thuocVacxin: 0,
+      insuranceAdvance: 0,
+      discountRate: 0,
+      approvedDiscountAmount: 0,
+      totalAmount: 0,
+      approvalImages: [],
+      status: 'Waiting',
+      recipients: [],
+      history: []
+    });
+  };
+
+  const handleLogout = async () => {
+    if (isFirebaseConnected && auth && currentUser) {
+      try {
+        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser?.uid);
+        await updateDoc(userDocRef, { fcmToken: null }).catch(e => console.warn(e));
+      } catch (err) {
+        console.warn(err);
+      }
+      signOut(auth).catch(e => console.warn(e));
+    }
+    setCurrentUser(null);
+    setUserRole('nhanvien');
+    localStorage.removeItem('crm_current_user');
+    showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
+  };
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (!loginEmail.trim() || !loginPassword.trim()) {
+      setAuthError("Email và mật khẩu không được bỏ trống.");
+      return;
+    }
+
+    const localAccount = staffList.find(
+      (acc) => acc?.email?.toLowerCase() === loginEmail.trim().toLowerCase()
     );
-  }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-slate-100 flex flex-col justify-center items-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 border border-slate-200">
-          <div className="flex justify-center mb-6">
-            <div className="bg-blue-50 p-4 rounded-full border border-blue-100">
-              <Shield className="h-12 w-12 text-blue-600" />
-            </div>
-          </div>
-          <h2 className="text-center text-2xl font-bold text-slate-900 mb-1">Bệnh Viện Tâm Anh</h2>
-          <p className="text-center text-sm font-semibold text-slate-500 uppercase tracking-wider mb-8">Portal CSKH - Xác thực nội bộ</p>
+    if (isFirebaseConnected && auth) {
+      signInWithEmailAndPassword(auth, loginEmail.trim(), loginPassword)
+        .then(async (userCredential) => {
+          const user = userCredential.user;
+          const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          let userData = {
+            uid: user.uid,
+            email: user.email,
+            role: 'nhanvien',
+            name: user.email ? user.email.split('@')[0] : 'Nhân viên',
+            title: 'Nhân viên chuyên ban',
+            assignedSite: 'Tất cả'
+          };
+          if (userDoc.exists()) {
+            userData = userDoc.data();
+          }
+          setCurrentUser(userData);
+          setUserRole(userData?.role || 'nhanvien');
+          localStorage.setItem('crm_current_user', JSON.stringify(userData));
+          setAuthError('');
+          showNotification(`Đăng nhập thành công! Chào ${userData?.name}`);
+        })
+        .catch((error) => {
+          if (localAccount && localAccount.pass === loginPassword) {
+            setCurrentUser(localAccount);
+            setUserRole(localAccount?.role || 'nhanvien');
+            localStorage.setItem('crm_current_user', JSON.stringify(localAccount));
+            setAuthError('');
+            showNotification(`Đăng nhập (Chế độ Dự Phòng): Chào ${localAccount?.name}`);
+            return;
+          }
+          console.error(error);
+          setAuthError("Sai thông tin tài khoản hoặc mật khẩu.");
+        });
+    } else {
+      if (localAccount && localAccount.pass === loginPassword) {
+        setCurrentUser(localAccount);
+        setUserRole(localAccount?.role || 'nhanvien');
+        localStorage.setItem('crm_current_user', JSON.stringify(localAccount));
+        setAuthError('');
+        showNotification(`Đăng nhập ngoại tuyến thành công: Chào ${localAccount?.name}`);
+      } else {
+        setAuthError("Sai thông tin tài khoản hoặc hệ thống offline.");
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      if (!canShowTab(activeTab)) {
+        setActiveTab('dashboard');
+      }
+    }
+  }, [currentUser, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'register' && !currentId) {
+      const userSite = currentUser?.assignedSite || 'Tất cả';
+      if (userSite !== 'Tất cả') {
+        setFormData(prev => ({ ...prev, site: userSite }));
+      }
+    }
+  }, [activeTab, currentId, currentUser]);
+
+  useEffect(() => {
+    function handleClickOutsideSpec(event) {
+      if (specRef.current && !specRef.current.contains(event.target)) {
+        setIsSpecDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutsideSpec);
+    return () => document.removeEventListener("mousedown", handleClickOutsideSpec);
+  }, []);
+
+  const filteredSpecialties = useMemo(() => {
+    return (systemSettings?.specialties || []).filter(s =>
+      s?.toLowerCase().includes(specSearch.toLowerCase())
+    );
+  }, [systemSettings?.specialties, specSearch]);
+
+  const handleTreatmentTypeChange = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      treatmentType: value,
+      ngoaiTru: value === 'Ngoại trú',
+      capCuu: value === 'Cấp cứu/Daycare',
+      noiTru: value === 'Nội trú/ICU',
+      ngoaiVien: value === 'Ngoài viện'
+    }));
+  };
+
+  useEffect(() => {
+    let html5QrCode;
+    if (isScanning) {
+      const startCamera = async () => {
+        if (typeof window.Html5Qrcode === 'undefined') {
+          await new Promise(resolve => setTimeout(resolve, 800));
+          if (typeof window.Html5Qrcode === 'undefined') {
+            setScannerError("Chưa tải xong thư viện quét mã. Vui lòng thử lại.");
+            return;
+          }
+        }
+
+        try {
+          html5QrCode = new window.Html5Qrcode("reader");
+          html5QrCodeRef.current = html5QrCode;
           
-          <div className="flex border-b border-slate-200 mb-6">
-            <button 
-              type="button"
-              onClick={() => { setAuthMode("login"); setAuthError(""); }}
-              className={`flex-1 pb-3 text-sm font-bold border-b-2 transition ${authMode === "login" ? "border-blue-600 text-blue-600" : "border-transparent text-slate-400"}`}
-            >
-              Đăng Nhập
-            </button>
-            <button 
-              type="button"
-              onClick={() => { setAuthMode("register"); setAuthError(""); }}
-              className={`flex-1 pb-3 text-sm font-bold border-b-2 transition ${authMode === "register" ? "border-blue-600 text-blue-600" : "border-transparent text-slate-400"}`}
-            >
-              Đăng Ký Kích Hoạt
-            </button>
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            {
+              fps: 15,
+              qrbox: (width, height) => {
+                const size = Math.min(width, height) * 0.75;
+                return { width: size, height: size };
+              }
+            },
+            (decodedText) => {
+              handleInputChange('pid', decodedText);
+              showNotification("Đã quét thành công mã: " + decodedText);
+              stopScanner();
+            },
+            (errorMessage) => {
+            }
+          );
+        } catch (err) {
+          console.error(err);
+          setScannerError("Không thể truy cập camera. Vui lòng cấp quyền camera trong cài đặt trình duyệt.");
+        }
+      };
+      
+      startCamera();
+    }
+
+    return () => {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+        }).catch(e => console.warn(e));
+      }
+    };
+  }, [isScanning]);
+
+  useEffect(() => {
+    checkIosPermissionStatus();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        .then((registration) => {
+          console.log("Firebase SW registered context scope:", registration.scope);
+        })
+        .catch((err) => {
+          console.warn("Lỗi đăng ký Firebase Service Worker:", err);
+        });
+    }
+
+    if (!document.getElementById('html5-qrcode-script')) {
+      const script = document.createElement('script');
+      script.id = 'html5-qrcode-script';
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js';
+      script.async = true;
+      document.head.appendChild(script);
+    }
+
+    function handleClickOutside(event) {
+      if (notificationCenterRef.current && !notificationCenterRef.current.contains(event.target)) {
+        setShowNotificationCenter(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    const faviconUrl = 'https://iili.io/F66acRs.png';
+    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+    link.type = 'image/png';
+    link.rel = 'shortcut icon';
+    link.href = faviconUrl;
+    document.getElementsByTagName('head')[0].appendChild(link);
+
+    const savedStaff = localStorage.getItem('crm_staff_accounts');
+    if (!savedStaff) {
+      localStorage.setItem('crm_staff_accounts', JSON.stringify(mockStaffAccounts));
+      setStaffList(mockStaffAccounts);
+    } else {
+      setStaffList(JSON.parse(savedStaff));
+    }
+
+    const savedSettings = localStorage.getItem('local_settings');
+    if (!savedSettings) {
+      localStorage.setItem('local_settings', JSON.stringify(defaultSystemSettings));
+      setSystemSettings(defaultSystemSettings);
+    } else {
+      setSystemSettings(JSON.parse(savedSettings));
+    }
+
+    const savedUser = localStorage.getItem('crm_current_user');
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        if (parsedUser) {
+          setCurrentUser(parsedUser);
+          setUserRole(parsedUser?.role || 'nhanvien');
+        }
+      } catch (err) {
+        console.error("Error parsing local user:", err);
+      }
+    }
+
+    if (auth && db && isFirebaseConfigured) {
+      setIsFirebaseConnected(true);
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          try {
+            const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', firebaseUser.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              setCurrentUser(userData);
+              setUserRole(userData?.role || 'nhanvien');
+              saveFcmTokenToDatabase(firebaseUser.uid).catch(e => console.warn(e));
+            } else {
+              const fallbackUser = { 
+                uid: firebaseUser.uid, 
+                email: firebaseUser.email, 
+                role: 'nhanvien', 
+                name: firebaseUser.email ? firebaseUser.email.split('@')[0] : 'Nhân viên',
+                title: 'Nhân viên chuyên ban',
+                assignedSite: 'Tất cả'
+              };
+              setCurrentUser(fallbackUser);
+              setUserRole('nhanvien');
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        setIsLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
+      setIsFirebaseConnected(false);
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    setIsLoading(true);
+
+    if (isFirebaseConnected && db) {
+      const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
+      const settingsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
+      const usersCol = collection(db, 'artifacts', appId, 'public', 'data', 'users');
+
+      const unsubscribeSettings = onSnapshot(settingsDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setSystemSettings(docSnap.data());
+        } else {
+          setDoc(settingsDocRef, systemSettings).catch(e => console.warn(e));
+        }
+      }, (err) => console.error(err));
+
+      const unsubscribeUsers = onSnapshot(usersCol, (snapshot) => {
+        const list = [];
+        snapshot.forEach((docSnap) => {
+          list.push({ uid: docSnap.id, ...docSnap.data() });
+        });
+        setStaffList(list);
+      }, (err) => console.error(err));
+
+      const unsubscribePatients = onSnapshot(patientsCol, (snapshot) => {
+        const list = [];
+        snapshot.forEach((docSnap) => {
+          list.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        list.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        if (isInitialMount.current) {
+          isInitialMount.current = false;
+        } else {
+          snapshot.docChanges().forEach((change) => {
+            const data = change.doc.data();
+            const docTime = data.updatedAt ? new Date(data.updatedAt) : (data.createdAt ? new Date(data.createdAt) : null);
+            const isRecent = docTime && docTime.getTime() > appStartTime.current.getTime();
+            if (!isRecent) return;
+
+            let shouldNotify = true;
+            const userSite = currentUser.assignedSite || 'Tất cả';
+
+            if (userSite !== 'Tất cả' && data.site !== userSite) {
+              shouldNotify = false;
+            }
+
+            if (currentUser.role === 'nhanvien') {
+              if (data.recipients && data.recipients.length > 0 && !data.recipients.includes(currentUser.uid)) {
+                shouldNotify = false;
+              }
+            }
+
+            if (currentUser.role === 'lanhdao') {
+              const bossKeyword = data.boardApproval ? data.boardApproval.replace("Sếp ", "").trim().toLowerCase() : "";
+              const isTargetBoss = bossKeyword && currentUser.name.toLowerCase().includes(bossKeyword);
+              const isTargetStatus = ['Waiting', 'Completed'].includes(data.status);
+              if (!isTargetBoss || !isTargetStatus) {
+                shouldNotify = false;
+              }
+            }
+
+            if (!shouldNotify) return;
+
+            const statusLabel = workflowStatuses.find(s => s.id === data.status)?.label || data.status;
+
+            if (change.type === "modified") {
+              const prevPatients = patientsRef.current;
+              const prevPatient = prevPatients.find(p => p.id === change.doc.id);
+              if (prevPatient && prevPatient.status !== data.status) {
+                triggerPushAlert(
+                  `🔄 Cập nhật hành trình`,
+                  `Hồ sơ khách hàng ${data?.name || '---'} (PID: ${data?.pid || '---'}) vừa đổi trạng thái sang: ${statusLabel}.`,
+                  data?.recipients || [],
+                  'success',
+                  change.doc.id
+                );
+              }
+            }
+          });
+        }
+
+        setPatients(list);
+        setIsLoading(false);
+      }, (error) => {
+        console.warn(error);
+        const savedPatients = localStorage.getItem('local_patients');
+        if (savedPatients) {
+          setPatients(JSON.parse(savedPatients));
+        }
+        setIsLoading(false);
+      });
+
+      return () => {
+        unsubscribeSettings();
+        unsubscribeUsers();
+        unsubscribePatients();
+      };
+    } else {
+      const savedPatients = localStorage.getItem('local_patients');
+      if (savedPatients) {
+        setPatients(JSON.parse(savedPatients));
+      }
+      setIsLoading(false);
+    }
+  }, [currentUser, isFirebaseConnected]);
+
+  const calculatedSums = useMemo(() => {
+    if (formData?.tier === 'VIP') {
+      return { totalAmount: 0, approvedDiscountAmount: 0 };
+    }
+    const formulas = systemSettings?.totalFormulaFields || {};
+    let total = 0;
+    
+    if (formulas.phiKham) total += Number(formData?.phiKham || 0);
+    if (formulas.clsCdha) total += Number(formData?.clsCdha || 0);
+    if (formulas.thuocVacxin) total += Number(formData?.thuocVacxin || 0);
+
+    let discountBase = total;
+    if (systemSettings?.discountFormulaType === 'total_minus_insurance_advance') {
+      discountBase = Math.max(0, total - Number(formData?.insuranceAdvance || 0));
+    }
+
+    const discountAmount = Math.round(discountBase * (Number(formData?.discountRate || 0) / 100));
+
+    return {
+      totalAmount: total,
+      approvedDiscountAmount: discountAmount
+    };
+  }, [formData, systemSettings]);
+
+  useEffect(() => {
+    if (formData?.totalAmount !== calculatedSums.totalAmount || formData?.approvedDiscountAmount !== calculatedSums.approvedDiscountAmount) {
+      setFormData(prev => ({
+        ...prev,
+        totalAmount: calculatedSums.totalAmount,
+        approvedDiscountAmount: calculatedSums.approvedDiscountAmount
+      }));
+    }
+  }, [calculatedSums.totalAmount, calculatedSums.approvedDiscountAmount]);
+
+  const matchedPatientProfile = useMemo(() => {
+    if (!formData?.pid?.trim()) return null;
+    return patients.find(p => p?.pid?.trim().toLowerCase() === formData?.pid?.trim().toLowerCase());
+  }, [formData?.pid, patients]);
+
+  const patientVisitHistory = useMemo(() => {
+    if (!formData?.pid?.trim()) return [];
+    return patients.filter(p => p?.pid?.trim().toLowerCase() === formData?.pid?.trim().toLowerCase() && p.id !== currentId);
+  }, [formData?.pid, patients, currentId]);
+
+  useEffect(() => {
+    if (patientVisitHistory.length > 0) {
+      setLeftFormTab('visitHistory');
+    } else {
+      setLeftFormTab('timeline');
+    }
+  }, [patientVisitHistory.length]);
+
+  useEffect(() => {
+    if (matchedPatientProfile && !currentId) {
+      setFormData(prev => {
+        if (prev?.name !== matchedPatientProfile?.name) {
+          return { ...prev, name: matchedPatientProfile?.name || '' };
+        }
+        return prev;
+      });
+    }
+  }, [matchedPatientProfile, currentId]);
+
+  const handleInputChange = (field, val) => {
+    if (field === 'discountRate' && !hasAccessToPatient(formData, 'billing:discount')) {
+      showNotification("Tài khoản không có quyền duyệt chiết khấu!", "error");
+      return;
+    }
+    setFormData(prev => ({ ...prev, [field]: val }));
+  };
+
+  const handleCurrencyChange = (field, rawValue) => {
+    const cleanValue = rawValue.replace(/\D/g, '');
+    const numValue = cleanValue === '' ? 0 : parseInt(cleanValue, 10);
+    handleInputChange(field, numValue);
+  };
+
+  const toggleSpecialtySelection = (spec) => {
+    if (isReadOnly) return;
+    setFormData(prev => {
+      const exists = prev?.specialties?.includes(spec);
+      if (exists) {
+        return { ...prev, specialties: prev?.specialties?.filter(s => s !== spec) };
+      } else {
+        return { ...prev, specialties: [...(prev?.specialties || []), spec] };
+      }
+    });
+  };
+
+  const handleMultipleImagesUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    const readers = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const img = new Image();
+          img.src = reader.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800;
+            const scale = MAX_WIDTH / img.width;
+            canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
+            canvas.height = img.width > MAX_WIDTH ? img.height * scale : img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          };
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(readers).then((newImages) => {
+      setFormData(prev => ({
+        ...prev,
+        approvalImages: [...(prev?.approvalImages || []), ...newImages]
+      }));
+      showNotification("Đã thêm các ảnh phê duyệt thành công!");
+    });
+  };
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const isFutureOrPreArrival = (patient) => {
+    if (!patient) return false;
+    const isPreArrivalStatus = ['Scheduled', 'Preparing', 'ReceivedInfo'].includes(patient?.status);
+    const isFutureDate = patient?.date > todayStr;
+    return isPreArrivalStatus || isFutureDate;
+  };
+
+  const isUserAssignedToPatient = (patient) => {
+    if (!currentUser || !patient) return false;
+    if (Array.isArray(patient?.recipients) && patient?.recipients.includes(currentUser?.uid)) {
+      return true;
+    }
+    return false;
+  };
+
+  const visiblePatients = useMemo(() => {
+    return patients.filter(p => {
+      if (!p) return false;
+      
+      const canView = hasAccessToPatient(p, 'patients:view');
+      if (!canView) return false;
+
+      if (currentUser && ['nhanvien', 'quanly_site'].includes(currentUser?.role)) {
+        if (isFutureOrPreArrival(p)) {
+          return isUserAssignedToPatient(p);
+        }
+      }
+      return true;
+    });
+  }, [patients, currentUser, systemSettings?.permissions]);
+
+  const filteredPatients = useMemo(() => {
+    return visiblePatients.filter(p => {
+      if (!p) return false;
+      const matchSearch = 
+        p?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p?.pid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p?.boardApproval?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p?.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchSpecialty = !filterSpecialty || p?.specialties?.includes(filterSpecialty);
+      const matchTier = !filterTier || p?.tier === filterTier;
+      const matchDate = !filterDate || p?.date === filterDate;
+      const matchSite = !filterSite || p?.site === filterSite;
+
+      return matchSearch && matchSpecialty && matchTier && matchDate && matchSite;
+    });
+  }, [visiblePatients, searchTerm, filterSpecialty, filterTier, filterDate, filterSite]);
+
+  const dashMetrics = useMemo(() => {
+    const filtered = visiblePatients.filter(p => {
+      if (!p) return false;
+      if (dashFilterMode === 'today') {
+        return p?.date === todayStr;
+      } else {
+        return p?.date >= dashStartDate && p?.date <= dashEndDate;
+      }
+    });
+
+    let totalPatients = filtered.length;
+    let vipCount = filtered.filter(p => p?.tier === 'VIP').length;
+    let vvipCount = filtered.filter(p => p?.tier === 'VVIP').length;
+    let totalRevenue = filtered.reduce((sum, p) => sum + (p?.totalAmount || 0), 0);
+    let totalDiscount = filtered.reduce((sum, p) => sum + (p?.approvedDiscountAmount || 0), 0);
+    let totalCollected = filtered.reduce((sum, p) => sum + Math.max(0, (p?.totalAmount || 0) - (p?.approvedDiscountAmount || 0)), 0);
+
+    return { totalPatients, vipCount, vvipCount, totalRevenue, totalDiscount, totalCollected };
+  }, [visiblePatients, dashFilterMode, dashStartDate, dashEndDate, todayStr]);
+
+  const metrics = useMemo(() => {
+    let totalPatients = filteredPatients.length;
+    let vipCount = filteredPatients.filter(p => p?.tier === 'VIP').length;
+    let vvipCount = filteredPatients.filter(p => p?.tier === 'VVIP').length;
+    let totalRevenue = filteredPatients.reduce((sum, p) => sum + (p?.totalAmount || 0), 0);
+    let totalDiscount = filteredPatients.reduce((sum, p) => sum + (p?.approvedDiscountAmount || 0), 0);
+    let totalCollected = filteredPatients.reduce((sum, p) => sum + Math.max(0, (p?.totalAmount || 0) - (p?.approvedDiscountAmount || 0)), 0);
+
+    return { totalPatients, vipCount, vvipCount, totalRevenue, totalDiscount, totalCollected };
+  }, [filteredPatients]);
+
+  const kanbanPatients = useMemo(() => {
+    return visiblePatients.filter(p => {
+      if (!p) return false;
+      const isToday = p?.date === todayStr;
+      const isNotCompleted = p?.status !== 'Completed';
+      const matchDate = !filterDate ? (isToday || isNotCompleted) : p?.date === filterDate;
+      const matchSite = !filterSite || p?.site === filterSite;
+      return matchDate && matchSite;
+    });
+  }, [visiblePatients, filterDate, filterSite, todayStr]);
+
+  const unreadCount = useMemo(() => {
+    return notifications.filter(n => !n.read).length;
+  }, [notifications]);
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+  };
+
+  const weekDays = useMemo(() => {
+    const startOfWeek = new Date(currentCalendarDate);
+    const day = startOfWeek.getDay();
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); 
+    startOfWeek.setDate(diff);
+
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const nextDay = new Date(startOfWeek);
+      nextDay.setDate(startOfWeek.getDate() + i);
+      days.push(nextDay);
+    }
+    return days;
+  }, [currentCalendarDate]);
+
+  const monthDays = useMemo(() => {
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1; 
+    const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const days = [];
+    for (let i = 0; i < adjustedFirstDayIndex; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= totalDaysInMonth; i++) {
+      days.push(new Date(year, month, i));
+    }
+    return days;
+  }, [currentCalendarDate]);
+
+  const briefingStats = useMemo(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    const tomorrowPatients = visiblePatients.filter(p => p && p?.date === tomorrowStr);
+    
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 8);
+    const sevenDaysStr = sevenDaysFromNow.toISOString().split('T')[0];
+
+    const nextWeekPatients = visiblePatients.filter(p => p && p?.date > tomorrowStr && p?.date <= sevenDaysStr);
+
+    return {
+      tomorrowPatients,
+      nextWeekCount: nextWeekPatients.length,
+      tomorrowDateFormatted: tomorrow.toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' })
+    };
+  }, [visiblePatients]);
+
+  const savePatient = async (e) => {
+    e.preventDefault();
+    if (!formData?.name?.trim()) {
+      showNotification("Họ & Tên khách hàng không được để trống!", "error");
+      return;
+    }
+    if (!formData?.pid?.trim()) {
+      showNotification("Mã PID là bắt buộc!", "error");
+      return;
+    }
+
+    const action = currentId ? 'patients:update' : 'patients:create';
+    const isAllowed = hasAccessToPatient(formData, action);
+    if (!isAllowed) {
+      showNotification("Lỗi: Tài khoản không có quyền đăng ký hoặc chỉnh sửa hồ sơ trên Site này!", "error");
+      return;
+    }
+
+    const currentHistory = formData?.history || [];
+    let newLog = {};
+    if (currentId) {
+      newLog = {
+        timestamp: new Date().toISOString(),
+        action: "Cập nhật thông tin hồ sơ",
+        user: currentUser?.name || 'Hệ thống'
+      };
+    } else {
+      newLog = {
+        timestamp: new Date().toISOString(),
+        action: "Tiếp đón khởi tạo hành trình",
+        user: currentUser?.name || 'Hệ thống'
+      };
+    }
+
+    let payload = {
+      ...formData,
+      status: formData?.status || 'Waiting',
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentUser?.name || 'Hệ thống',
+      history: [...currentHistory, newLog]
+    };
+
+    if (formData?.tier === 'VIP') {
+      payload = {
+        ...payload,
+        phiKham: 0,
+        clsCdha: 0,
+        thuocVacxin: 0,
+        insuranceAdvance: 0,
+        discountRate: 0,
+        approvedDiscountAmount: 0,
+        totalAmount: 0
+      };
+    }
+
+    const firstImg = payload.approvalImages && payload.approvalImages.length > 0 ? payload.approvalImages[0] : '';
+    payload.approvalImage = firstImg;
+
+    try {
+      if (isFirebaseConnected && db) {
+        const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
+        if (currentId) {
+          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payload);
+          showNotification("Cập nhật thành công!");
+        } else {
+          await addDoc(patientsCol, { ...payload, createdAt: new Date().toISOString() });
+          showNotification("Đăng ký thành công!");
+        }
+      } else {
+        let updatedList = [...patients];
+        if (currentId) {
+          updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
+          showNotification("Cập nhật thành công!");
+        } else {
+          const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
+          updatedList.unshift(newDoc);
+          showNotification("Đã lưu hồ sơ thành công!");
+        }
+        setPatients(updatedList);
+        localStorage.setItem('local_patients', JSON.stringify(updatedList));
+      }
+      resetForm();
+      setActiveTab('monitoring');
+    } catch (err) {
+      console.warn(err);
+      let updatedList = [...patients];
+      if (currentId) {
+        updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
+        showNotification("Đã lưu cập nhật vào thiết bị (Chế độ Dự Phòng)!");
+      } else {
+        const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
+        updatedList.unshift(newDoc);
+        showNotification("Đã lưu hồ sơ mới vào thiết bị (Chế độ Dự Phòng)!");
+      }
+      setPatients(updatedList);
+      localStorage.setItem('local_patients', JSON.stringify(updatedList));
+      resetForm();
+      setActiveTab('monitoring');
+    }
+  };
+
+  const handleLoginSubmit = (e) => {
+    handleLogin(e);
+  };
+
+  const initiateView = (patient) => {
+    initiateEdit(patient, true);
+  };
+
+  const initiateEdit = (patient, forceReadOnly = false) => {
+    if (!patient) return;
+
+    setCurrentId(patient.id);
+    setFormRightTab(patient.tier === 'VIP' ? 'timeline' : 'billing');
+    setIsHistoryPanelExpanded(false);
+    setIsReadOnly(forceReadOnly);
+    let initTreatmentType = 'Ngoại trú';
+    if (patient.capCuu) initTreatmentType = 'Cấp cứu/Daycare';
+    else if (patient.noiTru) initTreatmentType = 'Nội trú/ICU';
+    else if (patient.ngoaiVien) initTreatmentType = 'Ngoài viện';
+    else if (patient.treatmentType) initTreatmentType = patient.treatmentType;
+
+    setFormData({
+      name: patient?.name || '',
+      tier: patient?.tier || 'VIP',
+      boardApproval: patient?.boardApproval || '',
+      notes: patient?.notes || '',
+      pid: patient?.pid || '',
+      date: patient?.date || new Date().toISOString().split('T')[0],
+      specialties: patient?.specialties || [],
+      site: patient?.site || 'BV Tâm Anh - Tân Sơn Hòa',
+      examinationArea: patient?.examinationArea || 'Khu VIP',
+      ngoaiTru: patient?.ngoaiTru !== undefined ? patient?.ngoaiTru : (initTreatmentType === 'Ngoại trú'),
+      capCuu: patient?.capCuu !== undefined ? patient?.capCuu : (initTreatmentType === 'Cấp cứu/Daycare'),
+      noiTru: patient?.noiTru !== undefined ? patient?.noiTru : (initTreatmentType === 'Nội trú/ICU'),
+      ngoaiVien: patient?.ngoaiVien !== undefined ? patient?.ngoaiVien : (initTreatmentType === 'Ngoài viện'),
+      treatmentType: initTreatmentType,
+      phiKham: patient?.phiKham || 0,
+      clsCdha: patient?.clsCdha || 0,
+      thuocVacxin: patient?.thuocVacxin || 0,
+      insuranceAdvance: patient?.insuranceAdvance || 0,
+      discountRate: patient?.discountRate || 0,
+      approvedDiscountAmount: patient?.approvedDiscountAmount || 0,
+      totalAmount: patient?.totalAmount || 0,
+      approvalImages: patient?.approvalImages || (patient?.approvalImage ? [patient?.approvalImage] : []),
+      status: patient?.status || 'Waiting',
+      recipients: patient?.recipients || [],
+      history: patient?.history || []
+    });
+    setActiveTab('register');
+  };
+
+  const handleUpdateStatus = async (patientId, newStatus) => {
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) return;
+
+    const canUpdate = hasAccessToPatient(patient, 'patients:update');
+    if (!canUpdate) {
+      showNotification("Lỗi: Bạn không có quyền chỉnh sửa trạng thái cho ca khám thuộc chi nhánh này!", "error");
+      return;
+    }
+
+    if (userRole === 'nhanvien') {
+      const currentStatus = patient?.status || 'Waiting';
+      const isAllowed = 
+        (currentStatus === 'Waiting' && newStatus === 'Examining') || 
+        (currentStatus === 'Pharmacy' && newStatus === 'Completed');
+
+      if (!isAllowed) {
+        showNotification("Lỗi: Tài khoản nhân viên chỉ được phép chuyển trạng thái theo đúng luồng bàn giao quy định!", "error");
+        return;
+      }
+    }
+
+    const statusLabel = workflowStatuses.find(s => s.id === newStatus)?.label || newStatus;
+    const currentHistory = patient?.history || [];
+    const newLog = {
+      timestamp: new Date().toISOString(),
+      action: "Chuyển trạng thái hành trình sang: " + statusLabel,
+      user: currentUser?.name || 'Hệ thống'
+    };
+    const updatedHistory = [...currentHistory, newLog];
+
+    try {
+      if (isFirebaseConnected && db) {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'patients', patientId);
+        await updateDoc(docRef, {
+          status: newStatus,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentUser?.name || 'Hệ thống',
+          history: updatedHistory
+        });
+      } else {
+        const updatedList = patients.map(p => {
+          if (p.id === patientId) {
+            return { 
+              ...p, 
+              status: newStatus, 
+              updatedAt: new Date().toISOString(), 
+              updatedBy: currentUser?.name || 'Hệ thống',
+              history: updatedHistory
+            };
+          }
+          return p;
+        });
+        setPatients(updatedList);
+        localStorage.setItem('local_patients', JSON.stringify(updatedList));
+        triggerPushAlert("🔄 Cập nhật hành trình (Cục bộ)", `Khách hàng ${patient?.name || 'VIP'} đã được cập nhật trạng thái mới.`, patient?.recipients || [], "success", patientId);
+      }
+      showNotification("Đã cập nhật trạng thái hành trình khám!");
+    } catch (err) {
+      console.error(err);
+      showNotification("Lỗi đồng bộ trạng thái lên database!", "error");
+    }
+  };
+
+  const executeCopyVisit = (visit) => {
+    if (!visit) return;
+    const previousImages = visit?.approvalImages || (visit?.approvalImage ? [visit?.approvalImage] : []);
+    
+    const userSite = currentUser?.assignedSite || 'Tất cả';
+    const finalSite = userSite !== 'Tất cả' ? userSite : (visit?.site || 'BV Tâm Anh - Tân Sơn Hòa');
+
+    setFormData(prev => ({
+      ...prev,
+      specialties: visit?.specialties || [],
+      site: finalSite,
+      examinationArea: visit?.examinationArea || 'Khu VIP',
+      boardApproval: visit?.boardApproval || '',
+      notes: visit?.notes || '',
+      treatmentType: visit?.treatmentType || 'Ngoại trú',
+      ngoaiTru: visit?.ngoaiTru !== undefined ? visit?.ngoaiTru : (visit?.treatmentType === 'Ngoại trú'),
+      capCuu: visit?.capCuu !== undefined ? visit?.capCuu : (visit?.treatmentType === 'Cấp cứu/Daycare'),
+      noiTru: visit?.noiTru !== undefined ? visit?.noiTru : (visit?.treatmentType === 'Nội trú/ICU'),
+      ngoaiVien: visit?.ngoaiVien !== undefined ? visit?.ngoaiVien : (visit?.treatmentType === 'Ngoài viện'),
+      approvalImages: previousImages,
+      recipients: visit?.recipients || []
+    }));
+    showNotification("Đã sao chép lịch sử thăm khám cũ kèm chứng từ phê duyệt!");
+    setCopyConfirmModal({ show: false, visitToCopy: null });
+  };
+
+  const handleEditStaff = (staff) => {
+    setEditingStaffUid(staff.uid);
+    setNewStaff({
+      name: staff.name || '',
+      email: staff.email || '',
+      role: staff.role || 'nhanvien',
+      uid: staff.uid || '',
+      title: staff.title || '',
+      assignedSite: staff.assignedSite || 'Tất cả'
+    });
+  };
+
+  const handleCreateStaff = async (e) => {
+    e.preventDefault();
+    if (userRole !== 'admin') {
+      showNotification("Chỉ IT Admin mới được phép thao tác!", "error");
+      return;
+    }
+    if (!newStaff?.name?.trim() || !newStaff?.email?.trim() || !newStaff?.uid?.trim()) {
+      showNotification("Vui lòng điền đầy đủ thông tin!", "error");
+      return;
+    }
+
+    const created = {
+      uid: newStaff?.uid?.trim(),
+      name: newStaff?.name?.trim(),
+      email: newStaff?.email?.trim(),
+      role: newStaff?.role || 'nhanvien',
+      title: newStaff?.title?.trim() || 'Nhân viên chuyên ban',
+      assignedSite: newStaff?.assignedSite || 'Tất cả'
+    };
+
+    if (isFirebaseConnected && db) {
+      try {
+        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', created.uid);
+        await setDoc(userDocRef, created);
+        showNotification(editingStaffUid ? "Đã cập nhật thông tin nhân viên!" : "Đã đăng ký và đẩy phân quyền lên Firebase Cloud!");
+      } catch (err) {
+        console.error(err);
+        showNotification("Lỗi đồng bộ phân quyền lên Firebase Cloud!", "error");
+      }
+    } else {
+      let updatedList;
+      if (editingStaffUid) {
+        updatedList = staffList.map(s => s.uid === editingStaffUid ? created : s);
+        showNotification("Đã cập nhật tài khoản nhân viên cục bộ!");
+      } else {
+        updatedList = [...staffList, created];
+        showNotification("Đã lưu tài khoản nhân viên cục bộ!");
+      }
+      setStaffList(updatedList);
+      localStorage.setItem('crm_staff_accounts', JSON.stringify(updatedList));
+    }
+
+    setNewStaff({ name: '', email: '', role: 'nhanvien', uid: '', title: '', assignedSite: 'Tất cả' });
+    setEditingStaffUid(null);
+  };
+
+  const handleDeleteStaff = (uid) => {
+    if (uid === currentUser?.uid || uid === "acc_admin") {
+      showNotification("Không thể tự xóa tài khoản chính đang hoạt động!", "error");
+      return;
+    }
+
+    setConfirmModal({
+      show: true,
+      title: "Xác nhận gỡ bỏ tài khoản",
+      message: "Bạn có chắc chắn muốn xóa vĩnh viễn quyền truy cập của tài khoản này khỏi hệ thống database không?",
+      action: async () => {
+        try {
+          if (isFirebaseConnected && db) {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', uid));
+            showNotification("Đã xóa quyền tài khoản khỏi Firebase Cloud!");
+          } else {
+            const updated = staffList.filter(s => s.uid !== uid);
+            setStaffList(updated);
+            localStorage.setItem('crm_staff_accounts', JSON.stringify(updated));
+            showNotification("Đã xóa quyền tài khoản cục bộ!");
+          }
+        } catch (err) {
+          console.error(err);
+          showNotification("Gặp sự cố khi gỡ bỏ tài khoản!", "error");
+        }
+        setConfirmModal({ show: false, action: null, message: '', title: '' });
+      }
+    });
+  };
+
+  const saveSettingsOnDb = async (newSettings) => {
+    setSystemSettings(newSettings);
+    if (isFirebaseConnected && db) {
+      try {
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config'), newSettings);
+      } catch (e) {
+        console.error(e);
+      }
+    } else {
+      localStorage.setItem('local_settings', JSON.stringify(newSettings));
+    }
+  };
+
+  const handlePermissionChange = (permKey, roleKey, newLevel) => {
+    const updatedPermissions = {
+      ...(systemSettings.permissions || {}),
+      [permKey]: {
+        ...(systemSettings.permissions?.[permKey] || {}),
+        [roleKey]: newLevel
+      }
+    };
+    saveSettingsOnDb({
+      ...systemSettings,
+      permissions: updatedPermissions
+    });
+    showNotification("Đã cập nhật cấu hình phân quyền hệ thống!");
+  };
+
+  const handleAddSpecialty = () => {
+    if (!newSpecialtyInput.trim()) return;
+
+    const inputParts = newSpecialtyInput.split(',').map(p => p.trim()).filter(p => p !== '');
+    let addedCount = 0;
+    let updatedSpecialties = [...(systemSettings?.specialties || [])];
+
+    inputParts.forEach(spec => {
+      if (!updatedSpecialties.includes(spec)) {
+        updatedSpecialties.push(spec);
+        addedCount++;
+      }
+    });
+
+    if (addedCount === 0) {
+      showNotification("Các chuyên khoa đã tồn tại!", "error");
+      return;
+    }
+
+    saveSettingsOnDb({ ...systemSettings, specialties: updatedSpecialties });
+    setNewSpecialtyInput('');
+    showNotification(`Đã thêm mới ${addedCount} chuyên khoa!`);
+  };
+
+  const handleRemoveSpecialty = (spec) => {
+    const updated = (systemSettings?.specialties || []).filter(s => s !== spec);
+    saveSettingsOnDb({ ...systemSettings, specialties: updated });
+    showNotification("Đã gỡ bỏ chuyên khoa.");
+  };
+
+  const handleFormulaCheckboxChange = (field) => {
+    const updatedFormula = {
+      ...(systemSettings?.totalFormulaFields || {}),
+      [field]: !systemSettings?.totalFormulaFields?.[field]
+    };
+    saveSettingsOnDb({ ...systemSettings, totalFormulaFields: updatedFormula });
+    showNotification("Công thức tổng cộng đã được cập nhật!");
+  };
+
+  const handleDiscountFormulaChange = (type) => {
+    saveSettingsOnDb({ ...systemSettings, discountFormulaType: type });
+    showNotification("Phương thức tính miễn giảm đã thay đổi!");
+  };
+
+  const handleToggleRecipient = (uid) => {
+    if (isReadOnly) return;
+    setFormData(prev => {
+      const exist = prev?.recipients || [];
+      const updated = exist.includes(uid) ? exist.filter(id => id !== uid) : [...exist, uid];
+      return { ...prev, recipients: updated };
+    });
+  };
+
+  const registrableStaffList = useMemo(() => {
+    return staffList.filter(s => s && ['nhanvien', 'quanly_site'].includes(s?.role));
+  }, [staffList]);
+
+  const handleCalendarNavigate = (direction) => {
+    const nextDate = new Date(currentCalendarDate);
+    if (calendarMode === 'week') {
+      nextDate.setDate(nextDate.getDate() + (direction === 'next' ? 7 : -7));
+    } else if (calendarMode === 'month') {
+      nextDate.setMonth(nextDate.getMonth() + (direction === 'next' ? 1 : -1));
+    }
+    setCurrentCalendarDate(nextDate);
+  };
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-tr from-slate-100 via-indigo-50/20 to-slate-200 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-800">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/5 rounded-full filter blur-3xl -translate-x-12 -translate-y-12"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full filter blur-3xl translate-x-12 translate-y-12"></div>
+
+        <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-200 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
+          <div className="text-center space-y-3">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2.5 shadow-sm border border-slate-200 mx-auto">
+              <img 
+                src="https://iili.io/F66acRs.png" 
+                alt="Hospital Logo" 
+                className="w-full h-full object-contain" 
+              />
+            </div>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-black tracking-tight text-slate-900">
+                QL KH VIP-VVIP
+              </h1>
+              <p className="text-xs text-slate-400 font-semibold tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
+            </div>
           </div>
 
           {authError && (
-            <div className="mb-6 p-4 bg-red-50 rounded-xl border border-red-100 flex items-start space-x-3 text-red-700 text-sm">
-              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-              <span>{authError}</span>
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-605 text-center font-bold flex items-center gap-1.5 justify-center">
+              <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-500" />
+              {authError}
             </div>
           )}
 
-          {authMode === "login" ? (
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Email của bạn</label>
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email </label>
+              <input 
+                type="email" 
+                placeholder="nhập email tại đây"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
+              />
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu</label>
+              <div className="relative">
                 <input 
-                  type="email" 
-                  required 
-                  className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium placeholder-slate-400" 
-                  placeholder="nhanvien@tahospital.vn"
-                  value={authEmail}
-                  onChange={(e) => setAuthEmail(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Mật khẩu</label>
-                <input 
-                  type="password" 
-                  required 
-                  className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium placeholder-slate-400" 
+                  type={showPassword ? "text" : "password"} 
                   placeholder="••••••••"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full pl-4 pr-10 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
                 />
+                <button
+                  type="button"
+                  onClick={() => { setShowPassword(!showPassword); }}
+                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
-              <button 
-                type="submit" 
-                disabled={authLoading}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/20 flex justify-center items-center space-x-2 transition disabled:opacity-50"
-              >
-                <span>Xác Thực Truy Cập</span>
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleRegister} className="space-y-5">
-              <div className="p-3.5 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-800 leading-relaxed">
-                Nhân viên mới chỉ cần nhập email bệnh viện đã được duyệt, hệ thống sẽ tự động kích hoạt tài khoản Whitelist.
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Email công vụ của bạn *</label>
-                <input 
-                  type="email" 
-                  required 
-                  className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium placeholder-slate-400" 
-                  placeholder="cuongnq@tahospital.vn"
-                  value={authEmail}
-                  onChange={(e) => setAuthEmail(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Tạo mật khẩu đăng nhập *</label>
-                <input 
-                  type="password" 
-                  required 
-                  className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium placeholder-slate-400" 
-                  placeholder="••••••••"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Nhập lại mật khẩu *</label>
-                <input 
-                  type="password" 
-                  required 
-                  className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium placeholder-slate-400" 
-                  placeholder="••••••••"
-                  value={registerConfirmPassword}
-                  onChange={(e) => setRegisterConfirmPassword(e.target.value)}
-                />
-              </div>
-              <button 
-                type="submit" 
-                disabled={authLoading}
-                className="w-full py-3.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl shadow-lg shadow-green-500/20 flex justify-center items-center space-x-2 transition disabled:opacity-50"
-              >
-                <UserPlus className="h-5 w-5" />
-                <span>Kích Hoạt Tài Khoản</span>
-              </button>
-            </form>
-          )}
+            </div>
 
-          <div className="mt-8 pt-6 border-t border-slate-100 flex justify-center items-center space-x-2 text-slate-400 text-xs font-medium">
-            <Shield className="h-4 w-4" />
-            <span>Hệ thống kiểm duyệt an toàn đa thiết bị.</span>
-          </div>
+            <button 
+              type="submit" 
+              className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
+            >
+              <Lock className="w-4 h-4" /> Xác thực
+            </button>
+          </form>
+
         </div>
-        <footer className="mt-8 text-center text-xs text-slate-500 font-semibold space-y-1">
-          <p>Phòng Chăm Sóc Khách Hàng © 2026</p>
-          <p className="text-slate-400">CSKH PORTAL - {APP_VERSION}</p>
-        </footer>
       </div>
     );
   }
 
-  const userRole = user.systemAuth?.role || "user";
-
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <div className="bg-blue-600 text-white p-2 rounded-xl">
-              <Shield className="h-6 w-6" />
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
+      
+      {lightboxImages.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 animate-fadeIn">
+          <div className="absolute top-4 right-4 z-50 flex gap-2">
+            <button 
+              onClick={() => { setLightboxImages([]); }}
+              className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="relative max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center">
+            {lightboxImages.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxIndex(prev => (prev === 0 ? lightboxImages.length - 1 : prev - 1));
+                }}
+                className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition z-10"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
+            
+            <img 
+              src={lightboxImages[lightboxIndex]} 
+              alt="Chứng từ văn bản phê duyệt" 
+              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-scaleIn"
+            />
+
+            {lightboxImages.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxIndex(prev => (prev === lightboxImages.length - 1 ? 0 : prev + 1));
+                }}
+                className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition z-10"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            )}
+          </div>
+          <p className="text-white/60 text-xs font-semibold mt-4">
+            Ảnh {lightboxIndex + 1} / {lightboxImages.length}
+          </p>
+        </div>
+      )}
+
+      {copyConfirmModal.show && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleIn">
+            <div className="flex items-center gap-2.5 text-indigo-600">
+              <Copy className="w-5 h-5 flex-shrink-0 text-indigo-500" />
+              <h3 className="text-base font-extrabold text-slate-955">Xác nhận sao chép lịch sử</h3>
             </div>
-            <div>
-              <h1 className="text-base font-bold text-slate-900 tracking-tight leading-none mb-1">CSKH PORTAL</h1>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Bệnh viện Tâm Anh</p>
+            <p className="text-xs text-slate-505 leading-relaxed font-semibold">
+              Hệ thống sẽ tự động điền sẵn các thông tin cũ (gồm Chuyên khoa, Site khám, Khu vực khám, Chỉ đạo phê duyệt, Ghi chú và chứng từ đính kèm) của lượt thăm khám trước vào biểu mẫu hiện tại để bạn có thể xem lại hoặc chỉnh sửa trước khi đăng ký lượt tiếp đón mới. Bạn có chắc chắn muốn thực hiện không?
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button 
+                onClick={() => { setCopyConfirmModal({ show: false, visitToCopy: null }); }}
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-655 rounded-xl transition"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                onClick={() => { executeCopyVisit(copyConfirmModal.visitToCopy); }}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white rounded-xl transition shadow-xs"
+              >
+                Xác nhận sao chép
+              </button>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-1.5 text-right hidden sm:block">
-              <p className="text-xs font-bold text-slate-900">{user.personalInfo?.fullName || "NHÂN VIÊN"}</p>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{userRole === "admin" ? "IT / QUẢN TRỊ HỆ THỐNG" : "NHÂN VIÊN CSKH"}</p>
+        </div>
+      )}
+
+      {isScanning && (
+        <div className="fixed inset-0 z-50 bg-slate-955/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <style>{`
+            #reader video {
+              width: 100% !important;
+              height: 100% !important;
+              object-fit: cover !important;
+              border-radius: 1rem;
+            }
+            #reader {
+              border: none !important;
+            }
+          `}</style>
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 border border-slate-200 shadow-2xl animate-scaleIn">
+            <div>
+              <h4 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center justify-center gap-1.5">
+                <Scan className="w-4 h-4 text-indigo-600 animate-pulse" /> Trình quét mã camera
+              </h4>
+              <p className="text-[11px] text-slate-400 font-semibold mt-1">
+                {scannerError ? "Lỗi truy cập thiết bị" : "Đặt mã vạch hoặc mã QR của bệnh nhân vào giữa khung hình"}
+              </p>
+            </div>
+
+            {scannerError ? (
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-[11px] text-rose-605 font-semibold space-y-2">
+                <p>{scannerError}</p>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setScannerError('');
+                    setIsScanning(false);
+                    setTimeout(() => { setIsScanning(true); }, 200);
+                  }}
+                  className="px-3 py-1 bg-rose-600 text-white rounded-lg font-bold"
+                >
+                  Thử lại
+                </button>
+              </div>
+            ) : (
+              <div className="relative w-full aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 flex items-center justify-center">
+                <div id="reader" className="absolute inset-0 w-full h-full"></div>
+                
+                <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 z-10">
+                  <div className="flex justify-between">
+                    <div className="w-4 h-4 border-t-4 border-l-4 border-indigo-500 rounded-tl-xs"></div>
+                    <div className="w-4 h-4 border-t-4 border-r-4 border-indigo-500 rounded-tr-xs"></div>
+                  </div>
+                  <div className="absolute inset-x-0 h-0.5 bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-bounce" style={{ top: '45%' }}></div>
+                  <div className="flex justify-between">
+                    <div className="w-4 h-4 border-b-4 border-l-4 border-indigo-500 rounded-bl-xs"></div>
+                    <div className="w-4 h-4 border-b-4 border-r-4 border-indigo-500 rounded-tr-xs"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={stopScanner}
+              className="px-4 py-1.5 border border-slate-200 text-slate-550 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition w-full"
+            >
+              Hủy bỏ quét
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
+        {activePushAlerts.map(alert => (
+          <div 
+            key={alert.id}
+            onClick={() => { handleNotificationClick(alert.patientId); }}
+            className={`pointer-events-auto p-4 rounded-2xl shadow-xl border flex gap-3 items-start transition-all transform duration-300 bg-white cursor-pointer hover:shadow-2xl ${
+              alert.type === 'success' ? 'border-emerald-100 bg-emerald-50/95' :
+              alert.type === 'error' ? 'border-rose-100 bg-rose-50/95' : 'border-indigo-100 bg-indigo-50/95'
+            }`}
+          >
+            <div className={`p-1.5 rounded-lg text-white ${
+              alert.type === 'success' ? 'bg-emerald-500' :
+              alert.type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'
+            }`}>
+              <BellRing className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xs font-extrabold text-slate-900">{alert.title}</h4>
+              <p className="text-[11px] text-slate-605 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
             </div>
             <button 
-              onClick={handleSignOut}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-50 border border-red-100 text-red-600 hover:bg-red-100 rounded-xl font-semibold transition text-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id));
+              }}
+              className="text-slate-400 hover:text-slate-650 p-0.5 transition"
             >
-              <LogOut className="h-4 w-4" />
-              <span>Thoát</span>
+              <X className="w-3.5 h-3.5" />
             </button>
+          </div>
+        ))}
+      </div>
+
+      {confirmModal.show && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-2.5 text-rose-600">
+              <ShieldAlert className="w-5 h-5 flex-shrink-0 text-rose-500" />
+              <h3 className="text-base font-extrabold text-slate-955">{confirmModal.title || "Xác nhận tác vụ"}</h3>
+            </div>
+            <p className="text-sm text-slate-555 leading-relaxed font-medium">{confirmModal.message}</p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button 
+                onClick={() => { setConfirmModal({ show: false, action: null, message: '', title: '' }); }}
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 rounded-xl transition"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                onClick={confirmModal.action}
+                className="px-5 py-2 bg-rose-500 hover:bg-rose-600 text-xs font-bold text-white rounded-xl transition shadow-xs"
+              >
+                Xác nhận xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {notification && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-xl transition-all transform duration-300 translate-y-0 bg-slate-900 text-white">
+          <Check className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+          <span className="font-bold text-xs">{notification.message}</span>
+        </div>
+      )}
+
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1">
+                <img 
+                  src="https://iili.io/F66acRs.png" 
+                  alt="Hospital Logo" 
+                  className="w-full h-full object-contain" 
+                />
+              </div>
+              <div>
+                <h1 className="text-sm font-black tracking-tight text-slate-900 flex items-center gap-1.5">
+                  QL KH VIP-VVIP
+                  <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-wider">
+                    {userRole}
+                  </span>
+                </h1>
+                <p className="text-[10px] text-slate-400 font-semibold">
+                  {currentUser?.assignedSite && currentUser.assignedSite !== 'Tất cả' ? `📍 Chi nhánh: ${currentUser.assignedSite}` : '🌐 Toàn hệ thống'}
+                </p>
+              </div>
+            </div>
+
+            <nav className="hidden md:flex items-center gap-1">
+              {canShowTab('dashboard') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('dashboard'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'dashboard' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <LayoutDashboard className="w-4 h-4" /> Bảng điều khiển
+                </button>
+              )}
+              
+              {canShowTab('register') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('register'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'register' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ
+                </button>
+              )}
+
+              {canShowTab('monitoring') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'monitoring' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <ClipboardList className="w-4 h-4" /> Theo dõi hồ sơ
+                </button>
+              )}
+
+              {userRole === 'admin' && (
+                <button 
+                  onClick={() => { setActiveTab('settings'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'settings' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Settings className="w-4 h-4" /> Cấu hình hệ thống
+                </button>
+              )}
+            </nav>
+
+            <div className="flex items-center gap-3 relative" ref={notificationCenterRef}>
+              <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold">
+                <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
+                {isFirebaseConnected ? 'Live' : 'Offline'}
+              </div>
+
+              <button 
+                onClick={() => { setShowNotificationCenter(!showNotificationCenter); }}
+                className={`p-2 rounded-xl transition-all relative border border-slate-200 ${
+                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-500 hover:bg-slate-100'
+                }`}
+                title="Trung tâm thông báo"
+              >
+                {unreadCount > 0 ? (
+                  <>
+                    <BellRing className="w-5 h-5 text-indigo-600 animate-pulse" />
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-600 text-white font-black text-[9px] rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                      {unreadCount}
+                    </span>
+                  </>
+                ) : (
+                  <Bell className="w-5 h-5" />
+                )}
+              </button>
+
+              {showNotificationCenter && (
+                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 p-4 space-y-3 animate-scaleIn">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                    <div className="flex items-center gap-1.5">
+                      <BellRing className="w-4 h-4 text-indigo-600" />
+                      <h4 className="text-xs font-black text-slate-900">Trung tâm thông báo</h4>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={markAllAsRead}
+                        className="text-[10px] text-indigo-600 hover:text-indigo-800 font-extrabold transition"
+                      >
+                        Đã đọc tất cả
+                      </button>
+                      <button 
+                        onClick={clearAllNotifications}
+                        className="text-[10px] text-rose-500 hover:text-rose-700 font-extrabold transition"
+                      >
+                        Xóa tất cả
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                    {notifications.length === 0 ? (
+                      <div className="text-center py-8 text-slate-400 space-y-2">
+                        <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400" />
+                        <p className="text-[11px] font-bold">Hệ thống chưa ghi nhận thông báo mới.</p>
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <div 
+                          key={n.id}
+                          onClick={() => { handleNotificationClick(n.patientId); setShowNotificationCenter(false); }}
+                          className={`p-3 rounded-2xl border text-xs transition flex gap-2 items-start cursor-pointer hover:bg-slate-50 ${
+                            n.read ? 'border-slate-200 bg-slate-50/50' : 'border-indigo-100 bg-indigo-50/30'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                            n.type === 'success' ? 'bg-emerald-500' :
+                            n.type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'
+                          }`} />
+                          <div className="flex-1 space-y-0.5">
+                            <strong className="text-slate-800 block leading-tight">{n.title}</strong>
+                            <p className="text-[11px] text-slate-555 leading-normal font-medium">{n.message}</p>
+                            <span className="text-[9px] text-slate-400 font-bold block flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3" /> {n.timestamp}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="hidden sm:block text-right">
+                <div className="text-xs font-extrabold text-slate-955">{currentUser?.name || ''}</div>
+                <div className="text-[10px] text-indigo-600 font-extrabold uppercase tracking-wide">{currentUser?.title || userRole}</div>
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl border border-slate-200 transition-all"
+                title="Đăng xuất"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
+
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <aside className="lg:col-span-1 space-y-3">
-            <button 
-              onClick={() => setCurrentTab("profile")}
-              className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-xl font-semibold transition text-sm ${currentTab === "profile" ? "bg-blue-600 text-white shadow-lg shadow-blue-500/10" : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-200"}`}
-            >
-              <User className="h-5 w-5" />
-              <span>Hồ sơ cá nhân</span>
-            </button>
-            <button 
-              onClick={() => setCurrentTab("phone")}
-              className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-xl font-semibold transition text-sm ${currentTab === "phone" ? "bg-blue-600 text-white shadow-lg shadow-blue-500/10" : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-200"}`}
-            >
-              <Phone className="h-5 w-5" />
-              <span>Sửa số điện thoại</span>
-            </button>
-            {userRole === "admin" && (
-              <button 
-                onClick={() => setCurrentTab("users")}
-                className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-xl font-semibold transition text-sm ${currentTab === "users" ? "bg-blue-600 text-white shadow-lg shadow-blue-500/10" : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-200"}`}
-              >
-                <Users className="h-5 w-5" />
-                <span>Quản lý nhân sự</span>
-              </button>
-            )}
-            <button 
-              onClick={() => setCurrentTab("device")}
-              className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-xl font-semibold transition text-sm ${currentTab === "device" ? "bg-blue-600 text-white shadow-lg shadow-blue-500/10" : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-200"}`}
-            >
-              <Smartphone className="h-5 w-5" />
-              <span>Định danh thiết bị</span>
-            </button>
-            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mt-6">
-              <h3 className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-2">An toàn hệ thống</h3>
-              <p className="text-xs text-blue-600 leading-relaxed">Mã thiết bị và Token truyền tin của bạn được liên kết trực tiếp trên máy chủ.</p>
-            </div>
-          </aside>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
+        {canShowTab('dashboard') && (
+          <button 
+            onClick={() => { resetForm(); setActiveTab('dashboard'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            <span>Bảng điều khiển</span>
+          </button>
+        )}
+        {canShowTab('register') && (
+          <button 
+            onClick={() => { resetForm(); setActiveTab('register'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'register' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <Plus className="w-5 h-5" />
+            <span>Tiếp nhận VIP</span>
+          </button>
+        )}
+        {canShowTab('monitoring') && (
+          <button 
+            onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'monitoring' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <ClipboardList className="w-5 h-5" />
+            <span>Theo dõi hồ sơ</span>
+          </button>
+        )}
+        {userRole === 'admin' && (
+          <button 
+            onClick={() => { setActiveTab('settings'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <Settings className="w-5 h-5" />
+            <span>Cấu hình</span>
+          </button>
+        )}
+      </div>
 
-          <main className="lg:col-span-3">
-            {currentTab === "profile" && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm space-y-8">
-                <div className="flex items-center space-x-4 border-b border-slate-100 pb-6">
-                  <div className="bg-blue-50 p-3.5 rounded-xl border border-blue-100">
-                    <User className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-950">Thông Tin Hồ Sơ Cá Nhân</h2>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Dữ liệu gốc đồng bộ từ hệ thống nhân sự</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-5">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Họ và tên</p>
-                    <p className="text-sm font-bold text-slate-900">{user.personalInfo?.fullName || "Không rõ"}</p>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-5">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Mã nhân viên</p>
-                    <p className="text-sm font-bold text-slate-900">{user.personalInfo?.employeeId || "Không rõ"}</p>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-5">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Email hệ thống</p>
-                    <p className="text-sm font-bold text-slate-900">{user.systemAuth?.email || "Không rõ"}</p>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-5">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Số điện thoại liên hệ</p>
-                    <p className="text-sm font-bold text-slate-900">{user.personalInfo?.phone || "Không rõ"}</p>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-5">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Địa điểm làm việc hiện hữu</p>
-                    <p className="text-sm font-bold text-slate-900">{user.employmentLifecycle?.presenceStatus || "Không rõ"}</p>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-5">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Bộ phận / Đơn vị</p>
-                    <p className="text-sm font-bold text-slate-900">{user.orgStructure?.department || "Không rõ"}</p>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-5">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Thâm niên công tác</p>
-                    <p className="text-sm font-bold text-blue-600">{calculateSeniority(user.employmentLifecycle?.hireDate)}</p>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-5 md:col-span-2">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Nhóm trực / Vị trí phân công chi tiết</p>
-                    <p className="text-sm font-bold text-slate-900">{user.orgStructure?.group || "Không rõ"}</p>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        {/* ========================== GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN ========================== */}
+        {activeTab === 'dashboard' && canShowTab('dashboard') && (
+          <div className="space-y-8 animate-fadeIn">
+            
+            <div className="bg-gradient-to-tr from-[#312e81] via-[#4338ca] to-[#6d28d9] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-indigo-500/30">
+              <div className="absolute right-0 top-0 w-96 h-96 bg-white/5 rounded-full filter blur-3xl opacity-20 translate-x-24 -translate-y-24"></div>
+              
+              <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="space-y-3 max-w-xl">
+                  <span className="px-3 py-1 bg-amber-400 text-[#1e1b4b] rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse">
+                    Trợ lý ảo đón tiếp VIP
+                  </span>
+                  <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight">
+                    Kế Hoạch Chủ Động Cho Ngày Mai & Tuần Tới
+                  </h3>
+                  <div className="space-y-2 text-xs text-indigo-100 font-semibold pt-1">
+                    <p className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                      Ngày mai ({briefingStats.tomorrowDateFormatted}): 
+                      <strong className="text-white ml-1"> {briefingStats.tomorrowPatients.length} ca tiếp đón </strong>
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-sky-400"></span>
+                      Tuần tới: 
+                      <strong className="text-white ml-1"> {briefingStats.nextWeekCount} ca đón tiếp đã lên lịch </strong>
+                    </p>
                   </div>
                 </div>
-              </div>
-            )}
 
-            {currentTab === "phone" && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm space-y-6">
-                <div className="flex items-center space-x-4 border-b border-slate-100 pb-6">
-                  <div className="bg-blue-50 p-3.5 rounded-xl border border-blue-100">
-                    <Phone className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-950">Thay Đổi Số Điện Thoại</h2>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Cập nhật thông tin khẩn cấp liên hệ</p>
-                  </div>
-                </div>
-                <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-5 flex items-start space-x-3 text-yellow-800 text-xs">
-                  <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-yellow-600" />
-                  <span>Việc đổi số điện thoại sẽ yêu cầu máy chủ quét lại mã định danh thiết bị ở phiên làm việc tiếp theo. Bạn hãy điền chính xác số đang sử dụng trên máy.</span>
-                </div>
-                <div className="max-w-md space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Số điện thoại hiện tại</label>
-                    <input type="text" disabled className="w-full px-4 py-3 bg-slate-100 border border-slate-200 text-slate-500 rounded-xl font-semibold" value={user.personalInfo?.phone || "Chưa thiết lập"} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Số điện thoại mới</label>
-                    <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500 rounded-xl font-semibold placeholder-slate-400" placeholder="Nhập 10 số di động mới" />
-                  </div>
-                  <button className="px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/10 flex items-center space-x-2 transition">
-                    <span>Xác Nhận Thay Đổi</span>
+                <div className="flex gap-2 w-full md:w-auto">
+                  <button 
+                    onClick={() => {
+                      const tomorrow = new Date();
+                      tomorrow.setDate(tomorrow.getDate() + 1);
+                      setFilterDate(tomorrow.toISOString().split('T')[0]);
+                      setCalendarMode('list');
+                      setActiveTab('monitoring');
+                    }}
+                    className="flex-1 md:flex-none px-5 py-3 bg-white text-indigo-900 hover:bg-indigo-50 text-xs font-black rounded-xl shadow-md transition transform active:scale-95 whitespace-nowrap"
+                  >
+                    Xem lịch ngày mai
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setFilterDate('');
+                      setCalendarMode('week');
+                      setActiveTab('monitoring');
+                    }}
+                    className="flex-1 md:flex-none px-5 py-3 bg-indigo-950/30 border border-indigo-400/30 hover:bg-indigo-950/50 text-white text-xs font-black rounded-xl transition transform active:scale-95 whitespace-nowrap"
+                  >
+                    Mở lịch tuần
                   </button>
                 </div>
               </div>
-            )}
+            </div>
 
-            {currentTab === "device" && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm space-y-6">
-                <div className="flex items-center space-x-4 border-b border-slate-100 pb-6">
-                  <div className="bg-blue-50 p-3.5 rounded-xl border border-blue-100">
-                    <Smartphone className="h-6 w-6 text-blue-600" />
+            <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-5 text-white relative overflow-hidden shadow-md border border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20 pointer-events-none"></div>
+              <div className="relative z-10 space-y-1.5 max-w-2xl">
+                <span className="px-2.5 py-0.5 bg-amber-400 text-slate-955 rounded-md text-[9px] font-black uppercase tracking-wider inline-block">
+                  Phòng Chăm Sóc Khách Hàng
+                </span>
+                <h2 className="text-lg sm:text-xl font-black tracking-tight leading-snug">
+                  Chào, {currentUser?.name || ''}!
+                </h2>
+                <p className="text-[11px] sm:text-xs text-slate-300 leading-normal font-semibold">
+                  Công cụ hỗ trợ quản lý và theo dõi việc tiếp đón và chi phí của nhóm Khách hàng VIP, VVIP, Ngoại giao của Ban giám đốc.
+                </p>
+              </div>
+              {canShowTab('register') && (
+                <div className="shrink-0 relative z-10">
+                  <button 
+                    onClick={() => { resetForm(); setActiveTab('register'); }}
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-955 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-1.5 transition transform active:scale-95 whitespace-nowrap"
+                  >
+                    <Plus className="w-4 h-4 stroke-[3px]" /> Tiếp nhận hồ sơ mới <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
+              <div className="space-y-4">
+                
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-3xs animate-fadeIn">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                    <h3 className="text-xs font-black text-slate-850 uppercase tracking-wider">
+                      {dashFilterMode === 'today' ? "Nhật ký chỉ số của ngày hôm nay" : "Chỉ số thống kê theo khoảng ngày"}
+                    </h3>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-950">Mã Định Danh Thiết Bị (PWA Link)</h2>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Xác thực rào cản đa thiết bị</p>
+                  
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => { setDashFilterMode('today'); }}
+                        className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition ${
+                          dashFilterMode === 'today' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-500 hover:text-slate-850'
+                        }`}
+                      >
+                        Hôm nay
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setDashFilterMode('range'); }}
+                        className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                          dashFilterMode === 'range' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-500 hover:text-slate-850'
+                        }`}
+                      >
+                        Tùy chọn 📅
+                      </button>
+                    </div>
+
+                    {dashFilterMode === 'range' && (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-655 animate-fadeIn">
+                        <div className="flex items-center gap-1">
+                          <span>Từ:</span>
+                          <input 
+                            type="date" 
+                            value={dashStartDate}
+                            onChange={(e) => { setDashStartDate(e.target.value); }}
+                            className="bg-transparent border-none text-[11px] font-black text-slate-800 focus:outline-hidden cursor-pointer"
+                          />
+                        </div>
+                        <span className="hidden sm:inline text-slate-300">➔</span>
+                        <div className="flex items-center gap-1">
+                          <span>Đến:</span>
+                          <input 
+                            type="date" 
+                            value={dashEndDate}
+                            onChange={(e) => { setDashEndDate(e.target.value); }}
+                            className="bg-transparent border-none text-[11px] font-black text-slate-800 focus:outline-hidden cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 flex items-start space-x-3 text-blue-800 text-xs">
-                  <CheckCircle className="h-5 w-5 shrink-0 mt-0.5 text-blue-600" />
-                  <span>Thiết bị của bạn đã được kiểm duyệt và ghi nhận mã bảo vệ an toàn. Mọi dữ liệu thao tác trên máy tính này đều được mã hóa bằng chữ ký số định danh.</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="border border-slate-200/80 rounded-xl p-5 space-y-1">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Hệ điều hành thiết bị</p>
-                    <p className="text-sm font-bold text-slate-900">Chrome Browser - Windows 10/11</p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
+                    <div className="p-3.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+                      <Users className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Khách hàng</span>
+                      <span className="text-xl font-black text-slate-900">{dashMetrics.totalPatients}</span>
+                      <span className="text-[11px] text-slate-500 block">
+                        VIP: {dashMetrics.vipCount} | VVIP: {dashMetrics.vvipCount}
+                      </span>
+                    </div>
                   </div>
-                  <div className="border border-slate-200/80 rounded-xl p-5 space-y-1">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mã Token liên kết</p>
-                    <p className="text-sm font-mono font-bold text-slate-900">tok_946a_3df5_c2ef</p>
+
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
+                    <div className="p-3.5 rounded-xl bg-indigo-50 text-indigo-600 border-indigo-100">
+                      <Activity className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Tổng chi phí</span>
+                      <span className="text-xl font-black text-slate-900">{formatCurrency(dashMetrics.totalRevenue)}</span>
+                      <span className="text-[11px] text-slate-500 block">
+                        Tổng chi phí sử dụng (VVIP)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-100">
+                      <CreditCard className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Tổng duyệt giảm</span>
+                      <span className="text-xl font-black text-rose-605">-{formatCurrency(dashMetrics.totalDiscount)}</span>
+                      <span className="text-[11px] text-rose-400 block font-bold">
+                        Ban lãnh đạo duyệt
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {currentTab === "users" && userRole === "admin" && (
-              <div className="space-y-8">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Tổng nhân sự</p>
-                    <p className="text-2xl font-extrabold text-slate-900">{totalEmployees}</p>
-                  </div>
-                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Đang làm việc</p>
-                    <p className="text-2xl font-extrabold text-green-600">{workingEmployees}</p>
-                  </div>
-                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Nghỉ phép/Thai sản</p>
-                    <p className="text-2xl font-extrabold text-yellow-600">{leaveEmployees}</p>
-                  </div>
-                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Đang đào tạo</p>
-                    <p className="text-2xl font-extrabold text-blue-600">{trainingEmployees}</p>
-                  </div>
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn">
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
+                    Hành Trình Khách Hàng (Realtime Kanban)
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng.</p>
                 </div>
+                
+                <div className="flex flex-wrap gap-2 items-center w-full lg:w-auto">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Lọc nhanh:</span>
+                  <select 
+                    value={filterSite}
+                    onChange={(e) => { setFilterSite(e.target.value); }}
+                    className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white cursor-pointer"
+                  >
+                    <option value="">Tất cả các Site</option>
+                    {sites.map(s => (
+                      <option key={s.id} value={s.label}>{s.label}</option>
+                    ))}
+                  </select>
+                  
+                  <input 
+                    type="date"
+                    value={filterDate}
+                    onChange={(e) => { setFilterDate(e.target.value); }}
+                    className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white cursor-pointer"
+                  />
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm space-y-6">
-                  <div className="flex items-center space-x-3 border-b border-slate-100 pb-5">
-                    <FileSpreadsheet className="h-5 w-5 text-green-600" />
-                    <h3 className="text-lg font-bold text-slate-950">Đồng Bộ Nhập Dữ Liệu Lớn Hàng Loạt (Excel / CSV)</h3>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-xs text-slate-700 leading-relaxed space-y-2">
-                    <p className="font-bold text-slate-900">Cách sử dụng trình Import thông minh:</p>
-                    <p>1. Tải file mẫu cấu hình sẵn tiêu đề cột bằng cách bấm nút <span className="font-semibold text-blue-600">"Tải File Excel Mẫu"</span>.</p>
-                    <p>2. Điền thông tin nhân viên (Lưu ý: <span className="font-semibold text-slate-900">Mã Nhân Viên</span>, <span className="font-semibold text-slate-900">Họ Và Tên</span> và <span className="font-semibold text-red-600">Email</span> là các trường bắt buộc để tự động kích hoạt tài khoản Whitelist).</p>
-                    <p>3. Kéo thả file Excel đã lưu vào vùng tải lên dưới đây để kiểm tra dữ liệu trước khi đẩy lên mây.</p>
-                  </div>
-                  {importStatus && (
-                    <div className={`p-4 rounded-xl border flex items-start space-x-3 text-xs ${importStatus.type === "error" ? "bg-red-50 border-red-100 text-red-700" : importStatus.type === "success" ? "bg-green-50 border-green-100 text-green-700" : "bg-blue-50 border-blue-100 text-blue-700"}`}>
-                      {importStatus.type === "error" ? <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-red-600" /> : <CheckCircle className="h-5 w-5 shrink-0 mt-0.5 text-green-600" />}
-                      <span>{importStatus.message}</span>
-                    </div>
-                  )}
-                  <div className="flex flex-wrap gap-4">
+                  {(filterSite || filterDate) && (
                     <button 
-                      onClick={downloadTemplate}
-                      disabled={!xlsxReady}
-                      className="flex items-center space-x-2 px-5 py-3 bg-green-50 border border-green-200 hover:bg-green-100 text-green-700 font-bold rounded-xl transition text-xs disabled:opacity-50"
+                      onClick={() => { setFilterSite(''); setFilterDate(''); }}
+                      className="px-2.5 py-1 text-rose-500 hover:bg-rose-50 rounded-xl text-[11px] font-black transition"
                     >
-                      <Download className="h-4 w-4" />
-                      <span>{xlsxReady ? "Tải File Excel Mẫu" : "Đang tải thư viện..."}</span>
+                      Xóa bộ lọc
                     </button>
-                    <label className={`flex items-center space-x-2 px-5 py-3 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 font-bold rounded-xl cursor-pointer transition text-xs ${!xlsxReady ? "opacity-50 pointer-events-none" : ""}`}>
-                      <Upload className="h-4 w-4" />
-                      <span>Chọn file từ máy tính</span>
-                      <input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} disabled={!xlsxReady} className="hidden" />
-                    </label>
-                  </div>
-                  {previewData.length > 0 && (
-                    <div className="space-y-4 pt-4 border-t border-slate-100">
-                      <div className="flex justify-between items-center">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Xem trước danh sách chuẩn bị nạp ({previewData.length} người)</p>
-                        <button 
-                          onClick={handleBatchImport}
-                          disabled={importLoading}
-                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition shadow-md shadow-blue-500/10 flex items-center space-x-2 disabled:opacity-50"
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-4 overflow-x-auto pb-4 items-stretch select-none">
+                {workflowStatuses.map(col => {
+                  const colPatients = kanbanPatients.filter(p => (p.status || 'Waiting') === col.id);
+                  const isEmpty = colPatients.length === 0;
+
+                  if (isEmpty) {
+                    return (
+                      <div 
+                        key={col.id} 
+                        className="w-12 bg-slate-100/40 rounded-2xl py-3 px-1 border border-slate-200 flex flex-col items-center justify-start transition-all duration-300 ease-in-out shrink-0 select-none cursor-pointer"
+                        title={`Trống: ${col.label}`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${col.dot} mb-2`}></span>
+                        <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-555 mb-2 font-mono">
+                          0
+                        </span>
+                        <span className="text-[9px] font-extrabold text-slate-400 whitespace-nowrap [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
+                          {col.label}
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div 
+                      key={col.id} 
+                      className="bg-slate-50/60 rounded-2xl p-3 border border-slate-200 flex flex-col min-w-[180px] flex-1 transition-all duration-300 ease-in-out shrink-0"
+                    >
+                      <div className="flex justify-between items-center pb-3 border-b border-slate-200 mb-3">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className={`w-2 h-2 rounded-full ${col.dot}`}></span>
+                          <span className="text-[10px] font-black text-slate-700 truncate">{col.label}</span>
+                        </div>
+                        <span className="text-[10px] font-black bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-555 font-mono">
+                          {colPatients.length}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 space-y-3 overflow-y-auto max-h-[350px]">
+                        {colPatients.map(p => {
+                          const patientSite = sites.find(s => s.label === p.site) || sites[0];
+                          return (
+                            <div 
+                              key={p.id}
+                              onClick={() => { initiateView(p); }}
+                              className={`p-3 rounded-xl border shadow-2xs hover:shadow-xs transition duration-150 space-y-2.5 relative group cursor-pointer ${patientSite.cardBg}`}
+                            >
+                              <div className="flex justify-between items-start gap-1">
+                                <span className="text-[8px] text-slate-555 font-mono font-black truncate">PID: {p.pid}</span>
+                                <div className="flex gap-1">
+                                  <span className={`px-1 py-0.5 rounded-xs text-[7px] font-bold uppercase ${
+                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-100 text-indigo-800' : 'bg-teal-100 text-teal-800'
+                                  }`}>
+                                    {p.examinationArea === 'Khu VIP' ? 'VIP' : 'TC'}
+                                  </span>
+                                  <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
+                                    p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                                  }`}>
+                                    {p.tier}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="font-extrabold text-[11px] text-slate-800 leading-tight truncate" title={p.name}>
+                                {p.name}
+                              </div>
+
+                              <div className="space-y-1" onClick={(e) => { e.stopPropagation(); }}>
+                                <select
+                                  value={p.status || 'Waiting'}
+                                  onChange={(e) => { handleUpdateStatus(p.id, e.target.value); }}
+                                  className="w-full px-1.5 py-1 text-[9px] font-black border border-slate-200 rounded-md bg-white text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                                >
+                                  {workflowStatuses.map(st => (
+                                    <option key={st.id} value={st.id}>{st.label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
+                <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo dõi hồ sơ
+                </h4>
+                <button 
+                  onClick={() => { setCalendarMode('list'); setActiveTab('monitoring'); }}
+                  className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
+                >
+                  Đến bảng giám sát <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {userRole === 'admin' && (
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
+                  <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống
+                  </h4>
+                  <button 
+                    onClick={() => { setActiveTab('settings'); }}
+                    className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
+                  >
+                    Đến trang cấu hình <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* ========================== GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI ========================== */}
+        {activeTab === 'register' && canShowTab('register') && (
+          <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
+            
+            <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-md">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <h2 className="text-base font-black text-slate-955 flex items-center gap-1.5">
+                  {currentId ? (isReadOnly ? "Chi tiết hồ sơ bệnh nhân" : "Cập Nhật Tiến Độ") : "Tạo lượt Tiếp Đón VIP/VVIP"}
+                </h2>
+                {currentId && isReadOnly && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-100 border border-slate-200 text-slate-500 uppercase tracking-wider animate-fadeIn">
+                    <Lock className="w-3 h-3" /> Chế độ chỉ xem
+                  </span>
+                )}
+                {currentId && !isReadOnly && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-50 border border-amber-200 text-amber-700 uppercase tracking-wider animate-fadeIn">
+                    <Unlock className="w-3 h-3 text-amber-600" /> Chế độ chỉnh sửa
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button 
+                  type="button" 
+                  onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+                  className="px-4 py-2 border border-slate-200 text-slate-605 hover:bg-slate-50 text-xs font-bold rounded-xl transition"
+                >
+                  Hủy bỏ
+                </button>
+                {currentId && isReadOnly ? (
+                  hasAccessToPatient(formData, 'patients:update') ? (
+                    <button
+                      key="edit-btn"
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsReadOnly(false);
+                      }}
+                      className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95 animate-scaleIn"
+                    >
+                      <Edit3 className="w-4 h-4" /> Sửa hồ sơ
+                    </button>
+                  ) : null
+                ) : (
+                  <button 
+                    key="submit-btn"
+                    type="submit"
+                    className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
+                  >
+                    <Check className="w-4 h-4" /> {currentId ? "Cập nhật" : "Đăng ký"}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
+              
+              <div className="lg:col-span-2 space-y-6">
+                
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Thông Tin Hành Chính
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-600 block">Mã PID *</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          placeholder="Nhập/Quét mã bệnh nhân PID..."
+                          value={formData.pid}
+                          disabled={isReadOnly}
+                          onChange={(e) => { handleInputChange('pid', e.target.value); }}
+                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-mono font-black bg-white text-slate-800 animate-fadeIn disabled:bg-slate-50 disabled:text-slate-500"
+                          required
+                        />
+                        {!isReadOnly && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setScannerError('');
+                              setIsScanning(true);
+                            }}
+                            className="px-3 bg-slate-100 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs"
+                          >
+                            <Scan className="w-4 h-4 text-slate-500" /> Quét mã
+                          </button>
+                        )}
+                      </div>
+                      {matchedPatientProfile && (
+                        <div className="text-emerald-600 font-extrabold text-[11px] animate-fadeIn">
+                          🟢 Đã tìm thấy KH: {matchedPatientProfile.name}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách hàng *</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nhập họ và tên Khách hàng"
+                        value={formData.name}
+                        disabled={isReadOnly}
+                        onChange={(e) => { handleInputChange('name', e.target.value); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 animate-fadeIn disabled:bg-slate-50 disabled:text-slate-500"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-600 block">Phân Hạng Tiếp Đón</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          disabled={isReadOnly}
+                          onClick={() => {
+                            handleInputChange('tier', 'VIP');
+                            setFormRightTab('timeline');
+                          }}
+                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 disabled:opacity-80 ${
+                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          }`}
                         >
-                          {importLoading && <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>}
-                          <span>Bắt Đầu Nạp Hàng Loạt</span>
+                          <span className="font-black text-sm">VIP</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isReadOnly}
+                          onClick={() => {
+                            handleInputChange('tier', 'VVIP');
+                            setFormRightTab('billing');
+                          }}
+                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 disabled:opacity-80 ${
+                            formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span className="font-black text-sm text-amber-600">VVIP</span>
                         </button>
                       </div>
-                      <div className="border border-slate-200 rounded-xl overflow-x-auto max-h-64">
-                        <table className="w-full text-left border-collapse text-xs">
-                          <thead>
-                            <tr className="bg-slate-50 border-b border-slate-200">
-                              <th className="p-3 font-bold text-slate-700 uppercase tracking-wider">Mã NV</th>
-                              <th className="p-3 font-bold text-slate-700 uppercase tracking-wider">Họ và Tên</th>
-                              <th className="p-3 font-bold text-slate-700 uppercase tracking-wider">Email</th>
-                              <th className="p-3 font-bold text-slate-700 uppercase tracking-wider">Điện thoại</th>
-                              <th className="p-3 font-bold text-slate-700 uppercase tracking-wider">Ngày Sinh</th>
-                              <th className="p-3 font-bold text-slate-700 uppercase tracking-wider">Ngày Nhận Việc</th>
-                              <th className="p-3 font-bold text-slate-700 uppercase tracking-wider">Vai Trò</th>
-                              <th className="p-3 font-bold text-slate-700 uppercase tracking-wider">Địa Điểm</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {previewData.map((item, idx) => (
-                              <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50">
-                                <td className="p-3 font-bold text-slate-900">{item.employeeId}</td>
-                                <td className="p-3 font-bold text-slate-900">{item.fullName}</td>
-                                <td className="p-3 text-slate-600">{item.email}</td>
-                                <td className="p-3 text-slate-600">{item.phone}</td>
-                                <td className="p-3 text-slate-600 font-semibold">{item.birthDate}</td>
-                                <td className="p-3 text-blue-600 font-bold">{item.hireDate}</td>
-                                <td className="p-3 text-slate-600">{item.role}</td>
-                                <td className="p-3 text-slate-600">{item.presence}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-600 block">Ngày khám / Điều trị</label>
+                      <input 
+                        type="date" 
+                        value={formData.date}
+                        disabled={isReadOnly}
+                        onChange={(e) => { handleInputChange('date', e.target.value); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white disabled:bg-slate-50 disabled:text-slate-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-605 block">Site thăm khám</label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        {sites.map(s => {
+                          const isAssigned = (currentUser?.assignedSite || 'Tất cả') === 'Tất cả' || currentUser?.assignedSite === s.label;
+                          return (
+                            <button
+                              key={s.id}
+                              type="button"
+                              disabled={!isAssigned || isReadOnly}
+                              onClick={() => { handleInputChange('site', s.label); }}
+                              className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center disabled:opacity-80 ${
+                                formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
+                              }`}
+                            >
+                              {s.label} {!isAssigned && '🔒'}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
-                  )}
-                </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm space-y-6">
-                  <div className="flex items-center space-x-3 border-b border-slate-100 pb-5">
-                    <Plus className="h-5 w-5 text-blue-600" />
-                    <h3 className="text-lg font-bold text-slate-950">Thêm Mới Nhân Sự Whitelist Đăng Nhập</h3>
-                  </div>
-                  <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-2">Mã nhân viên *</label>
-                      <input type="text" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 font-medium" placeholder="TA2.xxxx" value={newEmployeeId} onChange={(e) => setNewEmployeeId(e.target.value)} />
+                    <div className="space-y-1.5 md:col-span-2 animate-fadeIn">
+                      <label className="text-xs font-bold text-slate-605 block">Khu Vực Khám</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          disabled={isReadOnly}
+                          onClick={() => { handleInputChange('examinationArea', 'Khu Tiêu Chuẩn'); }}
+                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center disabled:opacity-80 ${
+                            formData.examinationArea === 'Khu Tiêu Chuẩn' ? 'bg-teal-50 border-teal-500 text-teal-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
+                          }`}
+                        >
+                          Khu Tiêu Chuẩn
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isReadOnly}
+                          onClick={() => { handleInputChange('examinationArea', 'Khu VIP'); }}
+                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center disabled:opacity-80 ${
+                            formData.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-500 text-indigo-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
+                          }`}
+                        >
+                          Khu VIP
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-2">Họ và tên *</label>
-                      <input type="text" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 font-medium" placeholder="Nhập họ và tên" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-2">Email xác thực đăng nhập *</label>
-                      <input type="email" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 font-medium" placeholder="nhanvien@tahospital.vn" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-2">Số điện thoại</label>
-                      <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 font-medium" placeholder="Nhập số điện thoại liên hệ" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-2">Ngày sinh</label>
-                      <input type="date" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 font-medium" value={newBirthDate} onChange={(e) => setNewBirthDate(e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-2">Ngày nhận việc</label>
-                      <input type="date" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 font-medium" value={newHireDate} onChange={(e) => setNewHireDate(e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-2">Giới tính</label>
-                      <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 font-semibold" value={newGender} onChange={(e) => setNewGender(e.target.value)}>
-                        <option value="Nam">Nam</option>
-                        <option value="Nữ">Nữ</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-2">Vai trò hệ thống (Phân quyền)</label>
-                      <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 font-semibold" value={newRole} onChange={(e) => setNewRole(e.target.value)}>
-                        <option value="Nhân viên CSKH">Nhân viên CSKH</option>
-                        <option value="Quản lý CSKH">Quản lý CSKH</option>
-                        <option value="Lãnh đạo phòng (Phó Giám Đốc)">Lãnh đạo phòng (Phó Giám Đốc)</option>
-                        <option value="Quản trị hệ thống">Quản trị hệ thống</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-2">Hiện hữu (Cơ sở trực chiến)</label>
-                      <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 font-semibold" value={newPresence} onChange={(e) => setNewPresence(e.target.value)}>
-                        <option value="Tân Bình hiện hữu">Tân Bình hiện hữu</option>
-                        <option value="Quận 2 dự kiến">Quận 2 dự kiến</option>
-                        <option value="Tòa D làm việc">Tòa D làm việc</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-2">Đơn vị (Phân khu lớn)</label>
-                      <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 font-semibold" value={newDept} onChange={(e) => setNewDept(e.target.value)}>
-                        <option value="Phòng Chăm Sóc Khách Hàng">Phòng Chăm Sóc Khách Hàng</option>
-                        <option value="Khu Tiêu Chuẩn (Tầng 1 Tầng 2A B)">Khu Tiêu Chuẩn (Tầng 1 Tầng 2A B)</option>
-                        <option value="Khu VIP (Tầng 3 Tầng 4 Tòa B)">Khu VIP (Tầng 3 Tầng 4 Tòa B)</option>
-                        <option value="Khu Quốc Tế">Khu Quốc Tế</option>
-                      </select>
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-2">Nhóm trực (Điểm trực chi tiết)</label>
-                      <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 font-medium" placeholder="Nhập điểm trực cụ thể" value={newGroup} onChange={(e) => setNewGroup(e.target.value)} />
-                    </div>
-                    <div className="md:col-span-3">
-                      <button type="submit" className="px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/10 flex items-center space-x-2 transition text-xs">
-                        <Plus className="h-4 w-4" />
-                        <span>Thêm và Kích hoạt Whitelist</span>
-                      </button>
-                    </div>
-                  </form>
-                </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm space-y-6">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-5">
-                    <div className="flex items-center space-x-3">
-                      <Users className="h-5 w-5 text-blue-600" />
-                      <h3 className="text-lg font-bold text-slate-950">Danh Sách Nhân Sự Thực Tế</h3>
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-600 block">Trạng thái</label>
+                      <select
+                        value={formData.status}
+                        disabled={isReadOnly}
+                        onChange={(e) => { handleInputChange('status', e.target.value); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white cursor-pointer disabled:bg-slate-50 disabled:text-slate-500"
+                      >
+                        {workflowStatuses.map(status => (
+                          <option key={status.id} value={status.id}>{status.label}</option>
+                        ))}
+                      </select>
                     </div>
-                    <div className="flex items-center border border-slate-200 rounded-xl p-1 bg-slate-50/50">
-                      <button onClick={() => setViewMode("table")} className={`p-1.5 rounded-lg transition ${viewMode === "table" ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}><List className="h-4 w-4" /></button>
-                      <button onClick={() => setViewMode("grid")} className={`p-1.5 rounded-lg transition ${viewMode === "grid" ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}><Grid className="h-4 w-4" /></button>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="relative">
-                      <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
-                      <input type="text" className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tìm tên, mã, email..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-                    </div>
-                    <div>
-                      <select className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500" value={filterPresence} onChange={(e) => setFilterPresence(e.target.value)}>
-                        <option value="all">Mọi cơ sở</option>
-                        <option value="Tân Bình hiện hữu">Tân Bình hiện hữu</option>
-                        <option value="Quận 2 dự kiến">Quận 2 dự kiến</option>
-                        <option value="Tòa D làm việc">Tòa D làm việc</option>
-                      </select>
-                    </div>
-                    <div>
-                      <select className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-                        <option value="all">Mọi trạng thái</option>
-                        <option value="working">Đang làm việc</option>
-                        <option value="leave">Nghỉ phép/Thai sản</option>
-                        <option value="training">Đang đào tạo</option>
-                      </select>
-                    </div>
-                    <div>
-                      <select className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500" value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
-                        <option value="all">Mọi Đơn vị</option>
-                        <option value="Phòng Chăm Sóc Khách Hàng">Phòng CSKH</option>
-                        <option value="Khu Tiêu Chuẩn (Tầng 1 Tầng 2A B)">Khu Tiêu Chuẩn</option>
-                        <option value="Khu VIP (Tầng 3 Tầng 4 Tòa B)">Khu VIP</option>
-                        <option value="Khu Quốc Tế">Khu Quốc Tế</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {viewMode === "table" ? (
-                    <div className="border border-slate-200 rounded-xl overflow-x-auto">
-                      <table className="w-full text-left border-collapse text-xs">
-                        <thead>
-                          <tr className="bg-slate-50 border-b border-slate-200">
-                            <th className="p-4 font-bold text-slate-700 uppercase tracking-wider">Mã NV</th>
-                            <th className="p-4 font-bold text-slate-700 uppercase tracking-wider">Họ và Tên</th>
-                            <th className="p-4 font-bold text-slate-700 uppercase tracking-wider">Email</th>
-                            <th className="p-4 font-bold text-slate-700 uppercase tracking-wider">Cơ sở / Đơn vị</th>
-                            <th className="p-4 font-bold text-slate-700 uppercase tracking-wider">Trạng thái</th>
-                            <th className="p-4 font-bold text-slate-700 uppercase tracking-wider text-right">Hành động</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredUsers.map((u) => (
-                            <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                              <td className="p-4 font-bold text-slate-900">{u.personalInfo?.employeeId || "Chưa rõ"}</td>
-                              <td className="p-4 font-bold text-slate-900">{u.personalInfo?.fullName || "Chưa rõ"}</td>
-                              <td className="p-4 text-slate-600">{u.systemAuth?.email || "Chưa rõ"}</td>
-                              <td className="p-4">
-                                <p className="font-bold text-slate-900">{u.employmentLifecycle?.presenceStatus || "Chưa rõ"}</p>
-                                <p className="text-[10px] text-slate-500 font-medium">{u.orgStructure?.department || "Chưa rõ"}</p>
-                                <p className="text-[10px] text-blue-600 font-semibold">Thâm niên: {calculateSeniority(u.employmentLifecycle?.hireDate)}</p>
-                              </td>
-                              <td className="p-4">
-                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${u.employmentLifecycle?.status === "working" ? "bg-green-50 text-green-700" : u.employmentLifecycle?.status === "leave" ? "bg-yellow-50 text-yellow-700" : "bg-blue-50 text-blue-700"}`}>
-                                  {u.employmentLifecycle?.status === "working" ? "Đang làm việc" : u.employmentLifecycle?.status === "leave" ? "Nghỉ phép" : "Đào tạo"}
-                                </span>
-                              </td>
-                              <td className="p-4 text-right space-x-2">
-                                <button onClick={() => { setSelectedUser(u); setIsDetailModalOpen(true); }} className="p-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-lg text-slate-600 inline-flex items-center"><Eye className="h-3.5 w-3.5" /></button>
-                                <button onClick={() => { setSelectedUser(u); setIsEditModalOpen(true); }} className="p-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-lg text-blue-600 inline-flex items-center"><Edit className="h-3.5 w-3.5" /></button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {filteredUsers.map((u) => (
-                        <div key={u.id} className="bg-white border border-slate-200/80 rounded-xl p-5 hover:border-slate-300 transition space-y-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="text-sm font-bold text-slate-900">{u.personalInfo?.fullName || "Chưa rõ"}</p>
-                              <p className="text-xs text-slate-500 font-semibold">Mã NV: {u.personalInfo?.employeeId || "Chưa rõ"} | Thâm niên: {calculateSeniority(u.employmentLifecycle?.hireDate)}</p>
-                            </div>
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${u.systemAuth?.role === "admin" ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-600"}`}>
-                              {u.systemAuth?.role === "admin" ? "ADMIN" : "MEMBER"}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4 text-xs pt-3 border-t border-slate-100">
-                            <div>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Đơn vị</p>
-                              <p className="font-bold text-slate-900 line-clamp-1">{u.orgStructure?.department || "Chưa rõ"}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Trực chiến</p>
-                              <p className="font-bold text-slate-900">{u.employmentLifecycle?.presenceStatus || "Chưa rõ"}</p>
-                            </div>
-                          </div>
-                          <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-                            <button onClick={() => { setSelectedUser(u); setIsDetailModalOpen(true); }} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-bold rounded-lg text-[10px] flex items-center space-x-1"><Eye className="h-3.5 w-3.5" /><span>Xem chi tiết</span></button>
-                            <button onClick={() => { setSelectedUser(u); setIsEditModalOpen(true); }} className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-600 font-bold rounded-lg text-[10px] flex items-center space-x-1"><Edit className="h-3.5 w-3.5" /><span>Sửa đổi</span></button>
-                          </div>
+                    {['Scheduled', 'Preparing', 'ReceivedInfo'].includes(formData.status) && (
+                      <div className="space-y-2 md:col-span-2 p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl animate-fadeIn">
+                        <label className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+                          <UserCheck className="w-4.5 h-4.5 text-indigo-600" /> Nhân Sự Đón Tiếp Chỉ Định *
+                        </label>
+                        <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                          Chọn lễ tân hoặc quản lý site chịu trách nhiệm chuẩn bị và nắm thông tin hành trình đón khách này:
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                          {registrableStaffList.map(staff => {
+                            const isAssigned = (formData.recipients || []).includes(staff.uid);
+                            return (
+                              <button
+                                key={staff.uid}
+                                type="button"
+                                disabled={isReadOnly}
+                                onClick={() => { handleToggleRecipient(staff.uid); }}
+                                className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition disabled:opacity-80 ${
+                                  isAssigned 
+                                    ? 'bg-white border-indigo-600 text-indigo-900 shadow-2xs font-extrabold' 
+                                    : 'bg-white/40 border-slate-200 text-slate-600 hover:bg-white'
+                                }`}
+                              >
+                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                  isAssigned ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                                }`}>
+                                  {isAssigned && <Check className="w-2.5 h-2.5 text-white stroke-[3px]" />}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-xs truncate">{staff.name}</div>
+                                  <div className="text-[9px] text-slate-400 font-medium truncate uppercase">{staff.role} • {staff.title}</div>
+                                </div>
+                              </button>
+                            );
+                          })}
                         </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-600 block">HĐQT Phê Duyệt/Chỉ đạo</label>
+                      <div className="space-y-2">
+                        {!isReadOnly && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {["Sếp Dũng", "Sếp Hoa", "Sếp Nga", "Sếp Thông"].map((boss) => (
+                              <button
+                                key={boss}
+                                type="button"
+                                onClick={() => { handleInputChange('boardApproval', boss); }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                                  formData.boardApproval === boss 
+                                    ? 'bg-slate-900 border-slate-900 text-white shadow-xs font-extrabold' 
+                                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                                }`}
+                              >
+                                {boss}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <input 
+                          type="text" 
+                          placeholder="Thành viên hội đồng quản trị chỉ đạo..."
+                          value={formData.boardApproval}
+                          disabled={isReadOnly}
+                          onChange={(e) => { handleInputChange('boardApproval', e.target.value); }}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-semibold bg-white text-slate-800 animate-fadeIn disabled:bg-slate-50 disabled:text-slate-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-600 block">Ghi chú</label>
+                      <textarea 
+                        rows="5"
+                        placeholder="Mô tả ghi chú nếu có..."
+                        value={formData.notes}
+                        disabled={isReadOnly}
+                        onChange={(e) => { handleInputChange('notes', e.target.value); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-medium bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
+                      ></textarea>
+                    </div>
+
+                  </div>
+                </div>
+
+                {(patientVisitHistory.length > 0 || (formData.history && formData.history.length > 0)) && (
+                  <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
+                    
+                    <button
+                      type="button"
+                      onClick={() => { setIsHistoryPanelExpanded(!isHistoryPanelExpanded); }}
+                      className="w-full flex justify-between items-center text-xs font-black text-slate-800 hover:text-indigo-600 transition focus:outline-hidden"
+                    >
+                      <span className="flex items-center gap-2">
+                        <History className="w-4.5 h-4.5 text-indigo-600" />
+                        Lịch sử & Nhật ký hoạt động ({patientVisitHistory.length} lượt khám cũ)
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-slate-400 font-bold">
+                          {isHistoryPanelExpanded ? "Thu nhỏ" : "Bấm để xem"}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-250 ${isHistoryPanelExpanded ? 'rotate-180' : ''}`} />
+                      </div>
+                    </button>
+
+                    {isHistoryPanelExpanded && (
+                      <div className="space-y-4 pt-4 border-t border-slate-100 animate-fadeIn">
+                        <div className="flex border-b border-slate-100 pb-2 overflow-x-auto gap-2">
+                          {patientVisitHistory.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => { setLeftFormTab('visitHistory'); }}
+                              className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 flex items-center gap-1 ${
+                                leftFormTab === 'visitHistory' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-655'
+                              }`}
+                            >
+                              <History className="w-3.5 h-3.5" />
+                              Lịch sử tiếp đón ({patientVisitHistory.length})
+                            </button>
+                          )}
+
+                          {formData.history && formData.history.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => { setLeftFormTab('timeline'); }}
+                              className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 ${
+                                leftFormTab === 'timeline' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-655'
+                              }`}
+                            >
+                              Lịch sử Timeline
+                            </button>
+                          )}
+                        </div>
+
+                        {leftFormTab === 'visitHistory' && patientVisitHistory.length > 0 && (
+                          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1 animate-fadeIn">
+                            <div className="space-y-3">
+                              {patientVisitHistory.map((visit) => {
+                                const vSite = sites.find(s => s.label === visit.site) || sites[0];
+                                return (
+                                  <div key={visit.id} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-3 relative hover:shadow-xs transition duration-150">
+                                    
+                                    <div className="flex justify-between items-start gap-1">
+                                      <div>
+                                        <div className="font-bold text-[11px] text-slate-900">
+                                          {visit.date ? formatDateVN(visit.date) : "Lượt khám cũ"}
+                                        </div>
+                                        <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1 ${vSite.bg}`}>
+                                          {vSite.label}
+                                        </span>
+                                      </div>
+                                      
+                                      {!isReadOnly && (
+                                        <button
+                                          type="button"
+                                          onClick={() => { setCopyConfirmModal({ show: true, visitToCopy: visit }); }}
+                                          className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-lg text-[9px] font-black flex items-center gap-1 transition shadow-2xs"
+                                          title="Sao chép toàn bộ thông tin chỉ định này sang lượt mới"
+                                        >
+                                          <Copy className="w-3 h-3" /> Sao chép nhanh
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    <div className="space-y-1 text-[10px] text-slate-655 font-semibold">
+                                      <div>Khu vực: <strong className="text-slate-800">{visit.examinationArea || 'Khu VIP'}</strong></div>
+                                      {visit.boardApproval && (
+                                        <div>Chỉ đạo: <span className="bg-slate-900 text-white font-black px-1.5 py-0.5 rounded-xs text-[8px]">{visit.boardApproval}</span></div>
+                                      )}
+                                      {visit.notes && <div className="italic text-slate-400 truncate">"{visit.notes}"</div>}
+                                    </div>
+
+                                    {visit.specialties && visit.specialties.length > 0 && (
+                                      <div className="flex flex-wrap gap-1">
+                                        {visit.specialties.map((spec, i) => (
+                                          <span key={i} className="px-1.5 py-0.5 bg-slate-200/60 text-slate-700 rounded-xs text-[8px] font-bold">
+                                            {spec}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {((visit.approvalImages && visit.approvalImages.length > 0) || visit.approvalImage) && (
+                                      <div className="pt-1.5 border-t border-slate-200 flex gap-2 overflow-x-auto">
+                                        {(visit.approvalImages || [visit.approvalImage]).map((img, imgIdx) => (
+                                          <button
+                                            key={imgIdx}
+                                            type="button"
+                                            onClick={() => {
+                                              setLightboxImages(visit.approvalImages || [visit.approvalImage]);
+                                              setLightboxIndex(imgIdx);
+                                            }}
+                                            className="w-12 h-8 rounded-lg overflow-hidden border border-slate-200/80 shrink-0 hover:border-slate-400 transition"
+                                          >
+                                            <img src={img} alt="Văn bản cũ" className="w-full h-full object-cover" />
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {leftFormTab === 'timeline' && (
+                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 max-h-[350px] overflow-y-auto pr-1 animate-fadeIn">
+                            <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
+                              {formData.history?.map((log, index) => (
+                                <div key={index} className="relative">
+                                  <span className="absolute -left-[22px] top-1 bg-indigo-60 text-indigo-655 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
+                                  <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
+                                  <div className="text-[9px] text-slate-400 mt-1 flex justify-between font-bold">
+                                    <span>Bởi: {log.user}</span>
+                                    <span className="font-mono">
+                                      {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'})}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4" ref={specRef}>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Chuyên khoa thăm khám
+                  </h3>
+                  {!isReadOnly && (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Tìm kiếm chuyên khoa..."
+                        value={specSearch}
+                        onChange={(e) => {
+                          setSpecSearch(e.target.value);
+                          setIsSpecDropdownOpen(true);
+                        }}
+                        onFocus={() => { setIsSpecDropdownOpen(true); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800"
+                      />
+                      {isSpecDropdownOpen && (
+                        <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-fadeIn">
+                          {filteredSpecialties.length === 0 ? (
+                            <div className="text-xs text-slate-405 font-bold text-center py-4">Không tìm thấy chuyên khoa phù hợp</div>
+                          ) : (
+                            filteredSpecialties.map((spec) => {
+                              const isSelected = formData.specialties.includes(spec);
+                              return (
+                                <button
+                                  key={spec}
+                                  type="button"
+                                  onClick={() => { toggleSpecialtySelection(spec); }}
+                                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${
+                                    isSelected ? 'bg-indigo-50 text-indigo-755' : 'hover:bg-slate-50 text-slate-700'
+                                  }`}
+                                >
+                                  <span>{spec}</span>
+                                  {isSelected && <Check className="w-4 h-4 text-indigo-650" />}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {formData.specialties.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+                      {formData.specialties.map((spec) => (
+                        <span
+                          key={spec}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold animate-scaleIn"
+                        >
+                          {spec}
+                          {!isReadOnly && (
+                            <button
+                              type="button"
+                              onClick={() => { toggleSpecialtySelection(spec); }}
+                              className="p-0.5 hover:bg-slate-850 rounded-full transition"
+                            >
+                              <X className="w-3 h-3 text-slate-405 hover:text-white" />
+                            </button>
+                          )}
+                        </span>
                       ))}
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-          </main>
-        </div>
-      </div>
 
-      {isDetailModalOpen && selectedUser && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl p-8 border border-slate-200 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-              <div className="flex items-center space-x-3">
-                <div className="bg-blue-50 p-2.5 rounded-xl text-blue-600"><User className="h-5 w-5" /></div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">Chi Tiết Hồ Sơ Nhân Viên</h3>
-                  <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Mã NV: {selectedUser.personalInfo?.employeeId}</p>
+                {formData.tier === 'VVIP' && (
+                  hasAccessToPatient(formData, 'billing:view') ? (
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
+                      <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
+                        <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                        Chi Phí Điều Trị & Lâm Sàng Thực Tế
+                      </h3>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        
+                        <div className="space-y-1.5 md:col-span-2">
+                          <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
+                          <select
+                            value={formData.treatmentType || 'Ngoại trú'}
+                            disabled={isReadOnly}
+                            onChange={(e) => { handleTreatmentTypeChange(e.target.value); }}
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 cursor-pointer disabled:bg-slate-50 disabled:text-slate-500"
+                          >
+                            <option value="Ngoại trú">Ngoại trú</option>
+                            <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
+                            <option value="Nội trú/ICU">Nội trú/ICU</option>
+                            <option value="Ngoài viện">Ngoài viện</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
+                              disabled={isReadOnly}
+                              onChange={(e) => { handleCurrencyChange('phiKham', e.target.value); }}
+                              placeholder="0"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white disabled:bg-slate-50 disabled:text-slate-500"
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
+                              disabled={isReadOnly}
+                              onChange={(e) => { handleCurrencyChange('clsCdha', e.target.value); }}
+                              placeholder="0"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white disabled:bg-slate-50 disabled:text-slate-500"
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5 md:col-span-2">
+                          <label className="text-xs font-bold text-slate-655 block">Thuốc/vacxin</label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
+                              disabled={isReadOnly}
+                              onChange={(e) => { handleCurrencyChange('thuocVacxin', e.target.value); }}
+                              placeholder="0"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white disabled:bg-slate-50 disabled:text-slate-500"
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-400 font-bold">VNĐ</span>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center py-8 space-y-2">
+                      <Lock className="w-8 h-8 text-rose-400 mx-auto" />
+                      <p className="text-xs font-bold text-slate-550">Chi phí điều trị bị khóa</p>
+                      <p className="text-[10px] text-slate-400 leading-normal">Tài khoản này không được phân quyền xem dữ liệu tài chính của chi nhánh.</p>
+                    </div>
+                  )
+                )}
+
+              </div>
+
+              <div className="space-y-6">
+                
+                {formData.tier === 'VVIP' && (
+                  hasAccessToPatient(formData, 'billing:view') ? (
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
+                      <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800">
+                        <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
+                        
+                        <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
+                          <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
+                          Bảng chi phí/duyệt giảm
+                        </h3>
+
+                        <div className="space-y-1.5 pt-2 relative z-10">
+                          <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
+                              disabled={isReadOnly}
+                              onChange={(e) => { handleCurrencyChange('insuranceAdvance', e.target.value); }}
+                              placeholder="0"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-850 border border-slate-750 focus:outline-hidden focus:ring-2 ring-indigo-500 text-xs font-bold text-white placeholder-slate-505 font-mono disabled:opacity-80"
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-550 font-bold font-mono">VNĐ</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 relative z-10">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
+                              Duyệt giảm (%) {!hasAccessToPatient(formData, 'billing:discount') && '🔒'}
+                            </label>
+                            <div className="relative">
+                              <input 
+                                type="number" 
+                                min="0"
+                                max="100"
+                                value={formData.discountRate || ''}
+                                disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly} 
+                                onChange={(e) => { handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0))); }}
+                                placeholder="0"
+                                className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-505 ${
+                                  !hasAccessToPatient(formData, 'billing:discount') || isReadOnly
+                                    ? 'bg-slate-800 border-slate-700 text-slate-550 cursor-not-allowed'
+                                    : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500'
+                                }`}
+                              />
+                              <span className="absolute right-3 top-3 text-[10px] text-slate-555 font-bold font-mono">%</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
+                          
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400">Tổng phí tự động:</span>
+                            <div className="flex items-center gap-1">
+                              <input 
+                                type="text"
+                                value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
+                                disabled={isReadOnly}
+                                onChange={(e) => { handleCurrencyChange('totalAmount', e.target.value); }}
+                                className="w-32 bg-transparent text-right font-extrabold text-slate-100 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono disabled:opacity-80"
+                              />
+                              <span>đ</span>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-rose-400">-</span>
+                              <input 
+                                type="text"
+                                value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
+                                disabled={isReadOnly}
+                                onChange={(e) => { handleCurrencyChange('approvedDiscountAmount', e.target.value); }}
+                                className="w-32 bg-transparent text-right font-extrabold text-rose-400 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono disabled:opacity-80"
+                              />
+                              <span className="text-rose-400">đ</span>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
+                            <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
+                          </div>
+
+                          <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
+                            <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
+                            <span className="text-lg font-black text-emerald-400 font-mono">
+                              {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
+                            </span>
+                          </div>
+
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center py-8 space-y-2">
+                      <Lock className="w-8 h-8 text-rose-400 mx-auto" />
+                      <p className="text-xs font-bold text-slate-555">Bảng chi phí bị khóa</p>
+                    </div>
+                  )
+                )}
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Ảnh Phê Duyệt Gửi Kèm
+                  </h3>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-2">
+                      {formData.approvalImages?.map((img, index) => (
+                        <div key={index} className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-50 animate-fadeIn">
+                          <img src={img} alt="Công văn" className="w-full h-full object-cover" />
+                          {!isReadOnly && (
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const updated = formData.approvalImages.filter((_, i) => i !== index);
+                                handleInputChange('approvalImages', updated);
+                              }}
+                              className="absolute right-1.5 top-1.5 p-1 bg-red-655 hover:bg-red-700 text-white rounded-full transition shadow-md"
+                              title="Gỡ bỏ"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {!isReadOnly && (
+                        <label className="border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition duration-200 aspect-video">
+                          <Upload className="w-5 h-5 text-slate-400" />
+                          <span className="text-[10px] font-bold text-slate-700">Tải thêm ảnh</span>
+                          <input type="file" accept="image/*" multiple onChange={handleMultipleImagesUpload} className="hidden" />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+          </form>
+        )}
+
+        {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ & BỘ LỊCH ========================== */}
+        {activeTab === 'monitoring' && canShowTab('monitoring') && (
+          <div className="space-y-6 animate-fadeIn">
+            
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-lg font-black text-slate-955 flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo Dõi Hồ Sơ Khách Hàng VIP-VVIP
+                </h2>
+              </div>
+              {canShowTab('register') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('register'); }}
+                  className="px-4 py-2.5 bg-slate-900 text-white hover:bg-slate-850 rounded-xl text-xs font-black flex items-center gap-1.5 border border-slate-900 transition transform active:scale-95"
+                >
+                  <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ mới
+                </button>
+              )}
+            </div>
+
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex justify-between items-center flex-wrap gap-3">
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                <button 
+                  onClick={() => { setCalendarMode('list'); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'list' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Dạng Danh Sách
+                </button>
+                <button 
+                  onClick={() => { setCalendarMode('week'); setCurrentCalendarDate(new Date()); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'week' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Lịch Tuần Động
+                </button>
+                <button 
+                  onClick={() => { setCalendarMode('month'); setCurrentCalendarDate(new Date()); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'month' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Lịch Tháng Chi Tiết
+                </button>
+              </div>
+
+              {calendarMode !== 'list' && (
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => { handleCalendarNavigate('prev'); }}
+                    className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs font-extrabold text-slate-800 min-w-[120px] text-center">
+                    {calendarMode === 'week' ? (
+                      `Tuần ${formatDateVN(weekDays[0].toISOString().split('T')[0])}`
+                    ) : (
+                      `Tháng ${currentCalendarDate.getMonth() + 1} / ${currentCalendarDate.getFullYear()}`
+                    )}
+                  </span>
+                  <button 
+                    onClick={() => { handleCalendarNavigate('next'); }}
+                    className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {calendarMode === 'list' && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="flex-1 relative">
+                    <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Tìm theo tên, mã PID, ghi chú..."
+                      value={searchTerm}
+                      onChange={(e) => { setSearchTerm(e.target.value); }}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-xs font-bold bg-white"
+                    />
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <select 
+                      value={filterTier}
+                      onChange={(e) => { setFilterTier(e.target.value); }}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    >
+                      <option value="">Tất cả hạng</option>
+                      <option value="VIP">VIP</option>
+                      <option value="VVIP">VVIP</option>
+                    </select>
+
+                    <select 
+                      value={filterSpecialty}
+                      onChange={(e) => { setFilterSpecialty(e.target.value); }}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    >
+                      <option value="">Tất cả chuyên khoa</option>
+                      {systemSettings.specialties.map((spec, idx) => (
+                        <option key={idx} value={spec}>{spec}</option>
+                      ))}
+                    </select>
+
+                    <select 
+                      value={filterSite}
+                      onChange={(e) => { setFilterSite(e.target.value); }}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    >
+                      <option value="">Tất cả Site</option>
+                      {sites.map(s => (
+                        <option key={s.id} value={s.label}>{s.label}</option>
+                      ))}
+                    </select>
+
+                    <input 
+                      type="date"
+                      value={filterDate}
+                      onChange={(e) => { setFilterDate(e.target.value); }}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    />
+
+                    {(searchTerm || filterTier || filterSpecialty || filterDate || filterSite) && (
+                      <button 
+                        onClick={() => { setSearchTerm(''); setFilterTier(''); setFilterSpecialty(''); setFilterDate(''); setFilterSite(''); }}
+                        className="px-3 py-2 text-rose-500 hover:bg-rose-50 rounded-xl text-xs font-bold transition"
+                      >
+                        Xóa lọc
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-              <button onClick={() => setIsDetailModalOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-400"><X className="h-5 w-5" /></button>
+            )}
+
+            {calendarMode === 'week' && (
+              <div className="grid grid-cols-1 md:grid-cols-7 gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm overflow-x-auto min-w-full">
+                {weekDays.map((day, idx) => {
+                  const dateStr = day.toISOString().split('T')[0];
+                  const dayPatients = visiblePatients.filter(p => p.date === dateStr);
+                  const isCurrentToday = dateStr === todayStr;
+
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`p-3 rounded-2xl border min-h-[220px] flex flex-col space-y-3 ${
+                        isCurrentToday ? 'bg-indigo-50/40 border-indigo-200' : 'bg-slate-50/40 border-slate-150'
+                      }`}
+                    >
+                      <div className="text-center pb-2 border-b border-slate-250">
+                        <span className="text-[10px] uppercase font-black text-slate-400 block">
+                          {day.toLocaleDateString('vi-VN', { weekday: 'short' })}
+                        </span>
+                        <span className={`text-sm font-extrabold font-mono inline-block px-2 py-0.5 rounded-full ${
+                          isCurrentToday ? 'bg-indigo-600 text-white' : 'text-slate-800'
+                        }`}>
+                          {day.getDate()}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 space-y-2 overflow-y-auto max-h-[300px]">
+                        {dayPatients.length === 0 ? (
+                          <div className="text-center text-[10px] text-slate-300 font-bold pt-8">Không có ca</div>
+                        ) : (
+                          dayPatients.map(p => (
+                            <div 
+                              key={p.id}
+                              onClick={() => { initiateView(p); }}
+                              className="p-2 bg-white border border-slate-200 rounded-xl shadow-3xs hover:border-indigo-400 transition cursor-pointer space-y-1 animate-scaleIn text-left"
+                            >
+                              <div className="font-extrabold text-[10px] text-slate-800 truncate">{p.name}</div>
+                              <div className="flex items-center justify-between gap-1 text-[8px] text-slate-455">
+                                <span className="font-mono">PID: {p.pid}</span>
+                                <span className={`px-1 rounded-sm uppercase font-black text-[7px] ${
+                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                                }`}>
+                                  {p.tier}
+                                </span>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {calendarMode === 'month' && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-black uppercase text-slate-400 pb-2 border-b border-slate-100">
+                  <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span>
+                </div>
+                
+                <div className="grid grid-cols-7 gap-2">
+                  {monthDays.map((day, idx) => {
+                    if (!day) return <div key={idx} className="aspect-square bg-slate-50/20 rounded-xl border border-transparent"></div>;
+
+                    const dateStr = day.toISOString().split('T')[0];
+                    const dayPatients = visiblePatients.filter(p => p.date === dateStr);
+                    const isCurrentToday = dateStr === todayStr;
+
+                    return (
+                      <div 
+                        key={idx}
+                        onClick={() => {
+                          if (dayPatients.length > 0) {
+                            setFilterDate(dateStr);
+                            setCalendarMode('list');
+                          }
+                        }}
+                        className={`aspect-square p-2 rounded-2xl border flex flex-col justify-between transition-all relative ${
+                          dayPatients.length > 0 ? 'cursor-pointer hover:border-indigo-400 shadow-3xs' : ''
+                        } ${
+                          isCurrentToday ? 'bg-indigo-50/50 border-indigo-200' : 'bg-white border-slate-150'
+                        }`}
+                      >
+                        <span className={`text-[11px] font-black font-mono leading-none ${
+                          isCurrentToday ? 'text-indigo-600 font-black' : 'text-slate-550'
+                        }`}>
+                          {day.getDate()}
+                        </span>
+
+                        {dayPatients.length > 0 && (
+                          <div className="flex gap-1 flex-wrap justify-end">
+                            {dayPatients.slice(0, 3).map((p, pIdx) => (
+                              <span 
+                                key={pIdx} 
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  p.tier === 'VVIP' ? 'bg-amber-400' : 'bg-indigo-500'
+                                }`} 
+                                title={`${p.name} (${p.tier})`}
+                              />
+                            ))}
+                            {dayPatients.length > 3 && (
+                              <span className="text-[7px] text-slate-400 font-bold">+{dayPatients.length - 3}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {calendarMode === 'list' && (
+              <>
+                {isLoading ? (
+                  <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
+                    <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+                    <p className="text-slate-400 font-semibold text-xs animate-pulse">Đang cập nhật...</p>
+                  </div>
+                ) : filteredPatients.length === 0 ? (
+                  <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
+                    <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto text-slate-400">
+                      <ClipboardList className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy hồ sơ nào phù hợp</h3>
+                      <p className="text-slate-400 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="hidden lg:block bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-fadeIn">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-slate-55 border-b border-slate-200 text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                              <th className="py-4 px-5">PID / Khách Hàng</th>
+                              <th className="py-4 px-3">Phân hạng</th>
+                              <th className="py-4 px-3">Ngày Khám / Site / Khu vực</th>
+                              <th className="py-4 px-3">Chuyên Khoa</th>
+                              <th className="py-4 px-3">HĐQT Chỉ Đạo</th>
+                              <th className="py-4 px-3 text-right">Tổng Chi Phí</th>
+                              <th className="py-4 px-3 text-right">Duyệt Giảm</th>
+                              <th className="py-4 px-3 text-right">Thực Thu</th>
+                              <th className="py-4 px-5 text-right">Tác vụ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200 text-xs">
+                            {filteredPatients.map((p) => {
+                              const canViewBilling = hasAccessToPatient(p, 'billing:view');
+                              const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
+                              const pSite = sites.find(s => s.label === p.site) || sites[0];
+                              return (
+                                <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 animate-fadeIn cursor-pointer" onClick={() => { initiateView(p); }}>
+                                  <td className="py-4 px-5">
+                                    <div className="font-extrabold text-slate-955 text-sm">{p.name}</div>
+                                    <div className="text-[10px] text-indigo-600 font-mono font-black mt-0.5">PID: {p.pid}</div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${
+                                      p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                                    }`}>
+                                      <Sparkles className="w-3 h-3" />
+                                      {p.tier}
+                                    </span>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
+                                        {pSite.label}
+                                      </div>
+                                      <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
+                                        p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
+                                      }`}>
+                                        {p.examinationArea || 'Khu VIP'}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="flex flex-wrap gap-1 max-w-[180px]">
+                                      {p.specialties?.map((s, idx) => (
+                                        <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded font-bold">
+                                          {s}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="font-bold text-slate-700">{p.boardApproval || '---'}</div>
+                                    {p.notes && <div className="text-[10px] text-slate-400 max-w-[150px] truncate" title={p.notes}>{p.notes}</div>}
+                                  </td>
+                                  <td className="py-4 px-3 text-right font-bold text-slate-900 font-mono">
+                                    {p.tier === 'VIP' ? (
+                                      <span className="text-slate-400 font-sans text-[10px]">Thanh toán quầy</span>
+                                    ) : canViewBilling ? (
+                                      formatCurrency(p.totalAmount)
+                                    ) : (
+                                      <span className="text-slate-405">🔒 Khóa</span>
+                                    )}
+                                  </td>
+                                  <td className="py-4 px-3 text-right">
+                                    {p.tier === 'VIP' ? (
+                                      <span className="text-slate-400 font-sans text-[10px]">---</span>
+                                    ) : canViewBilling ? (
+                                      <>
+                                        <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
+                                        <div className="text-[9px] text-slate-400 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
+                                      </>
+                                    ) : (
+                                      <span className="text-slate-405">🔒 Khóa</span>
+                                    )}
+                                  </td>
+                                  <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
+                                    {p.tier === 'VIP' ? (
+                                      <span className="text-slate-400 font-sans text-[10px]">Hóa đơn gốc</span>
+                                    ) : canViewBilling ? (
+                                      formatCurrency(realCollected)
+                                    ) : (
+                                      <span className="text-slate-405">🔒 Khóa</span>
+                                    )}
+                                  </td>
+                                  <td className="py-4 px-5 text-right whitespace-nowrap" onClick={(e) => { e.stopPropagation(); }}>
+                                    <div className="flex justify-end gap-1.5">
+                                      {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
+                                        <button 
+                                          onClick={() => {
+                                            const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
+                                            setLightboxImages(imgs);
+                                            setLightboxIndex(0);
+                                          }}
+                                          className="p-1.5 bg-slate-50 border border-slate-200 text-slate-605 hover:bg-slate-100 rounded-xl transition" 
+                                          title="Ảnh duyệt"
+                                        >
+                                          <ImageIcon className="w-4 h-4" />
+                                        </button>
+                                      )}
+                                      <button onClick={() => { initiateView(p); }} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
+                                        <Edit3 className="w-4 h-4" />
+                                      </button>
+                                      
+                                      {userRole !== 'nhanvien' ? (
+                                        <button 
+                                          onClick={() => {
+                                            setConfirmModal({
+                                              show: true,
+                                              title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
+                                              message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+                                              action: async () => {
+                                                try {
+                                                  if (isFirebaseConnected && db) {
+                                                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
+                                                    showNotification("Đã xóa hồ sơ thành công!");
+                                                  } else {
+                                                    const updated = patients.filter(item => item.id !== p.id);
+                                                    setPatients(updated);
+                                                    localStorage.setItem('local_patients', JSON.stringify(updated));
+                                                    showNotification("Đã xóa hồ sơ cục bộ!");
+                                                  }
+                                                  setConfirmModal({ show: false, action: null, message: '', title: '' });
+                                                } catch (err) {
+                                                  console.error(err);
+                                                }
+                                              }
+                                            });
+                                          }} 
+                                          className="p-1.5 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" 
+                                          title="Xóa"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      ) : (
+                                        <span className="p-1.5 text-slate-305 cursor-not-allowed">
+                                          <Lock className="w-4 h-4" />
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
+                      {filteredPatients.map((p) => {
+                        const canViewBilling = hasAccessToPatient(p, 'billing:view');
+                        const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
+                        const pSite = sites.find(s => s.label === p.site) || sites[0];
+                        return (
+                          <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn cursor-pointer" onClick={() => { initiateView(p); }}>
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
+                                <h4 className="font-extrabold text-slate-900 text-sm">{p.name}</h4>
+                                <p className="text-[10px] text-slate-404 mt-0.5 flex items-center gap-1 animate-fadeIn">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
+                                </p>
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
+                                    {pSite.label}
+                                  </span>
+                                  <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
+                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-teal-50 border-teal-200 text-teal-700'
+                                  }`}>
+                                    {p.examinationArea || 'Khu VIP'}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className={`inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[9px] font-black ${
+                                p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                              }`}>
+                                {p.tier}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-wrap gap-1">
+                              {p.specialties?.map((s, idx) => (
+                                <span key={idx} className="text-[9px] bg-slate-50 text-slate-605 border border-slate-200 px-2.5 py-0.5 rounded font-bold">
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+
+                            <div className="bg-slate-55 p-3 rounded-2xl text-[11px] border border-slate-200/60 space-y-1 text-slate-655">
+                              <div>Phê duyệt/Chỉ đạo: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
+                              {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
+                            </div>
+
+                            {p.tier === 'VVIP' ? (
+                              canViewBilling ? (
+                                <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
+                                  <div>
+                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
+                                    <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
+                                    <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
+                                    <span className="text-[11px] font-black text-emerald-600 font-mono">{formatCurrency(realCollected)}</span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="bg-slate-50 p-2 text-center rounded-xl text-xs text-slate-400 flex items-center justify-center gap-1">
+                                  <Lock className="w-3.5 h-3.5" /> Chi phí tài chính bị khóa bảo mật
+                                </div>
+                              )
+                            ) : null}
+
+                            <div className="flex justify-end gap-2 pt-1" onClick={(e) => { e.stopPropagation(); }}>
+                              {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
+                                    setLightboxImages(imgs);
+                                    setLightboxIndex(0);
+                                  }}
+                                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
+                                >
+                                  <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
+                                </button>
+                              )}
+                              <button onClick={() => { initiateView(p); }} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
+                                <Edit3 className="w-3.5 h-3.5" /> Sửa
+                              </button>
+                              
+                              {userRole !== 'nhanvien' && (
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    setConfirmModal({
+                                      title: "Xác nhận gỡ bỏ dữ liệu",
+                                      message: "Bạn có chắc chắn muốn gỡ bỏ vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+                                      show: true,
+                                      action: async () => {
+                                        try {
+                                          if (isFirebaseConnected && db) {
+                                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
+                                            showNotification("Đã xóa dữ liệu dám mây!");
+                                          } else {
+                                            const updated = patients.filter(item => item.id !== p.id);
+                                            setPatients(updated);
+                                            localStorage.setItem('local_patients', JSON.stringify(updated));
+                                            showNotification("Đã xóa dữ liệu!");
+                                          }
+                                          setConfirmModal({ show: false, action: null, message: '', title: '' });
+                                        } catch (err) {
+                                          console.error(err);
+                                        }
+                                      }
+                                    });
+                                  }}
+                                  className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-605 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" /> Xóa
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ========================== GIAO DIỆN 4: CẤU HÌNH THAM SỐ ========================== */}
+        {activeTab === 'settings' && userRole === 'admin' && (
+          <div className="space-y-6 animate-fadeIn">
+            
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+              <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div className="bg-slate-50 p-4 rounded-xl space-y-1">
-                <p className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Họ và tên</p>
-                <p className="font-bold text-slate-900 text-sm">{selectedUser.personalInfo?.fullName}</p>
+
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                  Ma Trận Phân Quyền Theo Chi Nhánh (Dynamic Site Permission Matrix)
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">Cấu hình chi tiết quyền hạn tác vụ của từng vai trò nhân sự trên các site chi nhánh:</p>
               </div>
-              <div className="bg-slate-50 p-4 rounded-xl space-y-1">
-                <p className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Email đăng nhập</p>
-                <p className="font-bold text-slate-900 text-sm">{selectedUser.systemAuth?.email}</p>
-              </div>
-              <div className="bg-slate-50 p-4 rounded-xl space-y-1">
-                <p className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Số điện thoại</p>
-                <p className="font-bold text-slate-900 text-sm">{selectedUser.personalInfo?.phone || "Chưa đăng ký"}</p>
-              </div>
-              <div className="bg-slate-50 p-4 rounded-xl space-y-1">
-                <p className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Giới tính</p>
-                <p className="font-bold text-slate-900 text-sm">{selectedUser.personalInfo?.gender}</p>
-              </div>
-              <div className="bg-slate-50 p-4 rounded-xl space-y-1">
-                <p className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Ngày sinh</p>
-                <p className="font-bold text-slate-900 text-sm">{selectedUser.personalInfo?.birthDate || "Chưa cập nhật"}</p>
-              </div>
-              <div className="bg-slate-50 p-4 rounded-xl space-y-1">
-                <p className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Ngày nhận việc</p>
-                <p className="font-bold text-slate-900 text-sm">{selectedUser.employmentLifecycle?.hireDate || "Chưa cập nhật"}</p>
-              </div>
-              <div className="bg-slate-50 p-4 rounded-xl space-y-1">
-                <p className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Thâm niên hiện tại</p>
-                <p className="font-bold text-blue-600 text-sm">{calculateSeniority(selectedUser.employmentLifecycle?.hireDate)}</p>
-              </div>
-              <div className="bg-slate-50 p-4 rounded-xl space-y-1">
-                <p className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Cơ sở hiện hữu</p>
-                <p className="font-bold text-slate-900 text-sm">{selectedUser.employmentLifecycle?.presenceStatus}</p>
-              </div>
-              <div className="bg-slate-50 p-4 rounded-xl space-y-1">
-                <p className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Vai trò hệ thống</p>
-                <p className="font-bold text-slate-900 text-sm">{selectedUser.jobInfo?.roleTitle}</p>
-              </div>
-              <div className="bg-slate-50 p-4 rounded-xl space-y-1 md:col-span-2">
-                <p className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Đơn vị (Phân khu lớn)</p>
-                <p className="font-bold text-slate-900 text-sm">{selectedUser.orgStructure?.department}</p>
-              </div>
-              <div className="bg-slate-50 p-4 rounded-xl space-y-1 md:col-span-2">
-                <p className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Nhóm trực (Địa điểm trực chi tiết)</p>
-                <p className="font-bold text-slate-900 text-sm">{selectedUser.orgStructure?.group}</p>
+
+              <div className="overflow-x-auto border border-slate-150 rounded-2xl">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-55 border-b border-slate-150 text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                      <th className="p-4">Quyền hạn / Chức năng</th>
+                      <th className="p-4 text-center">nhanvien</th>
+                      <th className="p-4 text-center">quanly_site</th>
+                      <th className="p-4 text-center">quanly</th>
+                      <th className="p-4 text-center">lanhdao</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-150">
+                    {[
+                      { key: 'patients:view', label: 'Xem danh sách hồ sơ' },
+                      { key: 'patients:create', label: 'Đăng ký tiếp đón VIP' },
+                      { key: 'patients:update', label: 'Cập nhật hành trình' },
+                      { key: 'patients:delete', label: 'Xóa vĩnh viễn hồ sơ' },
+                      { key: 'billing:view', label: 'Xem chi phí VVIP' },
+                      { key: 'billing:discount', label: 'Duyệt % giảm chi phí' }
+                    ].map((perm) => (
+                      <tr key={perm.key} className="hover:bg-slate-50/50">
+                        <td className="p-4 font-bold text-slate-800">{perm.label} <code className="text-[9px] bg-slate-100 text-slate-500 px-1 py-0.5 rounded font-mono font-normal ml-1">{perm.key}</code></td>
+                        {['nhanvien', 'quanly_site', 'quanly', 'lanhdao'].map((role) => {
+                          const currentLevel = systemSettings.permissions?.[perm.key]?.[role] || 'none';
+                          return (
+                            <td key={role} className="p-4 text-center">
+                              <select
+                                value={currentLevel}
+                                onChange={(e) => { handlePermissionChange(perm.key, role, e.target.value); }}
+                                className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-700 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                              >
+                                <option value="none">❌ Không quyền</option>
+                                <option value="view_assigned">👁️ Xem Site gán</option>
+                                <option value="write_assigned">📍 Ghi Site gán</option>
+                                <option value="all">🌐 Toàn hệ thống</option>
+                              </select>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-            <div className="flex justify-end pt-4 border-t border-slate-100">
-              <button onClick={() => setIsDetailModalOpen(false)} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition">Đóng hộp thoại</button>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
+                    Cấu Hinh Các Trường Cộng Tổng
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">Lựa chọn các loại chi phí phát sinh để tự động tính vào [Tổng cộng]:</p>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    { key: 'phiKham', label: 'Phí khám/Điều trị' },
+                    { key: 'ngoaiTru', label: 'Ngoại trú' },
+                    { key: 'capCuu', label: 'Cấp cứu/daycare' },
+                    { key: 'noiTru', label: 'Nội trú/ICU' },
+                    { key: 'ngoaiVien', label: 'Ngoại viện' },
+                    { key: 'clsCdha', label: 'CLS/CDHA' },
+                    { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
+                  ].map((field) => (
+                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-150 hover:bg-slate-50 cursor-pointer transition">
+                      <input 
+                        type="checkbox"
+                        checked={systemSettings.totalFormulaFields?.[field.key] || false}
+                        onChange={() => { handleFormulaCheckboxChange(field.key); }}
+                        className="w-4 h-4 rounded-md text-indigo-600 focus:ring-indigo-500 border-slate-305"
+                      />
+                      <span className="text-xs font-bold text-slate-700">{field.label}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="border-t border-slate-150 pt-6 space-y-4">
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
+                      Phương Thức Tính Số Tiền Duyệt Giảm
+                    </h3>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <button
+                      type="button"
+                      onClick={() => { handleDiscountFormulaChange('only_total'); }}
+                      className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
+                        systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
+                        systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                      }`}>
+                        {systemSettings.discountFormulaType === 'only_total' && <span className="w-2 h-2 rounded-full bg-white"></span>}
+                      </div>
+                      <div>
+                        <strong className="text-xs text-slate-800 block">Duyệt giảm trên tổng gốc</strong>
+                        <span className="text-[10px] text-slate-400 block mt-1">Biểu thức: <code>Số tiền duyệt giảm = [Tổng cộng] × [% giảm]</code></span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { handleDiscountFormulaChange('total_minus_insurance_advance'); }}
+                      className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
+                        systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
+                        systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                      }`}>
+                        {systemSettings.discountFormulaType === 'total_minus_insurance_advance' && <span className="w-2 h-2 rounded-full bg-white"></span>}
+                      </div>
+                      <div>
+                        <strong className="text-xs text-slate-800 block">Khấu trừ bảo hiểm & tạm ứng trước khi giảm</strong>
+                        <span className="text-[10px] text-slate-400 block mt-1">Biểu thức: <code>Số tiền duyệt giảm = ([Tổng cộng] - [BHYT/Tạm ứng]) × [% giảm]</code></span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="space-y-6">
+                
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Quản Lý Danh Mục Chuyên Khoa
+                  </h3>
+
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Thêm chuyên khoa mới..."
+                      value={newSpecialtyInput}
+                      onChange={(e) => { setNewSpecialtyInput(e.target.value); }}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddSpecialty}
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" /> Thêm
+                    </button>
+                  </div>
+
+                  <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                    {systemSettings.specialties?.map((spec, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition animate-fadeIn">
+                        <span className="text-xs font-bold text-slate-700">{spec}</span>
+                        <button
+                          type="button"
+                          onClick={() => { handleRemoveSpecialty(spec); }}
+                          className="p-1 text-slate-405 hover:text-red-500 rounded-lg transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                      Quản Trị Phân Quyền Nhân Sự
+                    </h3>
+                  </div>
+
+                  {userRole === 'admin' ? (
+                    <form onSubmit={handleCreateStaff} className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                      <div className="grid grid-cols-2 gap-2">
+                        <input 
+                          type="text" 
+                          placeholder="Họ tên nhân viên..." 
+                          value={newStaff.name}
+                          onChange={(e) => { setNewStaff({ ...newStaff, name: e.target.value }); }}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold animate-fadeIn"
+                          required
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Chức danh" 
+                          value={newStaff.title}
+                          onChange={(e) => { setNewStaff({ ...newStaff, title: e.target.value }); }}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 gap-2">
+                        <input 
+                          type="email" 
+                          placeholder="Email đăng nhập..." 
+                          value={newStaff.email}
+                          onChange={(e) => { setNewStaff({ ...newStaff, email: e.target.value }); }}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-medium"
+                          required
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Mã UID (Lấy từ Firebase Authentication)..." 
+                          value={newStaff.uid}
+                          disabled={editingStaffUid !== null}
+                          onChange={(e) => { setNewStaff({ ...newStaff, uid: e.target.value }); }}
+                          className={`px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-mono font-bold animate-fadeIn ${editingStaffUid !== null ? 'bg-slate-100 text-slate-450 cursor-not-allowed' : ''}`}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Site Giao Việc (Phân Chi Nhánh)</label>
+                        <select 
+                          value={newStaff.assignedSite || 'Tất cả'}
+                          onChange={(e) => { setNewStaff({ ...newStaff, assignedSite: e.target.value }); }}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold cursor-pointer"
+                        >
+                          <option value="Tất cả">Tất cả (Toàn hệ thống)</option>
+                          <option value="BV Tâm Anh - Tân Sơn Hòa">BV Tâm Anh - Tân Sơn Hòa</option>
+                          <option value="PK Tâm Anh - Tân Hưng">PK Tâm Anh - Tân Hưng</option>
+                          <option value="BV Tâm Anh - Chánh Hưng">BV Tâm Anh - Chánh Hưng</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Vai trò phân quyền</label>
+                        <select 
+                          value={newStaff.role}
+                          onChange={(e) => { setNewStaff({ ...newStaff, role: e.target.value }); }}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-bold cursor-pointer"
+                        >
+                          <option value="nhanvien">nhanvien</option>
+                          <option value="quanly_site">quanly_site</option>
+                          <option value="quanly">quanly</option>
+                          <option value="lanhdao">lanhdao</option>
+                          <option value="admin">admin</option>
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        {editingStaffUid && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingStaffUid(null);
+                              setNewStaff({ name: '', email: '', role: 'nhanvien', uid: '', title: '', assignedSite: 'Tất cả' });
+                            }}
+                            className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition"
+                          >
+                            Hủy
+                          </button>
+                        )}
+                        <button 
+                          type="submit"
+                          className="flex-1 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center justify-center gap-1"
+                        >
+                          {editingStaffUid ? <Check className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                          {editingStaffUid ? "Cập nhật tài khoản" : "Đăng ký tài khoản nhân viên"}
+                        </button>
+                      </div>
+                    </form>
+                  ) : null}
+
+                  <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                    {staffList.map((staff) => (
+                      <div key={staff.uid} className="flex justify-between items-center p-3 rounded-2xl border border-slate-200 bg-slate-50/50">
+                        <div>
+                          <div className="text-xs font-bold text-slate-800">{staff.name}</div>
+                          <div className="text-[9px] text-slate-400 font-mono">{staff.email}</div>
+                          <div className="text-[9px] text-slate-400 font-semibold text-indigo-600 mt-0.5">📍 Chi nhánh được gán: {staff.assignedSite || 'Tất cả'}</div>
+                          <div className="text-[9px] text-slate-405 italic">UID: {staff.uid} | {staff.title}</div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-black px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-sm uppercase">
+                            {staff.role}
+                          </span>
+                          {userRole === 'admin' && (
+                            <button
+                              type="button"
+                              onClick={() => { handleEditStaff(staff); }}
+                              className="p-1 border border-slate-200 text-slate-404 hover:text-indigo-600 hover:border-indigo-200 rounded transition"
+                              title="Chỉnh sửa thông tin"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {userRole === 'admin' && staff.uid !== "acc_admin" && (
+                            <button
+                              type="button"
+                              onClick={() => { handleDeleteStaff(staff.uid); }}
+                              className="p-1 border border-slate-200 text-slate-404 hover:text-red-500 hover:border-red-200 rounded transition"
+                              title="Xóa"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {isEditModalOpen && selectedUser && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-8 border border-slate-200 shadow-2xl space-y-6">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-              <h3 className="text-lg font-bold text-slate-900">Cập Nhật Trạng Thái Làm Việc</h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-400"><X className="h-5 w-5" /></button>
-            </div>
-            <div className="space-y-4 text-xs">
-              <p className="text-slate-600 font-semibold">Cập nhật trạng thái công tác của nhân viên <span className="font-bold text-slate-900">{selectedUser.personalInfo?.fullName}</span> (Mã NV: {selectedUser.personalInfo?.employeeId}):</p>
-              <div className="grid grid-cols-3 gap-3">
-                <button onClick={() => handleUpdateUserStatus(selectedUser.id, "working")} className={`py-3 rounded-xl font-bold transition border ${selectedUser.employmentLifecycle?.status === "working" ? "bg-green-50 border-green-200 text-green-700" : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"}`}>Đang làm việc</button>
-                <button onClick={() => handleUpdateUserStatus(selectedUser.id, "leave")} className={`py-3 rounded-xl font-bold transition border ${selectedUser.employmentLifecycle?.status === "leave" ? "bg-yellow-50 border-yellow-200 text-yellow-700" : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"}`}>Nghỉ phép</button>
-                <button onClick={() => handleUpdateUserStatus(selectedUser.id, "training")} className={`py-3 rounded-xl font-bold transition border ${selectedUser.employmentLifecycle?.status === "training" ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"}`}>Đang đào tạo</button>
-              </div>
-              <div className="pt-4 border-t border-slate-100 space-y-3">
-                <p className="font-bold text-red-600">Bảo mật thiết bị:</p>
-                <button className="w-full py-3 bg-red-50 hover:bg-red-100 border border-red-100 text-red-600 font-bold rounded-xl transition">Xóa liên kết thiết bị hiện tại</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      </main>
 
-      {customAlert && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex justify-center items-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 border border-slate-200 shadow-2xl space-y-4">
-            <div className="flex items-center space-x-3">
-              {customAlert.type === "error" ? (
-                <AlertCircle className="h-6 w-6 text-red-600" />
-              ) : (
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              )}
-              <h4 className="text-sm font-extrabold text-slate-900">{customAlert.title}</h4>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed font-semibold">{customAlert.message}</p>
-            <div className="flex justify-end">
-              <button 
-                onClick={() => setCustomAlert(null)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition"
-              >
-                Đồng ý
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <footer className="bg-white border-t border-slate-200 py-6 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 font-semibold">
-          <p>Phòng Chăm Sóc Khách Hàng © 2026</p>
-          <p className="text-slate-400">CSKH PORTAL - {APP_VERSION}</p>
+      <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
+        <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
+          <p className="text-slate-500">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.1.3</p>
+          <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
     </div>
