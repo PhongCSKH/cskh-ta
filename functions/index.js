@@ -1,122 +1,91 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
+const admin = require("firebase-admin");
+
 admin.initializeApp();
 
-exports.onPatientWrite = functions.firestore
-  .document('artifacts/{appId}/public/data/patients/{patientId}')
-  .onWrite(async (change, context) => {
-    const appId = context.params.appId;
-    const patientId = context.params.patientId;
+exports.onPatientWrite = onDocumentWritten(
+  "artifacts/cskh-ta/public/data/patients/{patientId}",
+  async (event) => {
+    const data = event.data ? event.data.after.data() : null;
+    const previousData = event.data ? event.data.before.data() : null;
 
-    const beforeData = change.before.exists ? change.before.data() : null;
-    const afterData = change.after.exists ? change.after.data() : null;
+    if (!data) return null;
 
-    if (!afterData) {
+    if (previousData && previousData.status === data.status) {
       return null;
     }
 
-    const beforeStatus = beforeData ? beforeData.status : null;
-    const afterStatus = afterData.status;
+    const recipients = data.recipients || [];
+    const status = data.status || "Waiting";
+    const tier = data.tier || "VIP";
+    const name = data.name || "---";
+    const pid = data.pid || "---";
 
-    let title = '';
-    let body = '';
-
-    if (!beforeData) {
-      title = `🆕 Tiếp nhận khách VIP`;
-      body = `Bệnh nhân: ${afterData.name || '---'} (PID: ${afterData.pid || '---'}) đã được tiếp đón.`;
-    } else if (beforeStatus !== afterStatus) {
-      const statusLabels = {
-        'Scheduled': 'Đã lên lịch',
-        'Preparing': 'Đang chuẩn bị',
-        'ReceivedInfo': 'Đã nhận thông tin',
-        'Waiting': 'Chờ Tiếp Đón',
-        'Received': 'Đã Tiếp Đón',
-        'Examining': 'Đang Khám',
-        'Testing': 'Đang Làm CLS/CĐHA',
-        'Reviewing': 'Chờ Kết Luận',
-        'Pharmacy': 'Đang Chờ Thuốc/Tiêm Ngừa',
-        'Inpatient': 'Đang Nằm Viện',
-        'Completed': 'Đã Hoàn Tất'
-      };
-      const newStatusLabel = statusLabels[afterStatus] || afterStatus;
-      title = `🔄 Cập nhật hành trình`;
-      body = `Hồ sơ khách hàng ${afterData.name || '---'} vừa đổi trạng thái sang: ${newStatusLabel}.`;
-    } else {
-      return null;
-    }
-
-    const recipients = afterData.recipients || [];
-    if (recipients.length === 0) {
-      const staffSnapshot = await admin.firestore()
-        .collection(`artifacts/${appId}/public/data/users`)
-        .get();
-      
-      staffSnapshot.forEach(doc => {
-        const staff = doc.data();
-        if (staff.role === 'admin' || staff.role === 'quanly' || staff.role === 'lanhdao') {
-          recipients.push(doc.id);
-        } else if (staff.role === 'quanly_site' && staff.assignedSite === afterData.site) {
-          recipients.push(doc.id);
-        }
-      });
-    } else {
-      const adminStaffSnapshot = await admin.firestore()
-        .collection(`artifacts/${appId}/public/data/users`)
-        .get();
-      
-      adminStaffSnapshot.forEach(doc => {
-        const staff = doc.data();
-        if ((staff.role === 'admin' || staff.role === 'quanly') && !recipients.includes(doc.id)) {
-          recipients.push(doc.id);
-        }
-      });
+    let statusLabel = status;
+    const statuses = [
+      { id: "Scheduled", label: "Đã lên lịch" },
+      { id: "Preparing", label: "Đang chuẩn bị" },
+      { id: "ReceivedInfo", label: "Đã nhận thông tin" },
+      { id: "Waiting", label: "Chờ Tiếp Đón" },
+      { id: "Received", label: "Đã Tiếp Đón" },
+      { id: "Examining", label: "Đang Khám" },
+      { id: "Testing", label: "Đang Làm CLS/CĐHA" },
+      { id: "Reviewing", label: "Chờ Kết Luận" },
+      { id: "Pharmacy", label: "Đang Chờ Thuốc/Tiêm Ngừa" },
+      { id: "Inpatient", label: "Đang Nằm Viện" },
+      { id: "Completed", label: "Đã Hoàn Tất" }
+    ];
+    
+    const matchedStatus = statuses.find(s => s.id === status);
+    if (matchedStatus) {
+      statusLabel = matchedStatus.label;
     }
 
     const tokens = [];
-    for (const uid of recipients) {
-      const userDoc = await admin.firestore()
-        .doc(`artifacts/${appId}/public/data/users/${uid}`)
-        .get();
-      
-      if (userDoc.exists) {
-        const userData = userDoc.data();
-        if (userData.fcmToken) {
-          tokens.push(userData.fcmToken);
+    const db = admin.firestore();
+
+    if (recipients.length > 0) {
+      for (const uid of recipients) {
+        const userDoc = await db.collection("artifacts/cskh-ta/public/data/users").doc(uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          if (userData && userData.fcmToken) {
+            tokens.push(userData.fcmToken);
+          }
         }
       }
+    } else {
+      const usersSnapshot = await db.collection("artifacts/cskh-ta/public/data/users").get();
+      usersSnapshot.forEach((doc) => {
+        const userData = doc.data();
+        if (userData && userData.fcmToken) {
+          tokens.push(userData.fcmToken);
+        }
+      });
     }
 
-    const uniqueTokens = [...new Set(tokens)];
-    if (uniqueTokens.length === 0) {
-      return null;
-    }
+    if (tokens.length === 0) return null;
+
+    const title = tier === "VVIP" ? "⚠️ Cập nhật hành trình" : "🔄 Cập nhật hành trình";
+    const body = `Khách hàng: ${name} - ${pid} vừa chuyển sang trạng thái: ${statusLabel}.`;
 
     const message = {
-      tokens: uniqueTokens,
       notification: {
         title: title,
         body: body
       },
-      webpush: {
-        headers: {
-          Urgency: "high"
-        },
-        notification: {
-          title: title,
-          body: body,
-          icon: 'https://iili.io/F66acRs.png',
-          badge: 'https://iili.io/F66acRs.png'
-        },
-        data: {
-          patientId: patientId
-        }
-      }
+      data: {
+        patientId: event.params.patientId,
+        click_action: "FLUTTER_NOTIFICATION_CLICK"
+      },
+      tokens: tokens
     };
 
     try {
       const response = await admin.messaging().sendEachForMulticast(message);
-      return null;
+      return { success: true, responses: response.responses };
     } catch (error) {
-      return null;
+      return { success: false, error: error.message };
     }
-  });
+  }
+);
