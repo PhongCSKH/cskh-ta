@@ -293,7 +293,6 @@ export default function App() {
 
   const [notifications, setNotifications] = useState([]);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
-  const [activePushAlerts, setActivePushAlerts] = useState([]);
   const isInitialMount = useRef(true);
   const notificationCenterRef = useRef(null);
 
@@ -356,9 +355,6 @@ export default function App() {
     }
 
     const id = Date.now() + Math.random().toString(36).substr(2, 9);
-    const newAlert = { id, title, message, type, patientId };
-
-    setActivePushAlerts(prev => [newAlert, ...prev]);
 
     setNotifications(prev => [
       {
@@ -390,10 +386,6 @@ export default function App() {
         }
       }
     }
-
-    setTimeout(() => {
-      setActivePushAlerts(prev => prev.filter(alert => alert.id !== id));
-    }, 6000);
   };
 
   const handleNotificationClick = (patientId) => {
@@ -1852,40 +1844,6 @@ export default function App() {
         </div>
       )}
 
-      {}
-      <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
-        {activePushAlerts.map(alert => (
-          <div 
-            key={alert.id}
-            onClick={() => { handleNotificationClick(alert.patientId); }}
-            className={`pointer-events-auto p-4 rounded-2xl shadow-xl border flex gap-3 items-start transition-all transform duration-300 bg-white cursor-pointer hover:shadow-2xl ${
-              alert.type === 'success' ? 'border-emerald-100 bg-emerald-50/95' :
-              alert.type === 'error' ? 'border-rose-100 bg-rose-50/95' : 'border-indigo-100 bg-indigo-50/95'
-            }`}
-          >
-            <div className={`p-1.5 rounded-lg text-white ${
-              alert.type === 'success' ? 'bg-emerald-500' :
-              alert.type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'
-            }`}>
-              <BellRing className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-extrabold text-slate-900">{alert.title}</h4>
-              <p className="text-[11px] text-slate-605 mt-0.5 font-medium leading-relaxed">{alert.message}</p>
-            </div>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id));
-              }}
-              className="text-slate-404 hover:text-slate-650 p-0.5 transition"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ))}
-      </div>
-
       {confirmModal.show && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
@@ -2144,7 +2102,7 @@ export default function App() {
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                    🔔 Bật thông báo 
+                    🔔 Bật thông báo chạy ngầm (Nhận tin khi đóng ứng dụng)
                     {iosNotificationStatus === 'granted' ? (
                       <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded-full">Kích hoạt thành công</span>
                     ) : (
@@ -2152,7 +2110,7 @@ export default function App() {
                     )}
                   </h3>
                   <p className="text-[11px] text-slate-404 font-medium leading-relaxed max-w-xl">
-                    Nhấn vào nút <strong className="text-slate-800">Chia sẻ ➔ Thêm vào MH chính (Add to Home Screen)</strong> ngoài màn hình, sau đó mở app từ màn hình chính lên và nhấn nút kích hoạt ở bên phải.
+                    Để nhận được thông báo khi đóng ứng dụng, trên iPhone anh nhấn vào nút <strong className="text-slate-800">Chia sẻ ➔ Thêm vào MH chính (Add to Home Screen)</strong> ngoài màn hình, sau đó mở app từ màn hình chính lên và nhấn nút kích hoạt ở bên phải.
                   </p>
                   {fcmRegisteredToken && (
                     <div className="pt-2 flex items-center gap-1.5 animate-fadeIn">
