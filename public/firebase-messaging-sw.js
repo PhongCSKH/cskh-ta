@@ -17,8 +17,8 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: payload.notification.icon || '/favicon.png',
-    badge: payload.notification.badge || '/favicon.png',
+    icon: payload.notification.icon || 'https://iili.io/F66acRs.png',
+    badge: payload.notification.badge || 'https://iili.io/F66acRs.png',
     data: payload.data
   };
 
