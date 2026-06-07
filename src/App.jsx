@@ -322,6 +322,7 @@ export default function App() {
   const hasAccessToPatient = (patient, action) => {
     if (!currentUser) return false;
     const role = currentUser.role || 'nhanvien';
+    if (role === 'admin') return true;
     const userSite = currentUser.assignedSite || 'Tất cả';
     
     const permLevel = systemSettings?.permissions?.[action]?.[role] || 'none';
@@ -841,7 +842,7 @@ export default function App() {
 
             if (!permKey) return;
 
-            const level = systemSettings.notificationPermissions?.[permKey]?.[role] || 'none';
+            const level = role === 'admin' ? 'all' : (systemSettings.notificationPermissions?.[permKey]?.[role] || 'none');
 
             if (level === 'none') return;
 
