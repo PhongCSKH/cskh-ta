@@ -215,6 +215,31 @@ const sites = [
   { id: 'ch', label: 'BV Tâm Anh - Chánh Hưng', bg: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500', cardBg: 'bg-[#f0fdf4] border-[#bbf7d0] hover:border-[#86efac]' }
 ];
 
+const maskPatientName = (name) => {
+  if (!name) return '---';
+  const words = name.trim().split(/\s+/);
+  if (words.length <= 1) return name;
+  const maskedWords = words.map((word, idx) => {
+    if (idx === words.length - 1) {
+      return word;
+    }
+    const firstChar = word.charAt(0);
+    const asterisks = '*'.repeat(Math.max(1, word.length - 1));
+    return firstChar + asterisks;
+  });
+  return maskedWords.join(' ');
+};
+
+const maskPID = (pid) => {
+  if (!pid) return '---';
+  const cleanPid = pid.trim();
+  if (cleanPid.length <= 6) return cleanPid;
+  const firstPart = cleanPid.slice(0, 2);
+  const lastPart = cleanPid.slice(-4);
+  const middleMask = '*'.repeat(cleanPid.length - 6);
+  return `${firstPart}${middleMask}${lastPart}`;
+};
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState('nhanvien');
@@ -306,6 +331,30 @@ export default function App() {
   const patientsRef = useRef([]);
 
   const [fcmRegisteredToken, setFcmRegisteredToken] = useState('');
+
+  const handleCopyText = (e, text, label) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        showNotification(`Đã sao chép ${label}: ${text}`);
+      }).catch(err => {
+        console.error(err);
+      });
+    } else {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showNotification(`Đã sao chép ${label}: ${text}`);
+      } catch (err) {
+        console.error(err);
+      }
+      document.body.removeChild(textArea);
+    }
+  };
 
   useEffect(() => {
     patientsRef.current = patients;
@@ -1853,7 +1902,7 @@ export default function App() {
         </div>
       )}
 
-      {/* STICKY HEADER (RESORED COMPLETE!) */}
+      {/* STICKY HEADER */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1873,7 +1922,7 @@ export default function App() {
                     {userRole}
                   </span>
                 </h1>
-                <p className="text-[10px] text-slate-400 font-semibold">
+                <p className="text-[10px] text-slate-404 font-semibold">
                   {currentUser?.assignedSite && currentUser.assignedSite !== 'Tất cả' ? `📍 Chi nhánh: ${currentUser.assignedSite}` : '🌐 Toàn hệ thống'}
                 </p>
               </div>
@@ -1931,7 +1980,7 @@ export default function App() {
                 {isFirebaseConnected ? 'Live' : 'Offline'}
               </div>
 
-              {/* Pulsing indicator if Notification permission is default */}
+              {/* Dropdown kích hoạt thông báo ngầm */}
               <button 
                 onClick={() => { setShowNotificationCenter(!showNotificationCenter); }}
                 className={`p-2 rounded-xl transition-all relative border border-slate-200 ${
@@ -1956,10 +2005,10 @@ export default function App() {
                 )}
               </button>
 
-              {/* NOTIFICATION CENTER WITH INTEGRATED COMPACT BACKGROUND PUSH TRIGGER */}
+              {/* NOTIFICATION CENTER WITH INTEGRATED PUSH TRIGGER */}
               {showNotificationCenter && (
                 <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 p-4 space-y-3 animate-scaleIn">
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                  <div className="flex justify-between items-center border-b border-slate-101 pb-2">
                     <div className="flex items-center gap-1.5">
                       <BellRing className="w-4 h-4 text-indigo-600" />
                       <h4 className="text-xs font-black text-slate-900">Trung tâm thông báo</h4>
@@ -1980,22 +2029,21 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Elegant notification activation prompt (Completely hidden from Dashboard) */}
                   {iosNotificationStatus !== 'granted' && (
-                    <div className="p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-2xl space-y-2.5 animate-fadeIn">
+                    <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-2">
                       <div className="flex items-start gap-2">
                         <Smartphone className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
                         <div className="space-y-0.5">
-                          <p className="text-xs font-black text-indigo-950">Nhận thông báo khi đóng ứng dụng</p>
-                          <p className="text-[10px] leading-normal text-indigo-700 font-medium">Để nhận tin khi sảnh sảnh tắt app, hãy thêm App vào MH chính (Add to Home Screen) rồi bấm nút kích hoạt.</p>
+                          <p className="text-xs font-black text-indigo-950">Bật thông báo chạy ngầm</p>
+                          <p className="text-[10px] leading-normal text-indigo-700 font-medium">Để nhận tin khi sảnh tắt app, hãy thêm App vào MH chính (Add to Home Screen) rồi bấm nút kích hoạt.</p>
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={requestIosNotificationPermission}
-                        className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black transition flex items-center justify-center gap-1.5 shadow-sm shadow-indigo-600/10"
+                        className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black transition flex items-center justify-center gap-1.5 shadow-sm shadow-indigo-600/10"
                       >
-                        🔔 Kích hoạt nhận tin chạy ngầm
+                        🔔 Kích hoạt ngay
                       </button>
                     </div>
                   )}
@@ -2050,7 +2098,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* MOBILE BOTTOM NAVIGATION BAR (RESTORED COMPLETE!) */}
+      {/* MOBILE BOTTOM NAVIGATION BAR */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
         {canShowTab('dashboard') && (
           <button 
@@ -2159,7 +2207,7 @@ export default function App() {
                   Chào, {currentUser?.name || ''}!
                 </h2>
                 <p className="text-[11px] sm:text-xs text-slate-300 leading-normal font-semibold">
-                  Công cụ hỗ trợ quản lý và theo dõi việc tiếp đón và chi phí của nhóm Khách hàng VIP, VVIP, Ngoại giao của Ban giám dốc.
+                  Công cụ hỗ trợ quản lý và theo dõi việc tiếp đón và chi phí của nhóm Khách hàng VIP, VVIP, Ngoại giao của Ban giám đốc.
                 </p>
               </div>
               {canShowTab('register') && (
@@ -2276,6 +2324,7 @@ export default function App() {
               </div>
             )}
 
+            {/* REALTIME KANBAN */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
@@ -2326,14 +2375,14 @@ export default function App() {
                     return (
                       <div 
                         key={col.id} 
-                        className="w-12 bg-slate-100/40 rounded-2xl py-3 px-1 border border-slate-200 flex flex-col items-center justify-start transition-all duration-300 ease-in-out shrink-0 select-none cursor-pointer"
+                        className="w-12 bg-slate-101 rounded-2xl py-3 px-1 border border-slate-200 flex flex-col items-center justify-start transition-all duration-300 ease-in-out shrink-0 select-none cursor-pointer"
                         title={`Trống: ${col.label}`}
                       >
                         <span className={`w-2 h-2 rounded-full ${col.dot} mb-2`}></span>
                         <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-555 mb-2 font-mono">
                           0
                         </span>
-                        <span className="text-[9px] font-extrabold text-slate-400 whitespace-nowrap [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
+                        <span className="text-[9px] font-extrabold text-slate-404 whitespace-nowrap [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
                           {col.label}
                         </span>
                       </div>
@@ -2365,7 +2414,13 @@ export default function App() {
                               className={`p-3 rounded-xl border shadow-2xs hover:shadow-xs transition duration-150 space-y-2.5 relative group cursor-pointer ${patientSite.cardBg}`}
                             >
                               <div className="flex justify-between items-start gap-1">
-                                <span className="text-[8px] text-slate-555 font-mono font-black truncate">PID: {p.pid}</span>
+                                <span 
+                                  onClick={(e) => handleCopyText(e, p.pid, 'mã PID')}
+                                  className="text-[8px] text-slate-555 font-mono font-black truncate hover:text-indigo-600 transition"
+                                  title="Click để sao chép PID"
+                                >
+                                  PID: {maskPID(p.pid)}
+                                </span>
                                 <div className="flex gap-1">
                                   <span className={`px-1 py-0.5 rounded-xs text-[7px] font-bold uppercase ${
                                     p.examinationArea === 'Khu VIP' ? 'bg-indigo-100 text-indigo-800' : 'bg-teal-100 text-teal-800'
@@ -2380,8 +2435,12 @@ export default function App() {
                                 </div>
                               </div>
 
-                              <div className="font-extrabold text-[11px] text-slate-800 leading-tight truncate" title={p.name}>
-                                {p.name}
+                              <div 
+                                onClick={(e) => handleCopyText(e, p.name, 'họ tên khách hàng')}
+                                className="font-extrabold text-[11px] text-slate-800 leading-tight truncate hover:text-indigo-600 transition" 
+                                title="Click để sao chép họ tên đầy đủ"
+                              >
+                                {maskPatientName(p.name)}
                               </div>
 
                               <div className="space-y-1" onClick={(e) => { e.stopPropagation(); }}>
@@ -2425,7 +2484,7 @@ export default function App() {
                   </h4>
                   <button 
                     onClick={() => { setActiveTab('settings'); }}
-                    className="text-xs font-black text-indigo-605 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
+                    className="text-xs font-black text-indigo-655 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
                   >
                     Đến trang cấu hình <ChevronRight className="w-4 h-4" />
                   </button>
@@ -2809,7 +2868,7 @@ export default function App() {
                                       {!isReadOnly && (
                                         <button
                                           type="button"
-                                          onClick={() => { setCopyConfirmModal({ show: false, visitToCopy: visit }); }}
+                                          onClick={() => { setCopyConfirmModal({ show: true, visitToCopy: visit }); }}
                                           className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-202 text-indigo-600 rounded-lg text-[9px] font-black flex items-center gap-1 transition shadow-2xs"
                                           title="Sao chép toàn bộ thông tin chỉ định này sang lượt mới"
                                         >
@@ -3097,7 +3156,7 @@ export default function App() {
                                 value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
                                 disabled={isReadOnly}
                                 onChange={(e) => { handleCurrencyChange('totalAmount', e.target.value); }}
-                                className="w-32 bg-transparent text-right font-extrabold text-slate-105 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono disabled:opacity-80"
+                                className="w-32 bg-transparent text-right font-extrabold text-slate-105 border-b border-transparent hover:border-slate-600 focus:border-indigo-550 focus:outline-hidden font-mono disabled:opacity-80"
                               />
                               <span>đ</span>
                             </div>
@@ -3169,8 +3228,8 @@ export default function App() {
                       ))}
                       {!isReadOnly && (
                         <label className="border-2 border-dashed border-slate-202 rounded-2xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition duration-200 aspect-video">
-                          <Upload className="w-5 h-5 text-slate-400" />
-                          <span className="text-[10px] font-bold text-slate-700">Tải thêm ảnh</span>
+                          <Upload className="w-5 h-5 text-slate-405" />
+                          <span className="text-[10px] font-bold text-slate-707">Tải thêm ảnh</span>
                           <input type="file" accept="image/*" multiple onChange={handleMultipleImagesUpload} className="hidden" />
                         </label>
                       )}
@@ -3354,11 +3413,21 @@ export default function App() {
                               onClick={() => { initiateView(p); }}
                               className="p-2 bg-white border border-slate-200 rounded-xl shadow-3xs hover:border-indigo-400 transition cursor-pointer space-y-1 animate-scaleIn text-left"
                             >
-                              <div className="font-extrabold text-[10px] text-slate-800 truncate">{p.name}</div>
+                              <div 
+                                onClick={(e) => handleCopyText(e, p.name, 'họ tên khách hàng')}
+                                className="font-extrabold text-[10px] text-slate-800 truncate hover:text-indigo-600 transition"
+                              >
+                                {maskPatientName(p.name)}
+                              </div>
                               <div className="flex items-center justify-between gap-1 text-[8px] text-slate-455">
-                                <span className="font-mono">PID: {p.pid}</span>
+                                <span 
+                                  onClick={(e) => handleCopyText(e, p.pid, 'mã PID')}
+                                  className="font-mono hover:text-indigo-600 transition"
+                                >
+                                  PID: {maskPID(p.pid)}
+                                </span>
                                 <span className={`px-1 rounded-sm uppercase font-black text-[7px] ${
-                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-707'
+                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-808' : 'bg-indigo-50 text-indigo-707'
                                 }`}>
                                   {p.tier}
                                 </span>
@@ -3474,8 +3543,20 @@ export default function App() {
                               return (
                                 <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 animate-fadeIn cursor-pointer" onClick={() => { initiateView(p); }}>
                                   <td className="py-4 px-5">
-                                    <div className="font-extrabold text-slate-955 text-sm">{p.name}</div>
-                                    <div className="text-[10px] text-indigo-600 font-mono font-black mt-0.5">PID: {p.pid}</div>
+                                    <div 
+                                      onClick={(e) => handleCopyText(e, p.name, 'họ tên khách hàng')}
+                                      className="font-extrabold text-slate-955 text-sm hover:text-indigo-600 transition"
+                                      title="Click để sao chép họ tên đầy đủ"
+                                    >
+                                      {maskPatientName(p.name)}
+                                    </div>
+                                    <div 
+                                      onClick={(e) => handleCopyText(e, p.pid, 'mã PID')}
+                                      className="text-[10px] text-indigo-600 font-mono font-black mt-0.5 hover:text-indigo-850 transition"
+                                      title="Click để sao chép PID đầy đủ"
+                                    >
+                                      PID: {maskPID(p.pid)}
+                                    </div>
                                   </td>
                                   <td className="py-4 px-3">
                                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${
@@ -3614,8 +3695,18 @@ export default function App() {
                           <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn cursor-pointer" onClick={() => { initiateView(p); }}>
                             <div className="flex justify-between items-start">
                               <div>
-                                <span className="text-[9px] text-indigo-600 font-mono font-black block">PID: {p.pid}</span>
-                                <h4 className="font-extrabold text-slate-900 text-sm">{p.name}</h4>
+                                <span 
+                                  onClick={(e) => handleCopyText(e, p.pid, 'mã PID')}
+                                  className="text-[9px] text-indigo-600 font-mono font-black block hover:text-indigo-850 transition"
+                                >
+                                  PID: {maskPID(p.pid)}
+                                </span>
+                                <h4 
+                                  onClick={(e) => handleCopyText(e, p.name, 'họ tên khách hàng')}
+                                  className="font-extrabold text-slate-900 text-sm hover:text-indigo-600 transition"
+                                >
+                                  {maskPatientName(p.name)}
+                                </h4>
                                 <p className="text-[10px] text-slate-404 mt-0.5 flex items-center gap-1 animate-fadeIn">
                                   <Calendar className="w-3.5 h-3.5" />
                                   Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
@@ -3743,7 +3834,6 @@ export default function App() {
               <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
             </div>
 
-            {/* SEPARATE MATRIX 1: TASK ACTIONS */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -3782,7 +3872,7 @@ export default function App() {
                               <select
                                 value={currentLevel}
                                 onChange={(e) => { handlePermissionChange(perm.key, role, e.target.value); }}
-                                className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-707 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
+                                className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-700 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
                               >
                                 <option value="none">❌ Không quyền</option>
                                 <option value="view_assigned">👁️ Xem Site gán</option>
@@ -3799,7 +3889,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* SEPARATE MATRIX 2: REALTIME NOTIFICATIONS */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -3834,7 +3923,7 @@ export default function App() {
                               <select
                                 value={currentLevel}
                                 onChange={(e) => { handleNotificationPermissionChange(perm.key, role, e.target.value); }}
-                                className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-707 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
+                                className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-700 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
                               >
                                 <option value="none">❌ Không nhận</option>
                                 <option value="assigned_only">👥 Chỉ ca được gán</option>
@@ -3947,7 +4036,7 @@ export default function App() {
                       placeholder="Thêm chuyên khoa mới..."
                       value={newSpecialtyInput}
                       onChange={(e) => { setNewSpecialtyInput(e.target.value); }}
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
                     />
                     <button
                       type="button"
@@ -3983,14 +4072,14 @@ export default function App() {
                   </div>
 
                   {userRole === 'admin' ? (
-                    <form onSubmit={handleCreateStaff} className="space-y-3 bg-slate-55 p-4 rounded-2xl border border-slate-205">
+                    <form onSubmit={handleCreateStaff} className="space-y-3 bg-slate-55 p-4 rounded-2xl border border-slate-200">
                       <div className="grid grid-cols-2 gap-2">
                         <input 
                           type="text" 
                           placeholder="Họ tên nhân viên..." 
                           value={newStaff.name}
                           onChange={(e) => { setNewStaff({ ...newStaff, name: e.target.value }); }}
-                          className="px-3 py-2 border border-slate-205 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold animate-fadeIn"
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold animate-fadeIn"
                           required
                         />
                         <input 
@@ -3998,7 +4087,7 @@ export default function App() {
                           placeholder="Chức danh" 
                           value={newStaff.title}
                           onChange={(e) => { setNewStaff({ ...newStaff, title: e.target.value }); }}
-                          className="px-3 py-2 border border-slate-205 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-medium"
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-medium"
                         />
                       </div>
                       <div className="grid grid-cols-1 gap-2">
@@ -4007,7 +4096,7 @@ export default function App() {
                           placeholder="Email đăng nhập..." 
                           value={newStaff.email}
                           onChange={(e) => { setNewStaff({ ...newStaff, email: e.target.value }); }}
-                          className="px-3 py-2 border border-slate-205 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-medium"
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-medium"
                           required
                         />
                         <input 
@@ -4016,7 +4105,7 @@ export default function App() {
                           value={newStaff.uid}
                           disabled={editingStaffUid !== null}
                           onChange={(e) => { setNewStaff({ ...newStaff, uid: e.target.value }); }}
-                          className={`px-3 py-2 border border-slate-205 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-mono font-bold animate-fadeIn ${editingStaffUid !== null ? 'bg-slate-101 text-slate-450 cursor-not-allowed' : ''}`}
+                          className={`px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-mono font-bold animate-fadeIn ${editingStaffUid !== null ? 'bg-slate-101 text-slate-450 cursor-not-allowed' : ''}`}
                           required
                         />
                       </div>
@@ -4025,7 +4114,7 @@ export default function App() {
                         <select 
                           value={newStaff.assignedSite || 'Tất cả'}
                           onChange={(e) => { setNewStaff({ ...newStaff, assignedSite: e.target.value }); }}
-                          className="w-full px-3 py-2 border border-slate-205 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold cursor-pointer"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold cursor-pointer"
                         >
                           <option value="Tất cả">Tất cả (Toàn hệ thống)</option>
                           <option value="BV Tâm Anh - Tân Sơn Hòa">BV Tâm Anh - Tân Sơn Hòa</option>
@@ -4038,7 +4127,7 @@ export default function App() {
                         <select 
                           value={newStaff.role}
                           onChange={(e) => { setNewStaff({ ...newStaff, role: e.target.value }); }}
-                          className="w-full px-3 py-2 border border-slate-205 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold cursor-pointer"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold cursor-pointer"
                         >
                           <option value="nhanvien">nhanvien</option>
                           <option value="quanly_site">quanly_site</option>
@@ -4119,8 +4208,8 @@ export default function App() {
       </main>
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
-        <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.1.7</p>
+        <div className="max-w-7xl mx-auto px-4 text-xs text-slate-404 space-y-1 font-semibold">
+          <p className="text-slate-505">CÔNG CỘI NỘI BỘ - PHÒNG CSKH v3.1.8</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
