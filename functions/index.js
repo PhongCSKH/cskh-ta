@@ -66,8 +66,8 @@ exports.onPatientWrite = onDocumentWritten(
 
     if (tokens.length === 0) return null;
 
-    const title = tier === "VVIP" ? "⚠️ Cập nhật hành trình" : "🔄 Cập nhật hành trình";
-    const body = `Khách hàng: ${name} - ${pid} vừa chuyển sang trạng thái: ${statusLabel}.`;
+    const title = tier === "VVIP" ? "⚠️ Cập nhật hành trình VVIP khẩn" : "🔄 Cập nhật hành trình VIP";
+    const body = `Khách hàng: ${name} (PID: ${pid}) vừa chuyển sang trạng thái: ${statusLabel}.`;
 
     const message = {
       notification: {
