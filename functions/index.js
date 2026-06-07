@@ -91,21 +91,30 @@ exports.onPatientWrite = functions.firestore
       return null;
     }
 
-    const payload = {
+    const message = {
+      tokens: uniqueTokens,
       notification: {
         title: title,
-        body: body,
-        icon: 'https://iili.io/F66acRs.png',
-        badge: 'https://iili.io/F66acRs.png'
+        body: body
       },
-      data: {
-        patientId: patientId,
-        click_action: 'FLUTTER_NOTIFICATION_CLICK'
+      webpush: {
+        headers: {
+          Urgency: "high"
+        },
+        notification: {
+          title: title,
+          body: body,
+          icon: 'https://iili.io/F66acRs.png',
+          badge: 'https://iili.io/F66acRs.png'
+        },
+        data: {
+          patientId: patientId
+        }
       }
     };
 
     try {
-      const response = await admin.messaging().sendToDevice(uniqueTokens, payload);
+      const response = await admin.messaging().sendEachForMulticast(message);
       return null;
     } catch (error) {
       return null;
