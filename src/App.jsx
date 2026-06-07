@@ -305,6 +305,8 @@ export default function App() {
   const appStartTime = useRef(new Date());
   const patientsRef = useRef([]);
 
+  const [fcmRegisteredToken, setFcmRegisteredToken] = useState('');
+
   useEffect(() => {
     patientsRef.current = patients;
   }, [patients]);
@@ -415,6 +417,7 @@ export default function App() {
         vapidKey: WEBPUSH_VAPID_KEY
       });
       if (token) {
+        setFcmRegisteredToken(token);
         const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userId);
         await updateDoc(userDocRef, { fcmToken: token }).catch(async (e) => {
           await setDoc(userDocRef, { fcmToken: token }, { merge: true }).catch(err => console.warn(err));
@@ -1648,7 +1651,7 @@ export default function App() {
               <h1 className="text-2xl font-black tracking-tight text-slate-900">
                 QL KH VIP-VVIP
               </h1>
-              <p className="text-xs text-slate-400 font-semibold tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
+              <p className="text-xs text-slate-404 font-semibold tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
             </div>
           </div>
 
@@ -1661,7 +1664,7 @@ export default function App() {
 
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email </label>
+              <label className="text-xs font-bold text-slate-550 block">Email </label>
               <input 
                 type="email" 
                 placeholder="nhập email tại đây"
@@ -1672,7 +1675,7 @@ export default function App() {
             </div>
             
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Mật khẩu</label>
+              <label className="text-xs font-bold text-slate-555 block">Mật khẩu</label>
               <div className="relative">
                 <input 
                   type={showPassword ? "text" : "password"} 
@@ -1684,7 +1687,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => { setShowPassword(!showPassword); }}
-                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition"
+                  className="absolute right-3 top-3.5 text-slate-404 hover:text-slate-600 transition"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -1800,7 +1803,7 @@ export default function App() {
               <h4 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center justify-center gap-1.5">
                 <Scan className="w-4 h-4 text-indigo-605 animate-pulse" /> Trình quét mã camera
               </h4>
-              <p className="text-[11px] text-slate-400 font-semibold mt-1">
+              <p className="text-[11px] text-slate-404 font-semibold mt-1">
                 {scannerError ? "Lỗi truy cập thiết bị" : "Đặt mã vạch hoặc mã QR của bệnh nhân vào giữa khung hình"}
               </p>
             </div>
@@ -1849,6 +1852,7 @@ export default function App() {
         </div>
       )}
 
+      {}
       <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 pointer-events-none space-y-2 max-w-sm ml-auto">
         {activePushAlerts.map(alert => (
           <div 
@@ -1874,7 +1878,7 @@ export default function App() {
                 e.stopPropagation();
                 setActivePushAlerts(prev => prev.filter(a => a.id !== alert.id));
               }}
-              className="text-slate-400 hover:text-slate-650 p-0.5 transition"
+              className="text-slate-404 hover:text-slate-650 p-0.5 transition"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -1915,6 +1919,7 @@ export default function App() {
         </div>
       )}
 
+      {}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1934,7 +1939,7 @@ export default function App() {
                     {userRole}
                   </span>
                 </h1>
-                <p className="text-[10px] text-slate-400 font-semibold">
+                <p className="text-[10px] text-slate-404 font-semibold">
                   {currentUser?.assignedSite && currentUser.assignedSite !== 'Tất cả' ? `📍 Chi nhánh: ${currentUser.assignedSite}` : '🌐 Toàn hệ thống'}
                 </p>
               </div>
@@ -1988,14 +1993,14 @@ export default function App() {
 
             <div className="flex items-center gap-3 relative" ref={notificationCenterRef}>
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold">
-                <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
+                <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`}></span>
                 {isFirebaseConnected ? 'Live' : 'Offline'}
               </div>
 
               <button 
                 onClick={() => { setShowNotificationCenter(!showNotificationCenter); }}
                 className={`p-2 rounded-xl transition-all relative border border-slate-200 ${
-                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-505 hover:bg-slate-100'
+                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-404 hover:bg-slate-101'
                 }`}
                 title="Trung tâm thông báo"
               >
@@ -2013,7 +2018,7 @@ export default function App() {
 
               {showNotificationCenter && (
                 <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 p-4 space-y-3 animate-scaleIn">
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                  <div className="flex justify-between items-center border-b border-slate-101 pb-2">
                     <div className="flex items-center gap-1.5">
                       <BellRing className="w-4 h-4 text-indigo-600" />
                       <h4 className="text-xs font-black text-slate-900">Trung tâm thông báo</h4>
@@ -2027,7 +2032,7 @@ export default function App() {
                       </button>
                       <button 
                         onClick={clearAllNotifications}
-                        className="text-[10px] text-rose-505 hover:text-rose-700 font-extrabold transition"
+                        className="text-[10px] text-rose-505 hover:text-rose-705 font-extrabold transition"
                       >
                         Xóa tất cả
                       </button>
@@ -2036,7 +2041,7 @@ export default function App() {
 
                   <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                     {notifications.length === 0 ? (
-                      <div className="text-center py-8 text-slate-400 space-y-2">
+                      <div className="text-center py-8 text-slate-404 space-y-2">
                         <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400" />
                         <p className="text-[11px] font-bold">Hệ thống chưa ghi nhận thông báo mới.</p>
                       </div>
@@ -2073,7 +2078,7 @@ export default function App() {
               </div>
               <button 
                 onClick={handleLogout}
-                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl border border-slate-200 transition-all"
+                className="p-2 text-slate-404 hover:text-red-500 hover:bg-red-55 rounded-xl border border-slate-200 transition-all"
                 title="Đăng xuất"
               >
                 <LogOut className="w-5 h-5" />
@@ -2084,11 +2089,12 @@ export default function App() {
         </div>
       </header>
 
+      {}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
         {canShowTab('dashboard') && (
           <button 
             onClick={() => { resetForm(); setActiveTab('dashboard'); }}
-            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-606' : 'text-slate-404'}`}
           >
             <LayoutDashboard className="w-5 h-5" />
             <span>Bảng điều khiển</span>
@@ -2097,7 +2103,7 @@ export default function App() {
         {canShowTab('register') && (
           <button 
             onClick={() => { resetForm(); setActiveTab('register'); }}
-            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'register' ? 'text-indigo-600' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'register' ? 'text-indigo-606' : 'text-slate-404'}`}
           >
             <Plus className="w-5 h-5" />
             <span>Tiếp nhận VIP</span>
@@ -2106,7 +2112,7 @@ export default function App() {
         {canShowTab('monitoring') && (
           <button 
             onClick={() => { resetForm(); setActiveTab('monitoring'); }}
-            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'monitoring' ? 'text-indigo-600' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'monitoring' ? 'text-indigo-606' : 'text-slate-404'}`}
           >
             <ClipboardList className="w-5 h-5" />
             <span>Theo dõi hồ sơ</span>
@@ -2115,7 +2121,7 @@ export default function App() {
         {userRole === 'admin' && (
           <button 
             onClick={() => { setActiveTab('settings'); }}
-            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'settings' ? 'text-indigo-606' : 'text-slate-404'}`}
           >
             <Settings className="w-5 h-5" />
             <span>Cấu hình</span>
@@ -2129,6 +2135,60 @@ export default function App() {
         {activeTab === 'dashboard' && canShowTab('dashboard') && (
           <div className="space-y-8 animate-fadeIn">
             
+            {}
+            <div className="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden animate-fadeIn">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/5 rounded-full filter blur-2xl"></div>
+              <div className="flex gap-4 items-start relative z-10">
+                <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-2xl text-indigo-600">
+                  <Smartphone className="w-6 h-6 animate-pulse" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    🔔 Bật thông báo 
+                    {iosNotificationStatus === 'granted' ? (
+                      <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded-full">Kích hoạt thành công</span>
+                    ) : (
+                      <span className="bg-amber-100 text-amber-800 text-[9px] font-bold px-2 py-0.5 rounded-full">Chưa cấu hình</span>
+                    )}
+                  </h3>
+                  <p className="text-[11px] text-slate-404 font-medium leading-relaxed max-w-xl">
+                    Nhấn vào nút <strong className="text-slate-800">Chia sẻ ➔ Thêm vào MH chính (Add to Home Screen)</strong> ngoài màn hình, sau đó mở app từ màn hình chính lên và nhấn nút kích hoạt ở bên phải.
+                  </p>
+                  {fcmRegisteredToken && (
+                    <div className="pt-2 flex items-center gap-1.5 animate-fadeIn">
+                      <span className="text-[9px] font-mono bg-slate-50 border border-slate-200 px-2 py-1 rounded-md text-slate-404 max-w-[280px] sm:max-w-md truncate block font-bold">
+                        FCM Token: {fcmRegisteredToken}
+                      </span>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(fcmRegisteredToken);
+                          showNotification("Đã sao chép mã Token thiết bị!");
+                        }}
+                        className="p-1.5 bg-slate-101 border border-slate-220 hover:bg-slate-200 rounded-lg text-slate-600 transition flex items-center gap-1 text-[9px] font-black"
+                        title="Sao chép Token"
+                      >
+                        <Copy className="w-3 h-3" /> Sao chép Token
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="shrink-0 relative z-10 w-full md:w-auto flex justify-end">
+                {iosNotificationStatus === 'granted' ? (
+                  <div className="px-4 py-2.5 bg-emerald-50 text-emerald-707 border border-emerald-202 text-xs font-black rounded-xl flex items-center gap-1.5 shadow-2xs">
+                    <Check className="w-4 h-4 text-emerald-600 stroke-[3px]" /> Sẵn sàng nhận đẩy ngầm
+                  </div>
+                ) : (
+                  <button 
+                    onClick={requestIosNotificationPermission}
+                    className="w-full md:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl transition shadow-md shadow-indigo-100/50 flex items-center justify-center gap-1.5 transform active:scale-95"
+                  >
+                    <Bell className="w-4 h-4 animate-bounce" /> Kích hoạt trên thiết bị
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="bg-gradient-to-tr from-[#312e81] via-[#4338ca] to-[#6d28d9] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-indigo-500/30">
               <div className="absolute right-0 top-0 w-96 h-96 bg-white/5 rounded-full filter blur-3xl opacity-20 translate-x-24 -translate-y-24"></div>
               
@@ -2206,6 +2266,7 @@ export default function App() {
               )}
             </div>
 
+            {}
             {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
               <div className="space-y-4">
                 
@@ -2218,7 +2279,7 @@ export default function App() {
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                    <div className="flex bg-slate-101 p-0.5 rounded-lg border border-slate-200">
                       <button
                         type="button"
                         onClick={() => { setDashFilterMode('today'); }}
@@ -2271,7 +2332,7 @@ export default function App() {
                       <Users className="w-6 h-6" />
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Khách hàng</span>
+                      <span className="text-[10px] text-slate-404 font-black block uppercase tracking-wider">Khách hàng</span>
                       <span className="text-xl font-black text-slate-900">{dashMetrics.totalPatients}</span>
                       <span className="text-[11px] text-slate-500 block">
                         VIP: {dashMetrics.vipCount} | VVIP: {dashMetrics.vvipCount}
@@ -2284,7 +2345,7 @@ export default function App() {
                       <Activity className="w-6 h-6" />
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Tổng chi phí</span>
+                      <span className="text-[10px] text-slate-404 font-black block uppercase tracking-wider">Tổng chi phí</span>
                       <span className="text-xl font-black text-slate-900">{formatCurrency(dashMetrics.totalRevenue)}</span>
                       <span className="text-[11px] text-slate-500 block">
                         Tổng chi phí sử dụng (VVIP)
@@ -2297,7 +2358,7 @@ export default function App() {
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 font-black block uppercase tracking-wider">Tổng duyệt giảm</span>
+                      <span className="text-[10px] text-slate-404 font-black block uppercase tracking-wider">Tổng duyệt giảm</span>
                       <span className="text-xl font-black text-rose-605">-{formatCurrency(dashMetrics.totalDiscount)}</span>
                       <span className="text-[11px] text-rose-405 block font-bold">
                         Ban lãnh đạo duyệt
@@ -2308,6 +2369,7 @@ export default function App() {
               </div>
             )}
 
+            {}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
@@ -2405,7 +2467,7 @@ export default function App() {
                                     {p.examinationArea === 'Khu VIP' ? 'VIP' : 'TC'}
                                   </span>
                                   <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
-                                    p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-700'
+                                    p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-707'
                                   }`}>
                                     {p.tier}
                                   </span>
@@ -2469,6 +2531,7 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI ========================== */}
+        {}
         {activeTab === 'register' && canShowTab('register') && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
@@ -2478,12 +2541,12 @@ export default function App() {
                   {currentId ? (isReadOnly ? "Chi tiết hồ sơ bệnh nhân" : "Cập Nhật Tiến Độ") : "Tạo lượt Tiếp Đón VIP/VVIP"}
                 </h2>
                 {currentId && isReadOnly && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-105 border border-slate-200 text-slate-500 uppercase tracking-wider animate-fadeIn">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-101 border border-slate-200 text-slate-500 uppercase tracking-wider animate-fadeIn">
                     <Lock className="w-3 h-3" /> Chế độ chỉ xem
                   </span>
                 )}
                 {currentId && !isReadOnly && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-50 border border-amber-200 text-amber-707 uppercase tracking-wider animate-fadeIn">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-50 border border-amber-202 text-amber-707 uppercase tracking-wider animate-fadeIn">
                     <Unlock className="w-3 h-3 text-amber-600" /> Chế độ chỉnh sửa
                   </span>
                 )}
@@ -2826,7 +2889,7 @@ export default function App() {
                               {patientVisitHistory.map((visit) => {
                                 const vSite = sites.find(s => s.label === visit.site) || sites[0];
                                 return (
-                                  <div key={visit.id} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-3 relative hover:shadow-xs transition duration-150">
+                                  <div key={visit.id} className="p-3 bg-slate-55 border border-slate-202 rounded-2xl text-xs space-y-3 relative hover:shadow-xs transition duration-150">
                                     
                                     <div className="flex justify-between items-start gap-1">
                                       <div>
@@ -3066,6 +3129,7 @@ export default function App() {
 
               </div>
 
+              {}
               <div className="space-y-6">
                 
                 {formData.tier === 'VVIP' && (
@@ -3090,7 +3154,7 @@ export default function App() {
                               placeholder="0"
                               className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-850 border border-slate-750 focus:outline-hidden focus:ring-2 ring-indigo-505 text-xs font-bold text-white placeholder-slate-505 font-mono disabled:opacity-80"
                             />
-                            <span className="absolute right-3 top-3 text-[10px] text-slate-550 font-bold font-mono">VNĐ</span>
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-555 font-bold font-mono">VNĐ</span>
                           </div>
                         </div>
 
@@ -3218,6 +3282,7 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ & BỘ LỊCH ========================== */}
+        {}
         {activeTab === 'monitoring' && canShowTab('monitoring') && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -3288,7 +3353,7 @@ export default function App() {
               <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                 <div className="flex flex-col md:flex-row gap-3">
                   <div className="flex-1 relative">
-                    <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-400" />
+                    <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-404" />
                     <input 
                       type="text" 
                       placeholder="Tìm theo tên, mã PID, ghi chú..."
@@ -3477,7 +3542,7 @@ export default function App() {
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy hồ sơ nào phù hợp</h3>
-                      <p className="text-slate-400 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
+                      <p className="text-slate-404 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
                     </div>
                   </div>
                 ) : (
@@ -3570,7 +3635,7 @@ export default function App() {
                                     ) : canViewBilling ? (
                                       formatCurrency(realCollected)
                                     ) : (
-                                      <span className="text-slate-405">🔒 Khóa</span>
+                                      <span className="text-slate-455">🔒 Khóa</span>
                                     )}
                                   </td>
                                   <td className="py-4 px-5 text-right whitespace-nowrap" onClick={(e) => { e.stopPropagation(); }}>
@@ -3687,20 +3752,20 @@ export default function App() {
                               canViewBilling ? (
                                 <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
                                   <div>
-                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
+                                    <span className="text-[8px] text-slate-404 block font-bold uppercase">Tổng phí</span>
                                     <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
                                   </div>
                                   <div>
-                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
+                                    <span className="text-[8px] text-slate-404 block font-bold uppercase">Duyệt giảm</span>
                                     <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
                                   </div>
                                   <div>
-                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
+                                    <span className="text-[8px] text-slate-404 block font-bold uppercase">Thực Thu</span>
                                     <span className="text-[11px] font-black text-emerald-605 font-mono">{formatCurrency(realCollected)}</span>
                                   </div>
                                 </div>
                               ) : (
-                                <div className="bg-slate-50 p-2 text-center rounded-xl text-xs text-slate-400 flex items-center justify-center gap-1">
+                                <div className="bg-slate-50 p-2 text-center rounded-xl text-xs text-slate-404 flex items-center justify-center gap-1">
                                   <Lock className="w-3.5 h-3.5" /> Chi phí tài chính bị khóa bảo mật
                                 </div>
                               )
@@ -3768,6 +3833,7 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 4: CẤU HÌNH THAM SỐ ========================== */}
+        {}
         {activeTab === 'settings' && userRole === 'admin' && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -3813,7 +3879,7 @@ export default function App() {
                               <select
                                 value={currentLevel}
                                 onChange={(e) => { handlePermissionChange(perm.key, role, e.target.value); }}
-                                className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-700 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
+                                className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-707 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
                               >
                                 <option value="none">❌ Không quyền</option>
                                 <option value="view_assigned">👁️ Xem Site gán</option>
@@ -3864,7 +3930,7 @@ export default function App() {
                               <select
                                 value={currentLevel}
                                 onChange={(e) => { handleNotificationPermissionChange(perm.key, role, e.target.value); }}
-                                className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-700 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
+                                className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-707 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
                               >
                                 <option value="none">❌ Không nhận</option>
                                 <option value="assigned_only">👥 Chỉ ca được gán</option>
@@ -3963,6 +4029,7 @@ export default function App() {
 
               </div>
 
+              {}
               <div className="space-y-6">
                 
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
@@ -4150,7 +4217,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.1.4</p>
+          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.1.5</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
