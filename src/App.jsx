@@ -293,6 +293,7 @@ export default function App() {
 
   const [notifications, setNotifications] = useState([]);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+  const [activePushAlerts, setActivePushAlerts] = useState([]);
   const isInitialMount = useRef(true);
   const notificationCenterRef = useRef(null);
 
@@ -355,6 +356,7 @@ export default function App() {
     }
 
     const id = Date.now() + Math.random().toString(36).substr(2, 9);
+    const newAlert = { id, title, message, type, patientId };
 
     setNotifications(prev => [
       {
@@ -1702,7 +1704,391 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
       
-      {/* ... existing code ... */}
+      {lightboxImages.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 animate-fadeIn">
+          <div className="absolute top-4 right-4 z-50 flex gap-2">
+            <button 
+              onClick={() => { setLightboxImages([]); }}
+              className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="relative max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center">
+            {lightboxImages.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxIndex(prev => (prev === 0 ? lightboxImages.length - 1 : prev - 1));
+                }}
+                className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition z-10"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
+            
+            <img 
+              src={lightboxImages[lightboxIndex]} 
+              alt="Chứng từ văn bản phê duyệt" 
+              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-scaleIn"
+            />
+
+            {lightboxImages.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxIndex(prev => (prev === lightboxImages.length - 1 ? 0 : prev + 1));
+                }}
+                className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition z-10"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            )}
+          </div>
+          <p className="text-white/60 text-xs font-semibold mt-4">
+            Ảnh {lightboxIndex + 1} / {lightboxImages.length}
+          </p>
+        </div>
+      )}
+
+      {copyConfirmModal.show && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleIn">
+            <div className="flex items-center gap-2.5 text-indigo-600">
+              <Copy className="w-5 h-5 flex-shrink-0 text-indigo-500" />
+              <h3 className="text-base font-extrabold text-slate-955">Xác nhận sao chép lịch sử</h3>
+            </div>
+            <p className="text-xs text-slate-505 leading-relaxed font-semibold">
+              Hệ thống sẽ tự động điền sẵn các thông tin cũ (gồm Chuyên khoa, Site khám, Khu vực khám, Chỉ đạo phê duyệt, Ghi chú và chứng từ đính kèm) của lượt thăm khám trước vào biểu mẫu hiện tại để bạn có thể xem lại hoặc chỉnh sửa trước khi đăng ký lượt tiếp đón mới. Bạn có chắc chắn muốn thực hiện không?
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button 
+                onClick={() => { setCopyConfirmModal({ show: false, visitToCopy: null }); }}
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-655 rounded-xl transition"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                onClick={() => { executeCopyVisit(copyConfirmModal.visitToCopy); }}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white rounded-xl transition shadow-xs"
+              >
+                Xác nhận sao chép
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isScanning && (
+        <div className="fixed inset-0 z-50 bg-slate-955/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <style>{`
+            #reader video {
+              width: 100% !important;
+              height: 100% !important;
+              object-fit: cover !important;
+              border-radius: 1rem;
+            }
+            #reader {
+              border: none !important;
+            }
+          `}</style>
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 border border-slate-200 shadow-2xl animate-scaleIn">
+            <div>
+              <h4 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center justify-center gap-1.5">
+                <Scan className="w-4 h-4 text-indigo-600 animate-pulse" /> Trình quét mã camera
+              </h4>
+              <p className="text-[11px] text-slate-404 font-semibold mt-1">
+                {scannerError ? "Lỗi truy cập thiết bị" : "Đặt mã vạch hoặc mã QR của bệnh nhân vào giữa khung hình"}
+              </p>
+            </div>
+
+            {scannerError ? (
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-[11px] text-rose-605 font-semibold space-y-2">
+                <p>{scannerError}</p>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setScannerError('');
+                    setIsScanning(false);
+                    setTimeout(() => { setIsScanning(true); }, 200);
+                  }}
+                  className="px-3 py-1 bg-rose-600 text-white rounded-lg font-bold"
+                >
+                  Thử lại
+                </button>
+              </div>
+            ) : (
+              <div className="relative w-full aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 flex items-center justify-center">
+                <div id="reader" className="absolute inset-0 w-full h-full"></div>
+                
+                <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 z-10">
+                  <div className="flex justify-between">
+                    <div className="w-4 h-4 border-t-4 border-l-4 border-indigo-500 rounded-tl-xs"></div>
+                    <div className="w-4 h-4 border-t-4 border-r-4 border-indigo-500 rounded-tr-xs"></div>
+                  </div>
+                  <div className="absolute inset-x-0 h-0.5 bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-bounce" style={{ top: '45%' }}></div>
+                  <div className="flex justify-between">
+                    <div className="w-4 h-4 border-b-4 border-l-4 border-indigo-500 rounded-bl-xs"></div>
+                    <div className="w-4 h-4 border-b-4 border-r-4 border-indigo-500 rounded-tr-xs"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={stopScanner}
+              className="px-4 py-1.5 border border-slate-200 text-slate-550 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition w-full"
+            >
+              Hủy bỏ quét
+            </button>
+          </div>
+        </div>
+      )}
+
+      {notification && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-xl transition-all transform duration-300 translate-y-0 bg-slate-900 text-white">
+          <Check className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+          <span className="font-bold text-xs">{notification.message}</span>
+        </div>
+      )}
+
+      {/* STICKY HEADER (RESORED COMPLETE!) */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1">
+                <img 
+                  src="https://iili.io/F66acRs.png" 
+                  alt="Hospital Logo" 
+                  className="w-full h-full object-contain" 
+                />
+              </div>
+              <div>
+                <h1 className="text-sm font-black tracking-tight text-slate-900 flex items-center gap-1.5">
+                  QL KH VIP-VVIP
+                  <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-wider">
+                    {userRole}
+                  </span>
+                </h1>
+                <p className="text-[10px] text-slate-400 font-semibold">
+                  {currentUser?.assignedSite && currentUser.assignedSite !== 'Tất cả' ? `📍 Chi nhánh: ${currentUser.assignedSite}` : '🌐 Toàn hệ thống'}
+                </p>
+              </div>
+            </div>
+
+            <nav className="hidden md:flex items-center gap-1">
+              {canShowTab('dashboard') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('dashboard'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'dashboard' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <LayoutDashboard className="w-4 h-4" /> Bảng điều khiển
+                </button>
+              )}
+              
+              {canShowTab('register') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('register'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'register' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ
+                </button>
+              )}
+
+              {canShowTab('monitoring') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'monitoring' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <ClipboardList className="w-4 h-4" /> Theo dõi hồ sơ
+                </button>
+              )}
+
+              {userRole === 'admin' && (
+                <button 
+                  onClick={() => { setActiveTab('settings'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'settings' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Settings className="w-4 h-4" /> Cấu hình hệ thống
+                </button>
+              )}
+            </nav>
+
+            <div className="flex items-center gap-3 relative" ref={notificationCenterRef}>
+              <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold">
+                <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
+                {isFirebaseConnected ? 'Live' : 'Offline'}
+              </div>
+
+              {/* Pulsing indicator if Notification permission is default */}
+              <button 
+                onClick={() => { setShowNotificationCenter(!showNotificationCenter); }}
+                className={`p-2 rounded-xl transition-all relative border border-slate-200 ${
+                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-550 hover:bg-slate-100'
+                }`}
+                title="Trung tâm thông báo"
+              >
+                {unreadCount > 0 ? (
+                  <>
+                    <BellRing className="w-5 h-5 text-indigo-600 animate-pulse" />
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-600 text-white font-black text-[9px] rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                      {unreadCount}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Bell className="w-5 h-5" />
+                    {iosNotificationStatus !== 'granted' && (
+                      <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-indigo-500 rounded-full animate-ping"></span>
+                    )}
+                  </>
+                )}
+              </button>
+
+              {/* NOTIFICATION CENTER WITH INTEGRATED COMPACT BACKGROUND PUSH TRIGGER */}
+              {showNotificationCenter && (
+                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 p-4 space-y-3 animate-scaleIn">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                    <div className="flex items-center gap-1.5">
+                      <BellRing className="w-4 h-4 text-indigo-600" />
+                      <h4 className="text-xs font-black text-slate-900">Trung tâm thông báo</h4>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={markAllAsRead}
+                        className="text-[10px] text-indigo-600 hover:text-indigo-800 font-extrabold transition"
+                      >
+                        Đã đọc tất cả
+                      </button>
+                      <button 
+                        onClick={clearAllNotifications}
+                        className="text-[10px] text-rose-505 hover:text-rose-700 font-extrabold transition"
+                      >
+                        Xóa tất cả
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Elegant notification activation prompt (Completely hidden from Dashboard) */}
+                  {iosNotificationStatus !== 'granted' && (
+                    <div className="p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-2xl space-y-2.5 animate-fadeIn">
+                      <div className="flex items-start gap-2">
+                        <Smartphone className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-black text-indigo-950">Nhận thông báo khi đóng ứng dụng</p>
+                          <p className="text-[10px] leading-normal text-indigo-700 font-medium">Để nhận tin khi sảnh sảnh tắt app, hãy thêm App vào MH chính (Add to Home Screen) rồi bấm nút kích hoạt.</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={requestIosNotificationPermission}
+                        className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black transition flex items-center justify-center gap-1.5 shadow-sm shadow-indigo-600/10"
+                      >
+                        🔔 Kích hoạt nhận tin chạy ngầm
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                    {notifications.length === 0 ? (
+                      <div className="text-center py-8 text-slate-400 space-y-2">
+                        <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400" />
+                        <p className="text-[11px] font-bold">Hệ thống chưa ghi nhận thông báo mới.</p>
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <div 
+                          key={n.id}
+                          onClick={() => { handleNotificationClick(n.patientId); setShowNotificationCenter(false); }}
+                          className={`p-3 rounded-2xl border text-xs transition flex gap-2 items-start cursor-pointer hover:bg-slate-50 ${
+                            n.read ? 'border-slate-200 bg-slate-50/50' : 'border-indigo-100 bg-indigo-50/30'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                            n.type === 'success' ? 'bg-emerald-500' :
+                            n.type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'
+                          }`} />
+                          <div className="flex-1 space-y-0.5">
+                            <strong className="text-slate-800 block leading-tight">{n.title}</strong>
+                            <p className="text-[11px] text-slate-555 leading-normal font-medium">{n.message}</p>
+                            <span className="text-[9px] text-slate-404 font-bold block flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3" /> {n.timestamp}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="hidden sm:block text-right">
+                <div className="text-xs font-extrabold text-slate-955">{currentUser?.name || ''}</div>
+                <div className="text-[10px] text-indigo-655 font-extrabold uppercase tracking-wide">{currentUser?.title || userRole}</div>
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl border border-slate-200 transition-all"
+                title="Đăng xuất"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </header>
+
+      {/* MOBILE BOTTOM NAVIGATION BAR (RESTORED COMPLETE!) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
+        {canShowTab('dashboard') && (
+          <button 
+            onClick={() => { resetForm(); setActiveTab('dashboard'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            <span>Bảng điều khiển</span>
+          </button>
+        )}
+        {canShowTab('register') && (
+          <button 
+            onClick={() => { resetForm(); setActiveTab('register'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'register' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <Plus className="w-5 h-5" />
+            <span>Tiếp nhận VIP</span>
+          </button>
+        )}
+        {canShowTab('monitoring') && (
+          <button 
+            onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'monitoring' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <ClipboardList className="w-5 h-5" />
+            <span>Theo dõi hồ sơ</span>
+          </button>
+        )}
+        {userRole === 'admin' && (
+          <button 
+            onClick={() => { setActiveTab('settings'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'}`}
+          >
+            <Settings className="w-5 h-5" />
+            <span>Cấu hình</span>
+          </button>
+        )}
+      </div>
 
       {/* Main container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -1773,7 +2159,7 @@ export default function App() {
                   Chào, {currentUser?.name || ''}!
                 </h2>
                 <p className="text-[11px] sm:text-xs text-slate-300 leading-normal font-semibold">
-                  Công cụ hỗ trợ quản lý và theo dõi việc tiếp đón và chi phí của nhóm Khách hàng VIP, VVIP, Ngoại giao của Ban giám đốc.
+                  Công cụ hỗ trợ quản lý và theo dõi việc tiếp đón và chi phí của nhóm Khách hàng VIP, VVIP, Ngoại giao của Ban giám dốc.
                 </p>
               </div>
               {canShowTab('register') && (
@@ -1788,7 +2174,6 @@ export default function App() {
               )}
             </div>
 
-            {}
             {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
               <div className="space-y-4">
                 
@@ -1806,7 +2191,7 @@ export default function App() {
                         type="button"
                         onClick={() => { setDashFilterMode('today'); }}
                         className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition ${
-                          dashFilterMode === 'today' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-500 hover:text-slate-850'
+                          dashFilterMode === 'today' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-505 hover:text-slate-855'
                         }`}
                       >
                         Hôm nay
@@ -1815,7 +2200,7 @@ export default function App() {
                         type="button"
                         onClick={() => { setDashFilterMode('range'); }}
                         className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
-                          dashFilterMode === 'range' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-500 hover:text-slate-850'
+                          dashFilterMode === 'range' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-505 hover:text-slate-855'
                         }`}
                       >
                         Tùy chọn 📅
@@ -1891,7 +2276,6 @@ export default function App() {
               </div>
             )}
 
-            {}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
@@ -2053,7 +2437,6 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI ========================== */}
-        {}
         {activeTab === 'register' && canShowTab('register') && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
@@ -2139,7 +2522,7 @@ export default function App() {
                               setScannerError('');
                               setIsScanning(true);
                             }}
-                            className="px-3 bg-slate-101 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs"
+                            className="px-3 bg-slate-101 hover:bg-slate-255 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs"
                           >
                             <Scan className="w-4 h-4 text-slate-505" /> Quét mã
                           </button>
@@ -2176,7 +2559,7 @@ export default function App() {
                             setFormRightTab('timeline');
                           }}
                           className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 disabled:opacity-80 ${
-                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-505 text-indigo-700 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-505 text-indigo-707 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
                           <span className="font-black text-sm">VIP</span>
@@ -2426,7 +2809,7 @@ export default function App() {
                                       {!isReadOnly && (
                                         <button
                                           type="button"
-                                          onClick={() => { setCopyConfirmModal({ show: true, visitToCopy: visit }); }}
+                                          onClick={() => { setCopyConfirmModal({ show: false, visitToCopy: visit }); }}
                                           className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-202 text-indigo-600 rounded-lg text-[9px] font-black flex items-center gap-1 transition shadow-2xs"
                                           title="Sao chép toàn bộ thông tin chỉ định này sang lượt mới"
                                         >
@@ -2440,7 +2823,7 @@ export default function App() {
                                       {visit.boardApproval && (
                                         <div>Chỉ đạo: <span className="bg-slate-900 text-white font-black px-1.5 py-0.5 rounded-xs text-[8px]">{visit.boardApproval}</span></div>
                                       )}
-                                      {visit.notes && <div className="italic text-slate-400 truncate">"{visit.notes}"</div>}
+                                      {visit.notes && <div className="italic text-slate-404 truncate">"{visit.notes}"</div>}
                                     </div>
 
                                     {visit.specialties && visit.specialties.length > 0 && (
@@ -2651,7 +3034,6 @@ export default function App() {
 
               </div>
 
-              {}
               <div className="space-y-6">
                 
                 {formData.tier === 'VVIP' && (
@@ -2804,7 +3186,6 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ & BỘ LỊCH ========================== */}
-        {}
         {activeTab === 'monitoring' && canShowTab('monitoring') && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -2828,19 +3209,19 @@ export default function App() {
               <div className="flex bg-slate-101 p-1 rounded-xl">
                 <button 
                   onClick={() => { setCalendarMode('list'); }}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'list' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-505 hover:text-slate-805'}`}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'list' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-505 hover:text-slate-855'}`}
                 >
                   Dạng Danh Sách
                 </button>
                 <button 
                   onClick={() => { setCalendarMode('week'); setCurrentCalendarDate(new Date()); }}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'week' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-505 hover:text-slate-805'}`}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'week' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-505 hover:text-slate-855'}`}
                 >
                   Lịch Tuần Động
                 </button>
                 <button 
                   onClick={() => { setCalendarMode('month'); setCurrentCalendarDate(new Date()); }}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'month' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-505 hover:text-slate-805'}`}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'month' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-505 hover:text-slate-855'}`}
                 >
                   Lịch Tháng Chi Tiết
                 </button>
@@ -3055,7 +3436,7 @@ export default function App() {
                 {isLoading ? (
                   <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
                     <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
-                    <p className="text-slate-400 font-semibold text-xs animate-pulse">Đang cập nhật...</p>
+                    <p className="text-slate-404 font-semibold text-xs animate-pulse">Đang cập nhật...</p>
                   </div>
                 ) : filteredPatients.length === 0 ? (
                   <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
@@ -3157,7 +3538,7 @@ export default function App() {
                                     ) : canViewBilling ? (
                                       formatCurrency(realCollected)
                                     ) : (
-                                      <span className="text-slate-455">🔒 Khóa</span>
+                                      <span className="text-slate-405">🔒 Khóa</span>
                                     )}
                                   </td>
                                   <td className="py-4 px-5 text-right whitespace-nowrap" onClick={(e) => { e.stopPropagation(); }}>
@@ -3175,7 +3556,7 @@ export default function App() {
                                           <ImageIcon className="w-4 h-4" />
                                         </button>
                                       )}
-                                      <button onClick={() => { initiateView(p); }} className="p-1.5 bg-slate-50 border border-slate-202 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
+                                      <button onClick={() => { initiateView(p); }} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
                                         <Edit3 className="w-4 h-4" />
                                       </button>
                                       
@@ -3274,15 +3655,15 @@ export default function App() {
                               canViewBilling ? (
                                 <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
                                   <div>
-                                    <span className="text-[8px] text-slate-404 block font-bold uppercase">Tổng phí</span>
+                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
                                     <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
                                   </div>
                                   <div>
-                                    <span className="text-[8px] text-slate-404 block font-bold uppercase">Duyệt giảm</span>
+                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
                                     <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
                                   </div>
                                   <div>
-                                    <span className="text-[8px] text-slate-404 block font-bold uppercase">Thực Thu</span>
+                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
                                     <span className="text-[11px] font-black text-emerald-605 font-mono">{formatCurrency(realCollected)}</span>
                                   </div>
                                 </div>
@@ -3355,7 +3736,6 @@ export default function App() {
         )}
 
         {/* ========================== GIAO DIỆN 4: CẤU HÌNH THAM SỐ ========================== */}
-        {}
         {activeTab === 'settings' && userRole === 'admin' && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -3363,6 +3743,7 @@ export default function App() {
               <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
             </div>
 
+            {/* SEPARATE MATRIX 1: TASK ACTIONS */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -3418,6 +3799,7 @@ export default function App() {
               </div>
             </div>
 
+            {/* SEPARATE MATRIX 2: REALTIME NOTIFICATIONS */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <div>
                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -3551,7 +3933,6 @@ export default function App() {
 
               </div>
 
-              {}
               <div className="space-y-6">
                 
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
@@ -3602,14 +3983,14 @@ export default function App() {
                   </div>
 
                   {userRole === 'admin' ? (
-                    <form onSubmit={handleCreateStaff} className="space-y-3 bg-slate-55 p-4 rounded-2xl border border-slate-200">
+                    <form onSubmit={handleCreateStaff} className="space-y-3 bg-slate-55 p-4 rounded-2xl border border-slate-205">
                       <div className="grid grid-cols-2 gap-2">
                         <input 
                           type="text" 
                           placeholder="Họ tên nhân viên..." 
                           value={newStaff.name}
                           onChange={(e) => { setNewStaff({ ...newStaff, name: e.target.value }); }}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold animate-fadeIn"
+                          className="px-3 py-2 border border-slate-205 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold animate-fadeIn"
                           required
                         />
                         <input 
@@ -3617,7 +3998,7 @@ export default function App() {
                           placeholder="Chức danh" 
                           value={newStaff.title}
                           onChange={(e) => { setNewStaff({ ...newStaff, title: e.target.value }); }}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-medium"
+                          className="px-3 py-2 border border-slate-205 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-medium"
                         />
                       </div>
                       <div className="grid grid-cols-1 gap-2">
@@ -3626,7 +4007,7 @@ export default function App() {
                           placeholder="Email đăng nhập..." 
                           value={newStaff.email}
                           onChange={(e) => { setNewStaff({ ...newStaff, email: e.target.value }); }}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-medium"
+                          className="px-3 py-2 border border-slate-205 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-medium"
                           required
                         />
                         <input 
@@ -3635,7 +4016,7 @@ export default function App() {
                           value={newStaff.uid}
                           disabled={editingStaffUid !== null}
                           onChange={(e) => { setNewStaff({ ...newStaff, uid: e.target.value }); }}
-                          className={`px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-mono font-bold animate-fadeIn ${editingStaffUid !== null ? 'bg-slate-101 text-slate-450 cursor-not-allowed' : ''}`}
+                          className={`px-3 py-2 border border-slate-205 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-mono font-bold animate-fadeIn ${editingStaffUid !== null ? 'bg-slate-101 text-slate-450 cursor-not-allowed' : ''}`}
                           required
                         />
                       </div>
@@ -3644,7 +4025,7 @@ export default function App() {
                         <select 
                           value={newStaff.assignedSite || 'Tất cả'}
                           onChange={(e) => { setNewStaff({ ...newStaff, assignedSite: e.target.value }); }}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold cursor-pointer"
+                          className="w-full px-3 py-2 border border-slate-205 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold cursor-pointer"
                         >
                           <option value="Tất cả">Tất cả (Toàn hệ thống)</option>
                           <option value="BV Tâm Anh - Tân Sơn Hòa">BV Tâm Anh - Tân Sơn Hòa</option>
@@ -3657,7 +4038,7 @@ export default function App() {
                         <select 
                           value={newStaff.role}
                           onChange={(e) => { setNewStaff({ ...newStaff, role: e.target.value }); }}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold cursor-pointer"
+                          className="w-full px-3 py-2 border border-slate-205 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold cursor-pointer"
                         >
                           <option value="nhanvien">nhanvien</option>
                           <option value="quanly_site">quanly_site</option>
@@ -3739,7 +4120,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-400 space-y-1 font-semibold">
-          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.1.5</p>
+          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.1.7</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
