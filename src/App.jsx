@@ -114,6 +114,31 @@ const formatDateVN = (dateStr) => {
   return `${day}/${month}/${year}`;
 };
 
+const maskName = (name) => {
+  if (!name) return '---';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  const maskedParts = parts.map((part, index) => {
+    if (index === parts.length - 1) {
+      return part;
+    }
+    if (part.length > 1) {
+      return part[0] + '*'.repeat(part.length - 1);
+    }
+    return part;
+  });
+  return maskedParts.join(' ');
+};
+
+const maskPID = (pid) => {
+  if (!pid) return '---';
+  const cleanPid = pid.trim();
+  if (cleanPid.length <= 6) {
+    return cleanPid;
+  }
+  return cleanPid.slice(0, 2) + '*'.repeat(cleanPid.length - 6) + cleanPid.slice(-4);
+};
+
 const mockStaffAccounts = [
   { uid: "acc_admin", email: "admin@vip.com", name: "Nguyễn Minh Trí", title: "IT Admin", role: "admin", pass: "CSKH@abc456", assignedSite: "Tất cả" },
   { uid: "acc_lanhdao", email: "lanhdao@vip.com", name: "Trần Thế Phương", title: "Thành viên HĐQT", role: "lanhdao", pass: "CSKH@abc456", assignedSite: "Tất cả" },
@@ -215,31 +240,6 @@ const sites = [
   { id: 'ch', label: 'BV Tâm Anh - Chánh Hưng', bg: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500', cardBg: 'bg-[#f0fdf4] border-[#bbf7d0] hover:border-[#86efac]' }
 ];
 
-const maskPatientName = (name) => {
-  if (!name) return '---';
-  const words = name.trim().split(/\s+/);
-  if (words.length <= 1) return name;
-  const maskedWords = words.map((word, idx) => {
-    if (idx === words.length - 1) {
-      return word;
-    }
-    const firstChar = word.charAt(0);
-    const asterisks = '*'.repeat(Math.max(1, word.length - 1));
-    return firstChar + asterisks;
-  });
-  return maskedWords.join(' ');
-};
-
-const maskPID = (pid) => {
-  if (!pid) return '---';
-  const cleanPid = pid.trim();
-  if (cleanPid.length <= 6) return cleanPid;
-  const firstPart = cleanPid.slice(0, 2);
-  const lastPart = cleanPid.slice(-4);
-  const middleMask = '*'.repeat(cleanPid.length - 6);
-  return `${firstPart}${middleMask}${lastPart}`;
-};
-
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState('nhanvien');
@@ -303,13 +303,20 @@ export default function App() {
     clsCdha: 0,
     thuocVacxin: 0,
     insuranceAdvance: 0,
+    discountType: 'percent',
     discountRate: 0,
     approvedDiscountAmount: 0,
     totalAmount: 0,
     approvalImages: [],
     status: 'Waiting',
     recipients: [],
-    history: []
+    history: [],
+    roundingLogs: []
+  });
+
+  const [newRoundingLog, setNewRoundingLog] = useState({
+    status: 'Ổn định',
+    notes: ''
   });
 
   const [newSpecialtyInput, setNewSpecialtyInput] = useState('');
@@ -329,32 +336,6 @@ export default function App() {
   const [isReadOnly, setIsReadOnly] = useState(true);
   const appStartTime = useRef(new Date());
   const patientsRef = useRef([]);
-
-  const [fcmRegisteredToken, setFcmRegisteredToken] = useState('');
-
-  const handleCopyText = (e, text, label) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(() => {
-        showNotification(`Đã sao chép ${label}: ${text}`);
-      }).catch(err => {
-        console.error(err);
-      });
-    } else {
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand('copy');
-        showNotification(`Đã sao chép ${label}: ${text}`);
-      } catch (err) {
-        console.error(err);
-      }
-      document.body.removeChild(textArea);
-    }
-  };
 
   useEffect(() => {
     patientsRef.current = patients;
@@ -460,7 +441,6 @@ export default function App() {
         vapidKey: WEBPUSH_VAPID_KEY
       });
       if (token) {
-        setFcmRegisteredToken(token);
         const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userId);
         await updateDoc(userDocRef, { fcmToken: token }).catch(async (e) => {
           await setDoc(userDocRef, { fcmToken: token }, { merge: true }).catch(err => console.warn(err));
@@ -498,6 +478,23 @@ export default function App() {
       console.error(error);
       showNotification("Không thể xin quyền. Hãy mở ứng dụng từ Màn hình chính.", "error");
     }
+  };
+
+  const handleCopyText = (e, text, label) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!text) return;
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      showNotification(`Đã sao chép ${label} gốc vào bộ nhớ tạm!`);
+    } catch (err) {
+      console.warn(err);
+    }
+    document.body.removeChild(textArea);
   };
 
   const stopScanner = () => {
@@ -545,13 +542,15 @@ export default function App() {
       clsCdha: 0,
       thuocVacxin: 0,
       insuranceAdvance: 0,
+      discountType: 'percent',
       discountRate: 0,
       approvedDiscountAmount: 0,
       totalAmount: 0,
       approvalImages: [],
       status: 'Waiting',
       recipients: [],
-      history: []
+      history: [],
+      roundingLogs: []
     });
   };
 
@@ -731,7 +730,7 @@ export default function App() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/firebase-messaging-sw.js')
         .then((registration) => {
-          console.log("Firebase SW registered context scope:", registration.scope);
+          console.log("Firebase SW registered scope:", registration.scope);
         })
         .catch((err) => {
           console.warn("Lỗi đăng ký Firebase Service Worker:", err);
@@ -888,7 +887,8 @@ export default function App() {
 
             if (!permKey) return;
 
-            const level = role === 'admin' ? 'all' : (systemSettings.notificationPermissions?.[permKey]?.[role] || 'none');
+            let level = systemSettings.notificationPermissions?.[permKey]?.[role] || 'none';
+            if (role === 'admin') level = 'all';
 
             if (level === 'none') return;
 
@@ -970,7 +970,12 @@ export default function App() {
       discountBase = Math.max(0, total - Number(formData?.insuranceAdvance || 0));
     }
 
-    const discountAmount = Math.round(discountBase * (Number(formData?.discountRate || 0) / 100));
+    let discountAmount = 0;
+    if (formData?.discountType === 'fixed') {
+      discountAmount = Number(formData?.approvedDiscountAmount || 0);
+    } else {
+      discountAmount = Math.round(discountBase * (Number(formData?.discountRate || 0) / 100));
+    }
 
     return {
       totalAmount: total,
@@ -1284,6 +1289,7 @@ export default function App() {
         clsCdha: 0,
         thuocVacxin: 0,
         insuranceAdvance: 0,
+        discountType: 'percent',
         discountRate: 0,
         approvedDiscountAmount: 0,
         totalAmount: 0
@@ -1376,13 +1382,15 @@ export default function App() {
       clsCdha: patient?.clsCdha || 0,
       thuocVacxin: patient?.thuocVacxin || 0,
       insuranceAdvance: patient?.insuranceAdvance || 0,
+      discountType: patient?.discountType || 'percent',
       discountRate: patient?.discountRate || 0,
       approvedDiscountAmount: patient?.approvedDiscountAmount || 0,
       totalAmount: patient?.totalAmount || 0,
       approvalImages: patient?.approvalImages || (patient?.approvalImage ? [patient?.approvalImage] : []),
       status: patient?.status || 'Waiting',
       recipients: patient?.recipients || [],
-      history: patient?.history || []
+      history: patient?.history || [],
+      roundingLogs: patient?.roundingLogs || []
     });
     setActiveTab('register');
   };
@@ -1471,7 +1479,8 @@ export default function App() {
       noiTru: visit?.noiTru !== undefined ? visit?.noiTru : (visit?.treatmentType === 'Nội trú/ICU'),
       ngoaiVien: visit?.ngoaiVien !== undefined ? visit?.ngoaiVien : (visit?.treatmentType === 'Ngoài viện'),
       approvalImages: previousImages,
-      recipients: visit?.recipients || []
+      recipients: visit?.recipients || [],
+      roundingLogs: visit?.roundingLogs || []
     }));
     showNotification("Đã sao chép lịch sử thăm khám cũ kèm chứng từ phê duyệt!");
     setCopyConfirmModal({ show: false, visitToCopy: null });
@@ -1661,6 +1670,35 @@ export default function App() {
     });
   };
 
+  const handleAddRoundingLog = (e) => {
+    e.preventDefault();
+    if (!newRoundingLog.notes.trim()) {
+      showNotification("Vui lòng nhập nội dung ghi nhận tình trạng sức khỏe!", "error");
+      return;
+    }
+    const log = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      visitor: currentUser?.name || 'Hệ thống',
+      status: newRoundingLog.status,
+      notes: newRoundingLog.notes.trim()
+    };
+    setFormData(prev => ({
+      ...prev,
+      roundingLogs: [log, ...(prev.roundingLogs || [])]
+    }));
+    setNewRoundingLog(prev => ({ ...prev, notes: '' }));
+    showNotification("Đã thêm lượt ghi nhận thăm hỏi!");
+  };
+
+  const handleDeleteRoundingLog = (logId) => {
+    setFormData(prev => ({
+      ...prev,
+      roundingLogs: (prev.roundingLogs || []).filter(l => l.id !== logId)
+    }));
+    showNotification("Đã xóa lượt ghi nhận.");
+  };
+
   const registrableStaffList = useMemo(() => {
     return staffList.filter(s => s && ['nhanvien', 'quanly_site'].includes(s?.role));
   }, [staffList]);
@@ -1707,7 +1745,7 @@ export default function App() {
 
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-550 block">Email </label>
+              <label className="text-xs font-bold text-slate-550 uppercase tracking-wider block">Email </label>
               <input 
                 type="email" 
                 placeholder="nhập email tại đây"
@@ -1718,7 +1756,7 @@ export default function App() {
             </div>
             
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-555 block">Mật khẩu</label>
+              <label className="text-xs font-bold text-slate-555 uppercase tracking-wider block">Mật khẩu</label>
               <div className="relative">
                 <input 
                   type={showPassword ? "text" : "password"} 
@@ -1754,7 +1792,7 @@ export default function App() {
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
       
       {lightboxImages.length > 0 && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4">
           <div className="absolute top-4 right-4 z-50 flex gap-2">
             <button 
               onClick={() => { setLightboxImages([]); }}
@@ -1779,7 +1817,7 @@ export default function App() {
             <img 
               src={lightboxImages[lightboxIndex]} 
               alt="Chứng từ văn bản phê duyệt" 
-              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-scaleIn"
+              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
             />
 
             {lightboxImages.length > 1 && (
@@ -1802,18 +1840,18 @@ export default function App() {
 
       {copyConfirmModal.show && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleIn">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center gap-2.5 text-indigo-600">
               <Copy className="w-5 h-5 flex-shrink-0 text-indigo-500" />
               <h3 className="text-base font-extrabold text-slate-955">Xác nhận sao chép lịch sử</h3>
             </div>
             <p className="text-xs text-slate-505 leading-relaxed font-semibold">
-              Hệ thống sẽ tự động điền sẵn các thông tin cũ (gồm Chuyên khoa, Site khám, Khu vực khám, Chỉ đạo phê duyệt, Ghi chú và chứng từ đính kèm) của lượt thăm khám trước vào biểu mẫu hiện tại để bạn có thể xem lại hoặc chỉnh sửa trước khi đăng ký lượt tiếp đón mới. Bạn có chắc chắn muốn thực hiện không?
+              Hệ thống sẽ tự động điền sẵn các thông tin cũ của lượt thăm khám trước vào biểu mẫu hiện tại để bạn có thể xem lại hoặc chỉnh sửa trước khi đăng ký lượt tiếp đón mới. Bạn có chắc chắn muốn thực hiện không?
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button 
                 onClick={() => { setCopyConfirmModal({ show: false, visitToCopy: null }); }}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-655 rounded-xl transition"
+                className="px-4 py-2 border border-slate-200 text-slate-655 hover:bg-slate-55 text-xs font-bold rounded-xl transition"
               >
                 Hủy bỏ
               </button>
@@ -1829,7 +1867,7 @@ export default function App() {
       )}
 
       {isScanning && (
-        <div className="fixed inset-0 z-50 bg-slate-955/70 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-50 bg-slate-955/70 backdrop-blur-xs flex items-center justify-center p-4">
           <style>{`
             #reader video {
               width: 100% !important;
@@ -1841,10 +1879,10 @@ export default function App() {
               border: none !important;
             }
           `}</style>
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 border border-slate-200 shadow-2xl animate-scaleIn">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 border border-slate-200 shadow-2xl">
             <div>
               <h4 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center justify-center gap-1.5">
-                <Scan className="w-4 h-4 text-indigo-600 animate-pulse" /> Trình quét mã camera
+                <Scan className="w-4 h-4 text-indigo-605 a" /> Trình quét mã camera
               </h4>
               <p className="text-[11px] text-slate-404 font-semibold mt-1">
                 {scannerError ? "Lỗi truy cập thiết bị" : "Đặt mã vạch hoặc mã QR của bệnh nhân vào giữa khung hình"}
@@ -1875,7 +1913,7 @@ export default function App() {
                     <div className="w-4 h-4 border-t-4 border-l-4 border-indigo-500 rounded-tl-xs"></div>
                     <div className="w-4 h-4 border-t-4 border-r-4 border-indigo-500 rounded-tr-xs"></div>
                   </div>
-                  <div className="absolute inset-x-0 h-0.5 bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-bounce" style={{ top: '45%' }}></div>
+                  <div className="absolute inset-x-0 h-0.5 bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.8)]" style={{ top: '45%' }}></div>
                   <div className="flex justify-between">
                     <div className="w-4 h-4 border-b-4 border-l-4 border-indigo-500 rounded-bl-xs"></div>
                     <div className="w-4 h-4 border-b-4 border-r-4 border-indigo-500 rounded-tr-xs"></div>
@@ -1887,7 +1925,7 @@ export default function App() {
             <button
               type="button"
               onClick={stopScanner}
-              className="px-4 py-1.5 border border-slate-200 text-slate-550 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition w-full"
+              className="px-4 py-1.5 border border-slate-200 text-slate-550 hover:bg-slate-55 text-[11px] font-bold rounded-xl transition w-full"
             >
               Hủy bỏ quét
             </button>
@@ -1895,14 +1933,39 @@ export default function App() {
         </div>
       )}
 
+      {confirmModal.show && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-2.5 text-rose-600">
+              <ShieldAlert className="w-5 h-5 flex-shrink-0 text-rose-505" />
+              <h3 className="text-base font-extrabold text-slate-955">{confirmModal.title || "Xác nhận tác vụ"}</h3>
+            </div>
+            <p className="text-sm text-slate-555 leading-relaxed font-medium">{confirmModal.message}</p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button 
+                onClick={() => { setConfirmModal({ show: false, action: null, message: '', title: '' }); }}
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 rounded-xl transition"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                onClick={confirmModal.action}
+                className="px-5 py-2 bg-rose-500 hover:bg-rose-600 text-xs font-bold text-white rounded-xl transition shadow-xs"
+              >
+                Xác nhận xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {notification && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-xl transition-all transform duration-300 translate-y-0 bg-slate-900 text-white">
+        <div className="fixed top-4 right-4 z-55 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-xl transition-all transform duration-300 translate-y-0 bg-slate-900 text-white">
           <Check className="w-4 h-4 flex-shrink-0 text-emerald-400" />
           <span className="font-bold text-xs">{notification.message}</span>
         </div>
       )}
 
-      {/* STICKY HEADER */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1976,38 +2039,31 @@ export default function App() {
 
             <div className="flex items-center gap-3 relative" ref={notificationCenterRef}>
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold">
-                <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-bounce'}`}></span>
+                <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
                 {isFirebaseConnected ? 'Live' : 'Offline'}
               </div>
 
-              {/* Dropdown kích hoạt thông báo ngầm */}
               <button 
                 onClick={() => { setShowNotificationCenter(!showNotificationCenter); }}
                 className={`p-2 rounded-xl transition-all relative border border-slate-200 ${
-                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-550 hover:bg-slate-100'
+                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-505 hover:bg-slate-100'
                 }`}
                 title="Trung tâm thông báo"
               >
                 {unreadCount > 0 ? (
                   <>
-                    <BellRing className="w-5 h-5 text-indigo-600 animate-pulse" />
+                    <BellRing className="w-5 h-5 text-indigo-600" />
                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-600 text-white font-black text-[9px] rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                       {unreadCount}
                     </span>
                   </>
                 ) : (
-                  <>
-                    <Bell className="w-5 h-5" />
-                    {iosNotificationStatus !== 'granted' && (
-                      <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-indigo-500 rounded-full animate-ping"></span>
-                    )}
-                  </>
+                  <Bell className="w-5 h-5" />
                 )}
               </button>
 
-              {/* NOTIFICATION CENTER WITH INTEGRATED PUSH TRIGGER */}
               {showNotificationCenter && (
-                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 p-4 space-y-3 animate-scaleIn">
+                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 p-4 space-y-3">
                   <div className="flex justify-between items-center border-b border-slate-101 pb-2">
                     <div className="flex items-center gap-1.5">
                       <BellRing className="w-4 h-4 text-indigo-600" />
@@ -2029,28 +2085,22 @@ export default function App() {
                     </div>
                   </div>
 
-                  {iosNotificationStatus !== 'granted' && (
-                    <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-2">
-                      <div className="flex items-start gap-2">
-                        <Smartphone className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                        <div className="space-y-0.5">
-                          <p className="text-xs font-black text-indigo-950">Bật thông báo chạy ngầm</p>
-                          <p className="text-[10px] leading-normal text-indigo-700 font-medium">Để nhận tin khi sảnh tắt app, hãy thêm App vào MH chính (Add to Home Screen) rồi bấm nút kích hoạt.</p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={requestIosNotificationPermission}
-                        className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black transition flex items-center justify-center gap-1.5 shadow-sm shadow-indigo-600/10"
-                      >
-                        🔔 Kích hoạt ngay
-                      </button>
-                    </div>
-                  )}
-
                   <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                    {iosNotificationStatus !== 'granted' && (
+                      <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-2xl text-xs text-indigo-800 space-y-1.5">
+                        <p className="font-extrabold text-[11px]">Bật nhận tin ngầm khi đóng ứng dụng (FCM)</p>
+                        <button
+                          type="button"
+                          onClick={requestIosNotificationPermission}
+                          className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-black transition"
+                        >
+                          Cấp quyền thông báo đẩy
+                        </button>
+                      </div>
+                    )}
+
                     {notifications.length === 0 ? (
-                      <div className="text-center py-8 text-slate-400 space-y-2">
+                      <div className="text-center py-8 text-slate-404 space-y-2">
                         <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400" />
                         <p className="text-[11px] font-bold">Hệ thống chưa ghi nhận thông báo mới.</p>
                       </div>
@@ -2098,7 +2148,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* MOBILE BOTTOM NAVIGATION BAR */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
         {canShowTab('dashboard') && (
           <button 
@@ -2138,19 +2187,17 @@ export default function App() {
         )}
       </div>
 
-      {/* Main container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
-        {/* ========================== GIAO DIỆN 1: BẢNG ĐIỀU KHIỂN ========================== */}
         {activeTab === 'dashboard' && canShowTab('dashboard') && (
-          <div className="space-y-8 animate-fadeIn">
+          <div className="space-y-8">
             
             <div className="bg-gradient-to-tr from-[#312e81] via-[#4338ca] to-[#6d28d9] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-indigo-500/30">
               <div className="absolute right-0 top-0 w-96 h-96 bg-white/5 rounded-full filter blur-3xl opacity-20 translate-x-24 -translate-y-24"></div>
               
               <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div className="space-y-3 max-w-xl">
-                  <span className="px-3 py-1 bg-amber-400 text-[#1e1b4b] rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse">
+                  <span className="px-3 py-1 bg-amber-400 text-[#1e1b4b] rounded-full text-[10px] font-black uppercase tracking-wider">
                     Trợ lý ảo đón tiếp VIP
                   </span>
                   <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight">
@@ -2189,7 +2236,7 @@ export default function App() {
                       setCalendarMode('week');
                       setActiveTab('monitoring');
                     }}
-                    className="flex-1 md:flex-none px-5 py-3 bg-indigo-950/30 border border-indigo-400/30 hover:bg-indigo-950/50 text-white text-xs font-black rounded-xl transition transform active:scale-95 whitespace-nowrap"
+                    className="flex-1 md:flex-none px-5 py-3 bg-indigo-950/30 border border-indigo-400/30 hover:bg-indigo-950/50 text-white text-xs font-black rounded-xl transition transform active:scale-95"
                   >
                     Mở lịch tuần
                   </button>
@@ -2214,7 +2261,7 @@ export default function App() {
                 <div className="shrink-0 relative z-10">
                   <button 
                     onClick={() => { resetForm(); setActiveTab('register'); }}
-                    className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-955 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-1.5 transition transform active:scale-95 whitespace-nowrap"
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-955 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-1.5 transition transform active:scale-95"
                   >
                     <Plus className="w-4 h-4 stroke-[3px]" /> Tiếp nhận hồ sơ mới <ArrowRight className="w-3.5 h-3.5" />
                   </button>
@@ -2225,16 +2272,16 @@ export default function App() {
             {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
               <div className="space-y-4">
                 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-3xs animate-fadeIn">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-3xs">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
                     <h3 className="text-xs font-black text-slate-850 uppercase tracking-wider">
                       {dashFilterMode === 'today' ? "Nhật ký chỉ số của ngày hôm nay" : "Chỉ số thống kê theo khoảng ngày"}
                     </h3>
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex bg-slate-101 p-0.5 rounded-lg border border-slate-200">
+                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                       <button
                         type="button"
                         onClick={() => { setDashFilterMode('today'); }}
@@ -2256,7 +2303,7 @@ export default function App() {
                     </div>
 
                     {dashFilterMode === 'range' && (
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-655 animate-fadeIn">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 bg-slate-55 border border-slate-200 px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-655">
                         <div className="flex items-center gap-1">
                           <span>Từ:</span>
                           <input 
@@ -2282,7 +2329,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
                     <div className="p-3.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
                       <Users className="w-6 h-6" />
                     </div>
@@ -2295,7 +2342,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
                     <div className="p-3.5 rounded-xl bg-indigo-50 text-indigo-600 border-indigo-100">
                       <Activity className="w-6 h-6" />
                     </div>
@@ -2308,7 +2355,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200 animate-fadeIn">
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
                     <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-100">
                       <CreditCard className="w-6 h-6" />
                     </div>
@@ -2324,8 +2371,7 @@ export default function App() {
               </div>
             )}
 
-            {/* REALTIME KANBAN */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-fadeIn">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
                   <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
@@ -2375,14 +2421,14 @@ export default function App() {
                     return (
                       <div 
                         key={col.id} 
-                        className="w-12 bg-slate-101 rounded-2xl py-3 px-1 border border-slate-200 flex flex-col items-center justify-start transition-all duration-300 ease-in-out shrink-0 select-none cursor-pointer"
+                        className="w-12 bg-slate-100/40 rounded-2xl py-3 px-1 border border-slate-200 flex flex-col items-center justify-start transition-all duration-300 ease-in-out shrink-0 select-none cursor-pointer"
                         title={`Trống: ${col.label}`}
                       >
                         <span className={`w-2 h-2 rounded-full ${col.dot} mb-2`}></span>
                         <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-555 mb-2 font-mono">
                           0
                         </span>
-                        <span className="text-[9px] font-extrabold text-slate-404 whitespace-nowrap [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
+                        <span className="text-[9px] font-extrabold text-slate-400 whitespace-nowrap [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
                           {col.label}
                         </span>
                       </div>
@@ -2415,9 +2461,9 @@ export default function App() {
                             >
                               <div className="flex justify-between items-start gap-1">
                                 <span 
-                                  onClick={(e) => handleCopyText(e, p.pid, 'mã PID')}
-                                  className="text-[8px] text-slate-555 font-mono font-black truncate hover:text-indigo-600 transition"
-                                  title="Click để sao chép PID"
+                                  onClick={(e) => handleCopyText(e, p.pid, "Mã PID")}
+                                  className="text-[8px] text-slate-555 font-mono font-black truncate hover:text-indigo-600 cursor-copy"
+                                  title="Bấm để copy PID đầy đủ"
                                 >
                                   PID: {maskPID(p.pid)}
                                 </span>
@@ -2428,7 +2474,7 @@ export default function App() {
                                     {p.examinationArea === 'Khu VIP' ? 'VIP' : 'TC'}
                                   </span>
                                   <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
-                                    p.tier === 'VVIP' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-707'
+                                    p.tier === 'VVIP' ? 'bg-amber-100 text-amber-808' : 'bg-indigo-50 text-indigo-707'
                                   }`}>
                                     {p.tier}
                                   </span>
@@ -2436,11 +2482,11 @@ export default function App() {
                               </div>
 
                               <div 
-                                onClick={(e) => handleCopyText(e, p.name, 'họ tên khách hàng')}
-                                className="font-extrabold text-[11px] text-slate-800 leading-tight truncate hover:text-indigo-600 transition" 
-                                title="Click để sao chép họ tên đầy đủ"
+                                onClick={(e) => handleCopyText(e, p.name, "Họ và tên")}
+                                className="font-extrabold text-[11px] text-slate-800 leading-tight truncate hover:text-indigo-600 cursor-copy" 
+                                title="Bấm để copy Họ tên đầy đủ"
                               >
-                                {maskPatientName(p.name)}
+                                {maskName(p.name)}
                               </div>
 
                               <div className="space-y-1" onClick={(e) => { e.stopPropagation(); }}>
@@ -2484,7 +2530,7 @@ export default function App() {
                   </h4>
                   <button 
                     onClick={() => { setActiveTab('settings'); }}
-                    className="text-xs font-black text-indigo-655 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
+                    className="text-xs font-black text-indigo-605 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
                   >
                     Đến trang cấu hình <ChevronRight className="w-4 h-4" />
                   </button>
@@ -2495,7 +2541,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ========================== GIAO DIỆN 2: TIẾP NHẬN HỒ SƠ MỚI ========================== */}
         {activeTab === 'register' && canShowTab('register') && (
           <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
             
@@ -2505,12 +2550,12 @@ export default function App() {
                   {currentId ? (isReadOnly ? "Chi tiết hồ sơ bệnh nhân" : "Cập Nhật Tiến Độ") : "Tạo lượt Tiếp Đón VIP/VVIP"}
                 </h2>
                 {currentId && isReadOnly && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-101 border border-slate-200 text-slate-500 uppercase tracking-wider animate-fadeIn">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-105 border border-slate-200 text-slate-500 uppercase tracking-wider">
                     <Lock className="w-3 h-3" /> Chế độ chỉ xem
                   </span>
                 )}
                 {currentId && !isReadOnly && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-50 border border-amber-202 text-amber-707 uppercase tracking-wider animate-fadeIn">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-50 border border-amber-200 text-amber-707 uppercase tracking-wider">
                     <Unlock className="w-3 h-3 text-amber-600" /> Chế độ chỉnh sửa
                   </span>
                 )}
@@ -2519,33 +2564,37 @@ export default function App() {
                 <button 
                   type="button" 
                   onClick={() => { resetForm(); setActiveTab('monitoring'); }}
-                  className="px-4 py-2 border border-slate-200 text-slate-605 hover:bg-slate-50 text-xs font-bold rounded-xl transition"
+                  className="px-4 py-2 border border-slate-200 text-slate-605 hover:bg-slate-55 text-xs font-bold rounded-xl transition"
                 >
                   Hủy bỏ
                 </button>
                 {currentId && isReadOnly ? (
-                  hasAccessToPatient(formData, 'patients:update') ? (
-                    <button
-                      key="edit-btn"
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsReadOnly(false);
-                      }}
-                      className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95 animate-scaleIn"
-                    >
-                      <Edit3 className="w-4 h-4" /> Sửa hồ sơ
-                    </button>
-                  ) : null
+                  <div key="read-only-action-container">
+                    {hasAccessToPatient(formData, 'patients:update') && (
+                      <button
+                        key="edit-btn-v4"
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setIsReadOnly(false);
+                        }}
+                        className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
+                      >
+                        <Edit3 className="w-4 h-4" /> Sửa hồ sơ
+                      </button>
+                    )}
+                  </div>
                 ) : (
-                  <button 
-                    key="submit-btn"
-                    type="submit"
-                    className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
-                  >
-                    <Check className="w-4 h-4" /> {currentId ? "Cập nhật" : "Đăng ký"}
-                  </button>
+                  <div key="edit-submit-action-container">
+                    <button 
+                      key="submit-btn-v4"
+                      type="submit"
+                      className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
+                    >
+                      <Check className="w-4 h-4" /> {currentId ? "Cập nhật" : "Đăng ký"}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -2571,7 +2620,7 @@ export default function App() {
                           value={formData.pid}
                           disabled={isReadOnly}
                           onChange={(e) => { handleInputChange('pid', e.target.value); }}
-                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-mono font-black bg-white text-slate-800 animate-fadeIn disabled:bg-slate-50 disabled:text-slate-500"
+                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-mono font-black bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
                           required
                         />
                         {!isReadOnly && (
@@ -2581,14 +2630,14 @@ export default function App() {
                               setScannerError('');
                               setIsScanning(true);
                             }}
-                            className="px-3 bg-slate-101 hover:bg-slate-255 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs"
+                            className="px-3 bg-slate-101 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs"
                           >
                             <Scan className="w-4 h-4 text-slate-505" /> Quét mã
                           </button>
                         )}
                       </div>
                       {matchedPatientProfile && (
-                        <div className="text-emerald-600 font-extrabold text-[11px] animate-fadeIn">
+                        <div className="text-emerald-600 font-extrabold text-[11px]">
                           🟢 Đã tìm thấy KH: {matchedPatientProfile.name}
                         </div>
                       )}
@@ -2602,13 +2651,13 @@ export default function App() {
                         value={formData.name}
                         disabled={isReadOnly}
                         onChange={(e) => { handleInputChange('name', e.target.value); }}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 animate-fadeIn disabled:bg-slate-50 disabled:text-slate-500"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
                         required
                       />
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-bold text-slate-600 block">Phân Hạng Tiếp Đón</label>
+                      <label className="text-xs font-bold text-slate-605 block">Phân Hạng Tiếp Đón</label>
                       <div className="grid grid-cols-2 gap-3">
                         <button
                           type="button"
@@ -2618,7 +2667,7 @@ export default function App() {
                             setFormRightTab('timeline');
                           }}
                           className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 disabled:opacity-80 ${
-                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-505 text-indigo-707 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-505 text-indigo-707 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-55'
                           }`}
                         >
                           <span className="font-black text-sm">VIP</span>
@@ -2631,7 +2680,7 @@ export default function App() {
                             setFormRightTab('billing');
                           }}
                           className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 disabled:opacity-80 ${
-                            formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-505 text-amber-707 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                            formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-505 text-amber-707 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-55'
                           }`}
                         >
                           <span className="font-black text-sm text-amber-600">VVIP</span>
@@ -2680,7 +2729,7 @@ export default function App() {
                           disabled={isReadOnly}
                           onClick={() => { handleInputChange('examinationArea', 'Khu Tiêu Chuẩn'); }}
                           className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center disabled:opacity-80 ${
-                            formData.examinationArea === 'Khu Tiêu Chuẩn' ? 'bg-teal-50 border-teal-505 text-teal-750 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
+                            formData.examinationArea === 'Khu Tiêu Chuẩn' ? 'bg-teal-50 border-teal-505 text-teal-755 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
                           }`}
                         >
                           Khu Tiêu Chuẩn
@@ -2696,6 +2745,21 @@ export default function App() {
                           Khu VIP
                         </button>
                       </div>
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
+                      <select
+                        value={formData.treatmentType || 'Ngoại trú'}
+                        disabled={isReadOnly}
+                        onChange={(e) => { handleTreatmentTypeChange(e.target.value); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 cursor-pointer disabled:bg-slate-50 disabled:text-slate-500"
+                      >
+                        <option value="Ngoại trú">Ngoại trú</option>
+                        <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
+                        <option value="Nội trú/ICU">Nội trú/ICU</option>
+                        <option value="Ngoài viện">Ngoài viện</option>
+                      </select>
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
@@ -2778,7 +2842,7 @@ export default function App() {
                           value={formData.boardApproval}
                           disabled={isReadOnly}
                           onChange={(e) => { handleInputChange('boardApproval', e.target.value); }}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-semibold bg-white text-slate-800 animate-fadeIn disabled:bg-slate-50 disabled:text-slate-500"
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-semibold bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
                         />
                       </div>
                     </div>
@@ -2797,6 +2861,117 @@ export default function App() {
 
                   </div>
                 </div>
+
+                {currentId && (
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                      <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-1.5 h-4 bg-emerald-600 rounded-sm inline-block"></span>
+                        Nhật Ký Thăm Hỏi & Chăm Sóc Sức Khỏe Realtime
+                      </h3>
+                      <span className="bg-indigo-50 text-indigo-700 font-extrabold text-[10px] px-2.5 py-0.5 rounded-md border border-indigo-100 font-mono">
+                        {(formData.roundingLogs || []).length} lượt thăm
+                      </span>
+                    </div>
+
+                    {['Nội trú/ICU', 'Cấp cứu/Daycare'].includes(formData.treatmentType) ? (
+                      <div className="p-3 bg-emerald-50/50 border border-emerald-100 text-[11px] text-emerald-800 rounded-2xl font-bold">
+                        ℹ️ Khách hàng đang ở chế độ điều trị nội trú trọng điểm. Đề xuất nhân sự CSKH và Quản lý thực hiện đi buồng thăm hỏi định kỳ 2 lần/ngày.
+                      </div>
+                    ) : null}
+
+                    {!isReadOnly && (
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-555 uppercase tracking-wide">Đánh giá nhanh tình trạng</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              { label: "🟢 Ổn định", value: "Ổn định" },
+                              { label: "🟡 Cần theo dõi", value: "Cần theo dõi" },
+                              { label: "🔴 Diễn biến xấu", value: "Diễn biến xấu" },
+                              { label: "🔵 Có chỉ định mới", value: "Có chỉ định mới" }
+                            ].map((statusItem) => (
+                              <button
+                                key={statusItem.value}
+                                type="button"
+                                onClick={() => { setNewRoundingLog(prev => ({ ...prev, status: statusItem.value })); }}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                                  newRoundingLog.status === statusItem.value
+                                    ? 'bg-slate-900 border-slate-900 text-white font-extrabold'
+                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                                }`}
+                              >
+                                {statusItem.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-555 uppercase tracking-wide">Nội dung ghi nhận lâm sàng / Đề xuất của khách</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="Nhập tình trạng sức khỏe, mong muốn hoặc đề xuất điều trị..."
+                              value={newRoundingLog.notes}
+                              onChange={(e) => { setNewRoundingLog(prev => ({ ...prev, notes: e.target.value })); }}
+                              className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleAddRoundingLog}
+                              className="px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs hover:bg-indigo-700 transition flex items-center gap-1.5 shrink-0"
+                            >
+                              <Check className="w-4 h-4 stroke-[3px]" /> Ghi nhận
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                      {(formData.roundingLogs || []).length === 0 ? (
+                        <div className="text-center py-6 text-slate-400 text-xs font-semibold">
+                          Chưa có lượt thăm hỏi và theo dõi sức khỏe nào được ghi nhận.
+                        </div>
+                      ) : (
+                        (formData.roundingLogs || []).map((log) => (
+                          <div key={log.id} className="p-3 bg-slate-50/60 border border-slate-150 rounded-2xl text-xs flex justify-between gap-3 items-start animate-fadeIn">
+                            <div className="space-y-1.5 min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-extrabold text-slate-900">{log.visitor}</span>
+                                <span className="text-[10px] font-mono text-slate-400 font-bold">
+                                  {new Date(log.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - {new Date(log.timestamp).toLocaleDateString('vi-VN')}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                  log.status === 'Ổn định' ? 'bg-emerald-50 text-emerald-705 border border-emerald-200' :
+                                  log.status === 'Cần theo dõi' ? 'bg-amber-50 text-amber-705 border border-amber-200' :
+                                  log.status === 'Diễn biến xấu' ? 'bg-rose-50 text-rose-705 border border-rose-200' :
+                                  'bg-blue-50 text-blue-705 border border-blue-200'
+                                }`}>
+                                  {log.status}
+                                </span>
+                              </div>
+                              <p className="text-slate-655 font-medium leading-relaxed break-words">
+                                {log.notes}
+                              </p>
+                            </div>
+                            {!isReadOnly && (
+                              <button
+                                type="button"
+                                onClick={() => { handleDeleteRoundingLog(log.id); }}
+                                className="p-1 text-slate-400 hover:text-rose-500 rounded-lg transition"
+                                title="Xóa"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {(patientVisitHistory.length > 0 || (formData.history && formData.history.length > 0)) && (
                   <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
@@ -2819,7 +2994,7 @@ export default function App() {
                     </button>
 
                     {isHistoryPanelExpanded && (
-                      <div className="space-y-4 pt-4 border-t border-slate-101 animate-fadeIn">
+                      <div className="space-y-4 pt-4 border-t border-slate-101">
                         <div className="flex border-b border-slate-101 pb-2 overflow-x-auto gap-2">
                           {patientVisitHistory.length > 0 && (
                             <button
@@ -2848,12 +3023,12 @@ export default function App() {
                         </div>
 
                         {leftFormTab === 'visitHistory' && patientVisitHistory.length > 0 && (
-                          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1 animate-fadeIn">
+                          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
                             <div className="space-y-3">
                               {patientVisitHistory.map((visit) => {
                                 const vSite = sites.find(s => s.label === visit.site) || sites[0];
                                 return (
-                                  <div key={visit.id} className="p-3 bg-slate-55 border border-slate-202 rounded-2xl text-xs space-y-3 relative hover:shadow-xs transition duration-150">
+                                  <div key={visit.id} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-3 relative hover:shadow-xs transition duration-150">
                                     
                                     <div className="flex justify-between items-start gap-1">
                                       <div>
@@ -2921,7 +3096,7 @@ export default function App() {
                         )}
 
                         {leftFormTab === 'timeline' && (
-                          <div className="p-4 bg-slate-55 rounded-2xl border border-slate-202 max-h-[350px] overflow-y-auto pr-1 animate-fadeIn">
+                          <div className="p-4 bg-slate-55 rounded-2xl border border-slate-202 max-h-[350px] overflow-y-auto pr-1">
                             <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
                               {formData.history?.map((log, index) => (
                                 <div key={index} className="relative">
@@ -2962,7 +3137,7 @@ export default function App() {
                         className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800"
                       />
                       {isSpecDropdownOpen && (
-                        <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-fadeIn">
+                        <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1">
                           {filteredSpecialties.length === 0 ? (
                             <div className="text-xs text-slate-405 font-bold text-center py-4">Không tìm thấy chuyên khoa phù hợp</div>
                           ) : (
@@ -2974,7 +3149,7 @@ export default function App() {
                                   type="button"
                                   onClick={() => { toggleSpecialtySelection(spec); }}
                                   className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${
-                                    isSelected ? 'bg-indigo-50 text-indigo-755' : 'hover:bg-slate-50 text-slate-700'
+                                    isSelected ? 'bg-indigo-50 text-indigo-755' : 'hover:bg-slate-55 text-slate-700'
                                   }`}
                                 >
                                   <span>{spec}</span>
@@ -2992,7 +3167,7 @@ export default function App() {
                       {formData.specialties.map((spec) => (
                         <span
                           key={spec}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold animate-scaleIn"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold"
                         >
                           {spec}
                           {!isReadOnly && (
@@ -3019,22 +3194,6 @@ export default function App() {
                       </h3>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        
-                        <div className="space-y-1.5 md:col-span-2">
-                          <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
-                          <select
-                            value={formData.treatmentType || 'Ngoại trú'}
-                            disabled={isReadOnly}
-                            onChange={(e) => { handleTreatmentTypeChange(e.target.value); }}
-                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 cursor-pointer disabled:bg-slate-50 disabled:text-slate-500"
-                          >
-                            <option value="Ngoại trú">Ngoại trú</option>
-                            <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
-                            <option value="Nội trú/ICU">Nội trú/ICU</option>
-                            <option value="Ngoài viện">Ngoài viện</option>
-                          </select>
-                        </div>
-
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
                           <div className="relative">
@@ -3086,7 +3245,7 @@ export default function App() {
                     <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center py-8 space-y-2">
                       <Lock className="w-8 h-8 text-rose-400 mx-auto" />
                       <p className="text-xs font-bold text-slate-550">Chi phí điều trị bị khóa</p>
-                      <p className="text-[10px] text-slate-400 leading-normal">Tài khoản này không được phân quyền xem dữ liệu tài chính của chi nhánh.</p>
+                      <p className="text-[10px] text-slate-404 leading-normal">Tài khoản này không được phân quyền xem dữ liệu tài chính của chi nhánh.</p>
                     </div>
                   )
                 )}
@@ -3121,55 +3280,113 @@ export default function App() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3 relative z-10">
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
-                              Duyệt giảm (%) {!hasAccessToPatient(formData, 'billing:discount') && '🔒'}
-                            </label>
-                            <div className="relative">
-                              <input 
-                                type="number" 
-                                min="0"
-                                max="100"
-                                value={formData.discountRate || ''}
-                                disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly} 
-                                onChange={(e) => { handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0))); }}
-                                placeholder="0"
-                                className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-505 ${
-                                  !hasAccessToPatient(formData, 'billing:discount') || isReadOnly
-                                    ? 'bg-slate-800 border-slate-700 text-slate-550 cursor-not-allowed'
-                                    : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-505'
-                                }`}
-                              />
-                              <span className="absolute right-3 top-3 text-[10px] text-slate-555 font-bold font-mono">%</span>
-                            </div>
+                        <div className="space-y-3 relative z-10">
+                          <div className="flex bg-slate-850 p-0.5 rounded-xl border border-slate-750">
+                            <button
+                              type="button"
+                              disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, discountType: 'percent', approvedDiscountAmount: 0 }));
+                              }}
+                              className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition ${
+                                (formData.discountType || 'percent') === 'percent'
+                                  ? 'bg-slate-700 text-white shadow-2xs font-black'
+                                  : 'text-slate-404 hover:text-slate-200'
+                              }`}
+                            >
+                              Giảm theo %
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, discountType: 'fixed', discountRate: 0 }));
+                              }}
+                              className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition ${
+                                formData.discountType === 'fixed'
+                                  ? 'bg-slate-700 text-white shadow-2xs font-black'
+                                  : 'text-slate-404 hover:text-slate-200'
+                              }`}
+                            >
+                              Số tiền cố định
+                            </button>
                           </div>
+
+                          {(formData.discountType || 'percent') === 'percent' ? (
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
+                                Duyệt giảm (%) {!hasAccessToPatient(formData, 'billing:discount') && '🔒'}
+                              </label>
+                              <div className="relative">
+                                <input 
+                                  type="number" 
+                                  min="0"
+                                  max="100"
+                                  value={formData.discountRate || ''}
+                                  disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly} 
+                                  onChange={(e) => { handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0))); }}
+                                  placeholder="0"
+                                  className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-505 ${
+                                    !hasAccessToPatient(formData, 'billing:discount') || isReadOnly
+                                      ? 'bg-slate-800 border-slate-700 text-slate-555 cursor-not-allowed'
+                                      : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-505'
+                                  }`}
+                                />
+                                <span className="absolute right-3 top-3 text-[10px] text-slate-555 font-bold font-mono">%</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
+                                Số tiền Duyệt giảm (VNĐ) {!hasAccessToPatient(formData, 'billing:discount') && '🔒'}
+                              </label>
+                              <div className="relative">
+                                <input 
+                                  type="text" 
+                                  value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : ''}
+                                  disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly} 
+                                  onChange={(e) => {
+                                    const cleanValue = e.target.value.replace(/\D/g, '');
+                                    const numValue = cleanValue === '' ? 0 : parseInt(cleanValue, 10);
+                                    handleInputChange('approvedDiscountAmount', numValue);
+                                  }}
+                                  placeholder="0"
+                                  className={`w-full pl-4 pr-12 py-2.5 rounded-xl border text-xs font-black placeholder-slate-505 ${
+                                    !hasAccessToPatient(formData, 'billing:discount') || isReadOnly
+                                      ? 'bg-slate-800 border-slate-700 text-slate-555 cursor-not-allowed'
+                                      : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-505'
+                                  }`}
+                                />
+                                <span className="absolute right-3 top-3 text-[10px] text-slate-555 font-bold font-mono">VNĐ</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
                           
                           <div className="flex justify-between items-center text-xs">
-                            <span className="text-slate-400">Tổng phí tự động:</span>
+                            <span className="text-slate-404">Tổng phí tự động:</span>
                             <div className="flex items-center gap-1">
                               <input 
                                 type="text"
                                 value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
                                 disabled={isReadOnly}
                                 onChange={(e) => { handleCurrencyChange('totalAmount', e.target.value); }}
-                                className="w-32 bg-transparent text-right font-extrabold text-slate-105 border-b border-transparent hover:border-slate-600 focus:border-indigo-550 focus:outline-hidden font-mono disabled:opacity-80"
+                                className="w-32 bg-transparent text-right font-extrabold text-slate-105 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono disabled:opacity-80"
                               />
                               <span>đ</span>
                             </div>
                           </div>
 
                           <div className="flex justify-between items-center text-xs">
-                            <span className="text-slate-400">Số tiền duyệt giảm tự động:</span>
+                            <span className="text-slate-404">Số tiền duyệt giảm:</span>
                             <div className="flex items-center gap-1">
                               <span className="text-rose-405">-</span>
                               <input 
                                 type="text"
                                 value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
-                                disabled={isReadOnly}
+                                disabled={formData.discountType !== 'fixed' || isReadOnly}
                                 onChange={(e) => { handleCurrencyChange('approvedDiscountAmount', e.target.value); }}
                                 className="w-32 bg-transparent text-right font-extrabold text-rose-405 border-b border-transparent hover:border-slate-600 focus:border-indigo-550 focus:outline-hidden font-mono disabled:opacity-80"
                               />
@@ -3178,7 +3395,7 @@ export default function App() {
                           </div>
 
                           <div className="flex justify-between items-center text-xs">
-                            <span className="text-slate-400">Khấu trừ BHYT/Tạm ứng:</span>
+                            <span className="text-slate-404">Khấu trừ BHYT/Tạm ứng:</span>
                             <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
                           </div>
 
@@ -3228,8 +3445,8 @@ export default function App() {
                       ))}
                       {!isReadOnly && (
                         <label className="border-2 border-dashed border-slate-202 rounded-2xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition duration-200 aspect-video">
-                          <Upload className="w-5 h-5 text-slate-405" />
-                          <span className="text-[10px] font-bold text-slate-707">Tải thêm ảnh</span>
+                          <Upload className="w-5 h-5 text-slate-404" />
+                          <span className="text-[10px] font-bold text-slate-700">Tải thêm ảnh</span>
                           <input type="file" accept="image/*" multiple onChange={handleMultipleImagesUpload} className="hidden" />
                         </label>
                       )}
@@ -3244,7 +3461,6 @@ export default function App() {
           </form>
         )}
 
-        {/* ========================== GIAO DIỆN 3: THEO DÕI HỒ SƠ & BỘ LỊCH ========================== */}
         {activeTab === 'monitoring' && canShowTab('monitoring') && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -3268,19 +3484,19 @@ export default function App() {
               <div className="flex bg-slate-101 p-1 rounded-xl">
                 <button 
                   onClick={() => { setCalendarMode('list'); }}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'list' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-505 hover:text-slate-855'}`}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'list' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-550 hover:text-slate-805'}`}
                 >
                   Dạng Danh Sách
                 </button>
                 <button 
                   onClick={() => { setCalendarMode('week'); setCurrentCalendarDate(new Date()); }}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'week' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-505 hover:text-slate-855'}`}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'week' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-550 hover:text-slate-805'}`}
                 >
                   Lịch Tuần Động
                 </button>
                 <button 
                   onClick={() => { setCalendarMode('month'); setCurrentCalendarDate(new Date()); }}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'month' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-505 hover:text-slate-855'}`}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'month' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-550 hover:text-slate-805'}`}
                 >
                   Lịch Tháng Chi Tiết
                 </button>
@@ -3405,24 +3621,24 @@ export default function App() {
 
                       <div className="flex-1 space-y-2 overflow-y-auto max-h-[300px]">
                         {dayPatients.length === 0 ? (
-                          <div className="text-center text-[10px] text-slate-300 font-bold pt-8">Không có ca</div>
+                          <div className="text-center text-[10px] text-slate-305 font-bold pt-8">Không có ca</div>
                         ) : (
                           dayPatients.map(p => (
                             <div 
                               key={p.id}
                               onClick={() => { initiateView(p); }}
-                              className="p-2 bg-white border border-slate-200 rounded-xl shadow-3xs hover:border-indigo-400 transition cursor-pointer space-y-1 animate-scaleIn text-left"
+                              className="p-2 bg-white border border-slate-200 rounded-xl shadow-3xs hover:border-indigo-400 transition cursor-pointer space-y-1 text-left"
                             >
                               <div 
-                                onClick={(e) => handleCopyText(e, p.name, 'họ tên khách hàng')}
-                                className="font-extrabold text-[10px] text-slate-800 truncate hover:text-indigo-600 transition"
+                                onClick={(e) => handleCopyText(e, p.name, "Họ và tên")}
+                                className="font-extrabold text-[10px] text-slate-800 truncate hover:text-indigo-600 cursor-copy"
                               >
-                                {maskPatientName(p.name)}
+                                {maskName(p.name)}
                               </div>
                               <div className="flex items-center justify-between gap-1 text-[8px] text-slate-455">
                                 <span 
-                                  onClick={(e) => handleCopyText(e, p.pid, 'mã PID')}
-                                  className="font-mono hover:text-indigo-600 transition"
+                                  onClick={(e) => handleCopyText(e, p.pid, "Mã PID")}
+                                  className="font-mono hover:text-indigo-600 cursor-copy"
                                 >
                                   PID: {maskPID(p.pid)}
                                 </span>
@@ -3489,7 +3705,7 @@ export default function App() {
                               />
                             ))}
                             {dayPatients.length > 3 && (
-                              <span className="text-[7px] text-slate-400 font-bold">+{dayPatients.length - 3}</span>
+                              <span className="text-[7px] text-slate-404 font-bold">+{dayPatients.length - 3}</span>
                             )}
                           </div>
                         )}
@@ -3519,7 +3735,7 @@ export default function App() {
                   </div>
                 ) : (
                   <>
-                    <div className="hidden lg:block bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-fadeIn">
+                    <div className="hidden lg:block bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
@@ -3541,19 +3757,19 @@ export default function App() {
                               const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
                               const pSite = sites.find(s => s.label === p.site) || sites[0];
                               return (
-                                <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 animate-fadeIn cursor-pointer" onClick={() => { initiateView(p); }}>
+                                <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 cursor-pointer" onClick={() => { initiateView(p); }}>
                                   <td className="py-4 px-5">
                                     <div 
-                                      onClick={(e) => handleCopyText(e, p.name, 'họ tên khách hàng')}
-                                      className="font-extrabold text-slate-955 text-sm hover:text-indigo-600 transition"
-                                      title="Click để sao chép họ tên đầy đủ"
+                                      onClick={(e) => handleCopyText(e, p.name, "Họ và tên")}
+                                      className="font-extrabold text-slate-955 text-sm hover:text-indigo-600 cursor-copy"
+                                      title="Bấm để copy Họ tên đầy đủ"
                                     >
-                                      {maskPatientName(p.name)}
+                                      {maskName(p.name)}
                                     </div>
                                     <div 
-                                      onClick={(e) => handleCopyText(e, p.pid, 'mã PID')}
-                                      className="text-[10px] text-indigo-600 font-mono font-black mt-0.5 hover:text-indigo-850 transition"
-                                      title="Click để sao chép PID đầy đủ"
+                                      onClick={(e) => handleCopyText(e, p.pid, "Mã PID")}
+                                      className="text-[10px] text-indigo-600 font-mono font-black mt-0.5 hover:text-indigo-800 cursor-copy"
+                                      title="Bấm để copy PID đầy đủ"
                                     >
                                       PID: {maskPID(p.pid)}
                                     </div>
@@ -3637,7 +3853,7 @@ export default function App() {
                                           <ImageIcon className="w-4 h-4" />
                                         </button>
                                       )}
-                                      <button onClick={() => { initiateView(p); }} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
+                                      <button onClick={() => { initiateView(p); }} className="p-1.5 bg-slate-50 border border-slate-202 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
                                         <Edit3 className="w-4 h-4" />
                                       </button>
                                       
@@ -3692,22 +3908,24 @@ export default function App() {
                         const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
                         const pSite = sites.find(s => s.label === p.site) || sites[0];
                         return (
-                          <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn cursor-pointer" onClick={() => { initiateView(p); }}>
+                          <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 cursor-pointer" onClick={() => { initiateView(p); }}>
                             <div className="flex justify-between items-start">
                               <div>
                                 <span 
-                                  onClick={(e) => handleCopyText(e, p.pid, 'mã PID')}
-                                  className="text-[9px] text-indigo-600 font-mono font-black block hover:text-indigo-850 transition"
+                                  onClick={(e) => handleCopyText(e, p.pid, "Mã PID")}
+                                  className="text-[9px] text-indigo-600 font-mono font-black block hover:text-indigo-855 cursor-copy"
+                                  title="Bấm để copy PID đầy đủ"
                                 >
                                   PID: {maskPID(p.pid)}
                                 </span>
                                 <h4 
-                                  onClick={(e) => handleCopyText(e, p.name, 'họ tên khách hàng')}
-                                  className="font-extrabold text-slate-900 text-sm hover:text-indigo-600 transition"
+                                  onClick={(e) => handleCopyText(e, p.name, "Họ và tên")}
+                                  className="font-extrabold text-slate-900 text-sm hover:text-indigo-600 cursor-copy"
+                                  title="Bấm để copy Họ tên đầy đủ"
                                 >
-                                  {maskPatientName(p.name)}
+                                  {maskName(p.name)}
                                 </h4>
-                                <p className="text-[10px] text-slate-404 mt-0.5 flex items-center gap-1 animate-fadeIn">
+                                <p className="text-[10px] text-slate-404 mt-0.5 flex items-center gap-1">
                                   <Calendar className="w-3.5 h-3.5" />
                                   Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
                                 </p>
@@ -3746,20 +3964,20 @@ export default function App() {
                               canViewBilling ? (
                                 <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
                                   <div>
-                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Tổng phí</span>
+                                    <span className="text-[8px] text-slate-404 block font-bold uppercase">Tổng phí</span>
                                     <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
                                   </div>
                                   <div>
-                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Duyệt giảm</span>
+                                    <span className="text-[8px] text-slate-404 block font-bold uppercase">Duyệt giảm</span>
                                     <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
                                   </div>
                                   <div>
-                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">Thực Thu</span>
+                                    <span className="text-[8px] text-slate-404 block font-bold uppercase">Thực Thu</span>
                                     <span className="text-[11px] font-black text-emerald-605 font-mono">{formatCurrency(realCollected)}</span>
                                   </div>
                                 </div>
                               ) : (
-                                <div className="bg-slate-50 p-2 text-center rounded-xl text-xs text-slate-404 flex items-center justify-center gap-1">
+                                <div className="bg-slate-50 p-2 text-center rounded-xl text-xs text-slate-400 flex items-center justify-center gap-1">
                                   <Lock className="w-3.5 h-3.5" /> Chi phí tài chính bị khóa bảo mật
                                 </div>
                               )
@@ -3774,7 +3992,7 @@ export default function App() {
                                     setLightboxImages(imgs);
                                     setLightboxIndex(0);
                                   }}
-                                  className="px-3 py-1.5 bg-slate-50 border border-slate-202 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition animate-fadeIn"
+                                  className="px-3 py-1.5 bg-slate-50 border border-slate-202 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
                                 >
                                   <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
                                 </button>
@@ -3826,7 +4044,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ========================== GIAO DIỆN 4: CẤU HÌNH THAM SỐ ========================== */}
         {activeTab === 'settings' && userRole === 'admin' && (
           <div className="space-y-6 animate-fadeIn">
             
@@ -3986,7 +4203,7 @@ export default function App() {
                       type="button"
                       onClick={() => { handleDiscountFormulaChange('only_total'); }}
                       className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
-                        systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
+                        systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-55'
                       }`}
                     >
                       <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
@@ -4004,7 +4221,7 @@ export default function App() {
                       type="button"
                       onClick={() => { handleDiscountFormulaChange('total_minus_insurance_advance'); }}
                       className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
-                        systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
+                        systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-55'
                       }`}
                     >
                       <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
@@ -4036,7 +4253,7 @@ export default function App() {
                       placeholder="Thêm chuyên khoa mới..."
                       value={newSpecialtyInput}
                       onChange={(e) => { setNewSpecialtyInput(e.target.value); }}
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
                     />
                     <button
                       type="button"
@@ -4049,7 +4266,7 @@ export default function App() {
 
                   <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
                     {systemSettings.specialties?.map((spec, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition animate-fadeIn">
+                      <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-55 transition animate-fadeIn">
                         <span className="text-xs font-bold text-slate-700">{spec}</span>
                         <button
                           type="button"
@@ -4209,7 +4426,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-404 space-y-1 font-semibold">
-          <p className="text-slate-505">CÔNG CỘI NỘI BỘ - PHÒNG CSKH v3.1.8</p>
+          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.0</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
