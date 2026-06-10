@@ -21,19 +21,26 @@ messaging.onBackgroundMessage((payload) => {
     badge: payload.notification.badge || '/favicon.png',
     data: payload.data
   };
-
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const patientId = event.notification.data ? event.notification.data.patientId : null;
+  let patientId = null;
+  if (event.notification.data) {
+    if (event.notification.data.patientId) {
+      patientId = event.notification.data.patientId;
+    } else if (event.notification.data.FCM_MSG && event.notification.data.FCM_MSG.data) {
+      patientId = event.notification.data.FCM_MSG.data.patientId;
+    }
+  }
   const targetUrl = patientId ? `/?patientId=${patientId}` : '/';
-
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url === targetUrl && 'focus' in client) {
+        const clientUrl = new URL(client.url);
+        const targetUrlParsed = new URL(targetUrl, clientUrl.origin);
+        if (clientUrl.pathname === targetUrlParsed.pathname && 'focus' in client) {
           return client.focus();
         }
       }
