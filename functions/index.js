@@ -1,13 +1,13 @@
-const { onDocumentWritten } = require("firebase-functions/v2/firestore");
+const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
 
-exports.onPatientWrite = onDocumentWritten(
-  "artifacts/cskh-ta/public/data/patients/{patientId}",
-  async (event) => {
-    const data = event.data ? event.data.after.data() : null;
-    const previousData = event.data ? event.data.before.data() : null;
+exports.onPatientWrite = functions.firestore
+  .document("artifacts/cskh-ta/public/data/patients/{patientId}")
+  .onWrite(async (change, context) => {
+    const data = change.after.exists ? change.after.data() : null;
+    const previousData = change.before.exists ? change.before.data() : null;
 
     if (!data) return null;
 
@@ -35,7 +35,7 @@ exports.onPatientWrite = onDocumentWritten(
       { id: "Inpatient", label: "Đang Nằm Viện" },
       { id: "Completed", label: "Đã Hoàn Tất" }
     ];
-    
+
     const matchedStatus = statuses.find(s => s.id === status);
     if (matchedStatus) {
       statusLabel = matchedStatus.label;
@@ -75,8 +75,16 @@ exports.onPatientWrite = onDocumentWritten(
         body: body
       },
       data: {
-        patientId: event.params.patientId,
-        click_action: "FLUTTER_NOTIFICATION_CLICK"
+        patientId: context.params.patientId
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: "default",
+            badge: 1,
+            "mutable-content": 1
+          }
+        }
       },
       tokens: tokens
     };
@@ -87,5 +95,4 @@ exports.onPatientWrite = onDocumentWritten(
     } catch (error) {
       return { success: false, error: error.message };
     }
-  }
-);
+  });
