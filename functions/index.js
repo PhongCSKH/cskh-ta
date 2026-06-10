@@ -86,6 +86,18 @@ exports.onPatientWrite = functions.firestore
           }
         }
       },
+      webpush: {
+        headers: {
+          Urgency: "high"
+        },
+        notification: {
+          title: title,
+          body: body,
+          icon: "/favicon.png",
+          badge: "/favicon.png",
+          requireInteraction: true
+        }
+      },
       tokens: tokens
     };
 
