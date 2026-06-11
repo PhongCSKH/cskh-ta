@@ -19,44 +19,56 @@ import {
 } from 'firebase/auth';
 import { getMessaging, getToken } from 'firebase/messaging';
 import {
-  LayoutDashboard,
-  Plus,
-  ClipboardList,
-  Settings,
-  Bell,
-  BellRing,
-  LogOut,
-  Check,
-  X,
-  ShieldAlert,
-  History,
-  Copy,
-  ArrowRightLeft,
-  Sparkles,
-  Calendar,
-  ImageIcon,
-  Edit3,
-  Trash2,
-  Lock,
-  ChevronLeft,
-  ChevronRight,
-  Activity,
   Users,
+  Plus,
+  Settings,
+  DollarSign,
+  Calendar,
+  ShieldCheck,
+  FileText,
+  Check,
+  Trash2,
+  Search,
+  Filter,
+  Upload,
+  X,
+  Sparkles,
+  TrendingUp,
+  Building,
+  Activity,
   CreditCard,
   FileSpreadsheet,
+  Edit3,
+  ChevronRight,
+  Info,
+  Lock,
   UserCheck,
-  Unlock,
+  LogOut,
+  Eye,
+  EyeOff,
+  UserPlus,
+  ShieldAlert,
+  ClipboardList,
+  LayoutDashboard,
+  ArrowRight,
+  Bell,
+  BellRing,
   Clock,
   CheckCircle2,
   ChevronDown,
+  ArrowRightLeft,
+  Image as ImageIcon,
   Scan,
-  UserPlus,
-  Eye,
-  EyeOff,
-  Upload
+  Smartphone,
+  Copy,
+  History,
+  ChevronLeft,
+  MapPin,
+  Globe,
+  Unlock
 } from 'lucide-react';
 
-const WEBPUSH_VAPID_KEY = "BFjwAUlwacxhmYk0TiQdDTDJYKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQlAcSuG3iAAqtNnkPtJAW_s";
+const WEBPUSH_VAPID_KEY = "BFjwAUlwacxhmYk0TiQdDTDJYKgvy2ktOS7YjdobmZlTiwqDXuX7WOVSLpm-zZuyQlAcSuG3iAAqtNnkPtJAW_s"; 
 
 const defaultFirebaseConfig = {
   apiKey: "AIzaSyBMmXRbUFvXRsUH6anb22sKlY8JlqiF7Lk",
@@ -212,14 +224,14 @@ const workflowStatuses = [
   { id: 'Scheduled', label: 'Đã lên lịch', color: 'bg-sky-50 text-sky-700 border-sky-200/80', dot: 'bg-sky-500' },
   { id: 'Preparing', label: 'Đang chuẩn bị', color: 'bg-amber-50 text-amber-700 border-amber-200/80', dot: 'bg-amber-500' },
   { id: 'ReceivedInfo', label: 'Đã nhận thông tin', color: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500' },
-  { id: 'Waiting', label: 'Chờ Tiếp Đón', color: 'bg-slate-101 text-slate-707 border-slate-200', dot: 'bg-slate-400' },
-  { id: 'Received', label: 'Đã Tiếp Đón', color: 'bg-indigo-50 text-indigo-707 border-indigo-200/80', dot: 'bg-indigo-500' },
+  { id: 'Waiting', label: 'Chờ Tiếp Đón', color: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-400' },
+  { id: 'Received', label: 'Đã Tiếp Đón', color: 'bg-indigo-50 text-indigo-700 border-indigo-200/80', dot: 'bg-indigo-500' },
   { id: 'Examining', label: 'Đang Khám', color: 'bg-blue-50 text-blue-700 border-blue-200/80', dot: 'bg-blue-500' },
-  { id: 'Testing', label: 'Đang Làm CLS/CĐHA', color: 'bg-amber-50 text-amber-707 border-amber-200/80', dot: 'bg-amber-500' },
+  { id: 'Testing', label: 'Đang Làm CLS/CĐHA', color: 'bg-amber-50 text-amber-700 border-amber-200/80', dot: 'bg-amber-500' },
   { id: 'Reviewing', label: 'Chờ Kết Luận', color: 'bg-purple-50 text-purple-700 border-purple-200/80', dot: 'bg-purple-500' },
   { id: 'Pharmacy', label: 'Đang Chờ Thuốc/Tiêm Ngừa', color: 'bg-yellow-50 text-yellow-850 border-yellow-200/80', dot: 'bg-yellow-500' },
-  { id: 'Inpatient', label: 'Đang Nằm Viện', color: 'bg-rose-50 text-rose-707 border-rose-200/80', dot: 'bg-rose-500' },
-  { id: 'Completed', label: 'Đã Hoàn Tất', color: 'bg-emerald-50 text-emerald-707 border-emerald-200/80', dot: 'bg-emerald-500' }
+  { id: 'Inpatient', label: 'Đang Nằm Viện', color: 'bg-rose-50 text-rose-700 border-rose-200/80', dot: 'bg-rose-500' },
+  { id: 'Completed', label: 'Đã Hoàn Tất', color: 'bg-emerald-50 text-emerald-700 border-emerald-200/80', dot: 'bg-emerald-500' }
 ];
 
 const sites = [
@@ -227,1778 +239,6 @@ const sites = [
   { id: 'th', label: 'PK Tâm Anh - Tân Hưng', bg: 'bg-violet-50 text-violet-700 border-violet-200/80', dot: 'bg-violet-500', cardBg: 'bg-[#faf5ff] border-[#e9d5ff] hover:border-[#d8b4fe]' },
   { id: 'ch', label: 'BV Tâm Anh - Chánh Hưng', bg: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500', cardBg: 'bg-[#f0fdf4] border-[#bbf7d0] hover:border-[#86efac]' }
 ];
-
-function Dashboard({
-  currentUser,
-  userRole,
-  systemSettings,
-  kanbanPatients,
-  dashMetrics,
-  dashFilterMode,
-  setDashFilterMode,
-  dashStartDate,
-  setDashStartDate,
-  dashEndDate,
-  setDashEndDate,
-  filterSite,
-  setFilterSite,
-  filterDate,
-  setFilterDate,
-  initiateView,
-  handleCopyText,
-  handleUpdateStatus,
-  briefingStats,
-  setFilterDateGlobal,
-  setCalendarModeGlobal,
-  setActiveTabGlobal,
-  resetForm
-}) {
-  return (
-    <div className="space-y-8 animate-fadeIn">
-      <div className="bg-gradient-to-tr from-[#312e81] via-[#4338ca] to-[#6d28d9] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-indigo-500/30">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-white/5 rounded-full filter blur-3xl opacity-20 translate-x-24 -translate-y-24"></div>
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-3 max-w-xl">
-            <span className="px-3 py-1 bg-amber-400 text-[#1e1b4b] rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse">
-              Trợ lý ảo đón tiếp VIP
-            </span>
-            <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight">
-              Kế Hoạch Chủ Động Cho Ngày Mai & Tuần Tới
-            </h3>
-            <div className="space-y-2 text-xs text-indigo-100 font-semibold pt-1">
-              <p className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                Ngày mai ({briefingStats.tomorrowDateFormatted}): 
-                <strong className="text-white ml-1"> {briefingStats.tomorrowPatients.length} ca tiếp đón </strong>
-              </p>
-              <p className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-sky-400"></span>
-                Tuần tới: 
-                <strong className="text-white ml-1"> {briefingStats.nextWeekCount} ca đón tiếp đã lên lịch </strong>
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2 w-full md:w-auto">
-            <button 
-              onClick={() => {
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                setFilterDateGlobal(tomorrow.toISOString().split('T')[0]);
-                setCalendarModeGlobal('list');
-                setActiveTabGlobal('monitoring');
-              }}
-              className="flex-1 md:flex-none px-5 py-3 bg-white text-indigo-900 hover:bg-indigo-50 text-xs font-black rounded-xl shadow-md transition transform active:scale-95 whitespace-nowrap"
-            >
-              Xem lịch ngày mai
-            </button>
-            <button 
-              onClick={() => {
-                setFilterDateGlobal('');
-                setCalendarModeGlobal('week');
-                setActiveTabGlobal('monitoring');
-              }}
-              className="flex-1 md:flex-none px-5 py-3 bg-indigo-950/30 border border-indigo-400/30 hover:bg-indigo-950/50 text-white text-xs font-black rounded-xl transition transform active:scale-95"
-            >
-              Mở lịch tuần
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-5 text-white relative overflow-hidden shadow-md border border-slate-700/85 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20 pointer-events-none"></div>
-        <div className="relative z-10 space-y-1.5 max-w-2xl">
-          <span className="px-2.5 py-0.5 bg-amber-400 text-slate-955 rounded-md text-[9px] font-black uppercase tracking-wider inline-block">
-            Phòng Chăm Sóc Khách Hàng
-          </span>
-          <h2 className="text-lg sm:text-xl font-black tracking-tight leading-snug">
-            Chào, {currentUser?.name || ''}!
-          </h2>
-          <p className="text-[11px] sm:text-xs text-slate-300 leading-normal font-semibold">
-            Công cụ hỗ trợ quản lý và theo dõi việc tiếp đón và chi phí của nhóm Khách hàng VIP, VVIP, Ngoại giao của Ban giám đốc.
-          </p>
-        </div>
-        {['admin', 'quanly', 'nhanvien', 'quanly_site'].includes(userRole) && (
-          <div className="shrink-0 relative z-10">
-            <button 
-              onClick={() => { resetForm(); setActiveTabGlobal('register'); }}
-              className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-955 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-1.5 transition transform active:scale-95"
-            >
-              <Plus className="w-4 h-4 stroke-[3px]" /> Tiếp nhận hồ sơ mới <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-3xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
-              <h3 className="text-xs font-black text-slate-850 uppercase tracking-wider">
-                {dashFilterMode === 'today' ? "Nhật ký chỉ số của ngày hôm nay" : "Chỉ số thống kê theo khoảng ngày"}
-              </h3>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex bg-slate-101 p-0.5 rounded-lg border border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setDashFilterMode('today')}
-                  className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition ${
-                    dashFilterMode === 'today' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-505 hover:text-slate-850'
-                  }`}
-                >
-                  Hôm nay
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDashFilterMode('range')}
-                  className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
-                    dashFilterMode === 'range' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-505 hover:text-slate-855'
-                  }`}
-                >
-                  Tùy chọn 📅
-                </button>
-              </div>
-              {dashFilterMode === 'range' && (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 bg-slate-55 border border-slate-200 px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-655">
-                  <div className="flex items-center gap-1">
-                    <span>Từ:</span>
-                    <input 
-                      type="date" 
-                      value={dashStartDate}
-                      onChange={(e) => setDashStartDate(e.target.value)}
-                      className="bg-transparent border-none text-[11px] font-black text-slate-800 focus:outline-hidden cursor-pointer"
-                    />
-                  </div>
-                  <span className="hidden sm:inline text-slate-300">➔</span>
-                  <div className="flex items-center gap-1">
-                    <span>Đến:</span>
-                    <input 
-                      type="date" 
-                      value={dashEndDate}
-                      onChange={(e) => setDashEndDate(e.target.value)}
-                      className="bg-transparent border-none text-[11px] font-black text-slate-800 focus:outline-hidden cursor-pointer"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-              <div className="p-3.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-101">
-                <Users className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-404 font-black block uppercase tracking-wider">Khách hàng</span>
-                <span className="text-xl font-black text-slate-900">{dashMetrics.totalPatients}</span>
-                <span className="text-[11px] text-slate-500 block">
-                  VIP: {dashMetrics.vipCount} | VVIP: {dashMetrics.vvipCount}
-                </span>
-              </div>
-            </div>
-            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-              <div className="p-3.5 rounded-xl bg-indigo-50 text-indigo-600 border-indigo-101">
-                <Activity className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-404 font-black block uppercase tracking-wider">Tổng chi phí</span>
-                <span className="text-xl font-black text-slate-900">{formatCurrency(dashMetrics.totalRevenue)}</span>
-                <span className="text-[11px] text-slate-500 block">Tổng chi phí sử dụng (VVIP)</span>
-              </div>
-            </div>
-            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-              <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-101">
-                <CreditCard className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-404 font-black block uppercase tracking-wider">Tổng duyệt giảm</span>
-                <span className="text-xl font-black text-rose-605">-{formatCurrency(dashMetrics.totalDiscount)}</span>
-                <span className="text-[11px] text-rose-405 block font-bold">Ban lãnh đạo duyệt</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div>
-            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
-              Hành Trình Khách Hàng (Realtime Kanban)
-            </h3>
-            <p className="text-[11px] text-slate-404 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng.</p>
-          </div>
-          <div className="flex flex-wrap gap-2 items-center w-full lg:w-auto">
-            <span className="text-[10px] font-bold text-slate-404 uppercase">Lọc nhanh:</span>
-            <select 
-              value={filterSite}
-              onChange={(e) => setFilterSite(e.target.value)}
-              className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white cursor-pointer"
-            >
-              <option value="">Tất cả các Site</option>
-              {sites.map(s => (
-                <option key={s.id} value={s.label}>{s.label}</option>
-              ))}
-            </select>
-            <input 
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white cursor-pointer"
-            />
-            {(filterSite || filterDate) && (
-              <button 
-                onClick={() => { setFilterSite(''); setFilterDate(''); }}
-                className="px-2.5 py-1 text-rose-500 hover:bg-rose-50 rounded-xl text-[11px] font-black transition"
-              >
-                Xóa bộ lọc
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="flex gap-4 overflow-x-auto pb-4 items-stretch select-none">
-          {workflowStatuses.map(col => {
-            const colPatients = kanbanPatients.filter(p => (p.status || 'Waiting') === col.id);
-            if (colPatients.length === 0) {
-              return (
-                <div 
-                  key={col.id} 
-                  className="w-12 bg-slate-101/40 rounded-2xl py-3 px-1 border border-slate-200 flex flex-col items-center justify-start transition-all duration-300 shrink-0 cursor-pointer"
-                  title={`Trống: ${col.label}`}
-                >
-                  <span className={`w-2 h-2 rounded-full ${col.dot} mb-2`}></span>
-                  <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-555 mb-2 font-mono">
-                    0
-                  </span>
-                  <span className="text-[9px] font-extrabold text-slate-404 [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
-                    {col.label}
-                  </span>
-                </div>
-              );
-            }
-
-            return (
-              <div 
-                key={col.id} 
-                className="bg-slate-50/60 rounded-2xl p-3 border border-slate-200 flex flex-col min-w-[180px] flex-1 transition-all duration-300 shrink-0"
-              >
-                <div className="flex justify-between items-center pb-3 border-b border-slate-200 mb-3">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className={`w-2 h-2 rounded-full ${col.dot}`}></span>
-                    <span className="text-[10px] font-black text-slate-700 truncate">{col.label}</span>
-                  </div>
-                  <span className="text-[10px] font-black bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-555 font-mono">
-                    {colPatients.length}
-                  </span>
-                </div>
-                <div className="flex-1 space-y-3 overflow-y-auto max-h-[350px]">
-                  {colPatients.map(p => {
-                    const patientSite = sites.find(s => s.label === p.site) || sites[0];
-                    return (
-                      <div 
-                        key={p.id}
-                        onClick={() => initiateView(p)}
-                        className={`p-3 rounded-xl border shadow-2xs hover:shadow-xs transition duration-150 space-y-2.5 relative group cursor-pointer ${patientSite.cardBg}`}
-                      >
-                        <div className="flex justify-between items-start gap-1">
-                          <span 
-                            onClick={(e) => handleCopyText(e, p.pid, "Mã PID")}
-                            className="text-[8px] text-slate-555 font-mono font-black truncate hover:text-indigo-600 cursor-copy"
-                            title="Bấm để copy PID đầy đủ"
-                          >
-                            PID: {maskPID(p.pid)}
-                          </span>
-                          <div className="flex gap-1">
-                            <span className={`px-1 py-0.5 rounded-xs text-[7px] font-bold uppercase ${
-                              p.examinationArea === 'Khu VIP' ? 'bg-indigo-105 text-indigo-805' : 
-                              p.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'bg-rose-101 text-rose-805' : 'bg-teal-101 text-teal-805'
-                            }`}>
-                              {p.examinationArea === 'Khu VIP' ? 'VIP' : p.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'NT/CC/ICU' : 'TC'}
-                            </span>
-                            <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
-                              p.tier === 'VVIP' ? 'bg-amber-101 text-amber-808' : 'bg-indigo-50 text-indigo-707'
-                            }`}>
-                              {p.tier}
-                            </span>
-                          </div>
-                        </div>
-                        <div 
-                          onClick={(e) => handleCopyText(e, p.name, "Họ và tên")}
-                          className="font-extrabold text-[11px] text-slate-800 leading-tight truncate hover:text-indigo-600 cursor-copy" 
-                          title="Bấm để copy Họ tên đầy đủ"
-                        >
-                          {maskName(p.name)}
-                        </div>
-                        <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
-                          <select
-                            value={p.status || 'Waiting'}
-                            onChange={(e) => handleUpdateStatus(p.id, e.target.value)}
-                            className="w-full px-1.5 py-1 text-[9px] font-black border border-slate-200 rounded-md bg-white text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-indigo-505 cursor-pointer"
-                          >
-                            {workflowStatuses.map(st => (
-                              <option key={st.id} value={st.id}>{st.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PatientForm({
-  currentUser,
-  userRole,
-  currentId,
-  isReadOnly,
-  setIsReadOnly,
-  formData,
-  setFormData,
-  newRoundingLog,
-  setNewRoundingLog,
-  isScanning,
-  setIsScanning,
-  scannerError,
-  setScannerError,
-  specSearch,
-  setSpecSearch,
-  isSpecDropdownOpen,
-  setIsSpecDropdownOpen,
-  leftFormTab,
-  setLeftFormTab,
-  isHistoryPanelExpanded,
-  setIsHistoryPanelExpanded,
-  handleInputChange,
-  handleCurrencyChange,
-  toggleSpecialtySelection,
-  handleMultipleImagesUpload,
-  handleToggleRecipient,
-  handleAddRoundingLog,
-  handleDeleteRoundingLog,
-  savePatient,
-  resetForm,
-  setActiveTab,
-  initiateView,
-  handleCopyText,
-  setCopyConfirmModal,
-  registrableStaffList,
-  patientVisitHistory,
-  linkedVisits,
-  hasAccessToPatient,
-  stopScanner,
-  filteredSpecialties
-}) {
-  const canViewBilling = hasAccessToPatient(formData, 'billing:view');
-
-  return (
-    <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
-      <div className="sticky top-16 z-35 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <h2 className="text-base font-black text-slate-955 flex items-center gap-1.5">
-            {currentId ? (isReadOnly ? "Chi tiết hồ sơ bệnh nhân" : "Cập Nhật Tiến Độ") : "Tạo lượt Tiếp Đón VIP/VVIP"}
-          </h2>
-          {currentId && isReadOnly && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-105 border border-slate-200 text-slate-500 uppercase tracking-wider">
-              <Lock className="w-3 h-3" /> Chế độ chỉ xem
-            </span>
-          )}
-          {currentId && !isReadOnly && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-50 border border-amber-200 text-amber-707 uppercase tracking-wider">
-              <Unlock className="w-3 h-3 text-amber-600" /> Chế độ chỉnh sửa
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <button 
-            type="button" 
-            onClick={() => { resetForm(); setActiveTab('monitoring'); }}
-            className="px-4 py-2 border border-slate-200 text-slate-605 hover:bg-slate-55 text-xs font-bold rounded-xl transition"
-          >
-            Hủy bỏ
-          </button>
-          {currentId && isReadOnly ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsReadOnly(false);
-              }}
-              className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
-            >
-              <Edit3 className="w-4 h-4" /> Sửa hồ sơ
-            </button>
-          ) : (
-            <button 
-              type="submit"
-              className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
-            >
-              <Check className="w-4 h-4" /> {currentId ? "Cập nhật" : "Đăng ký"}
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
-              <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-              Thông Tin Hành Chính
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-600 block">Mã PID *</label>
-                <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    placeholder="Nhập/Quét mã bệnh nhân PID..."
-                    value={formData.pid}
-                    disabled={isReadOnly}
-                    onChange={(e) => handleInputChange('pid', e.target.value)}
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-mono font-black bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
-                    required
-                  />
-                  {!isReadOnly && (
-                    <button
-                      type="button"
-                      onClick={() => { setScannerError(''); setIsScanning(true); }}
-                      className="px-3 bg-slate-101 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs"
-                    >
-                      <Scan className="w-4 h-4 text-slate-505" /> Quét mã
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách hàng *</label>
-                <input 
-                  type="text" 
-                  placeholder="Nhập họ và tên Khách hàng"
-                  value={formData.name}
-                  disabled={isReadOnly}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-bold text-slate-605 block">Phân Hạng Tiếp Đón</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    disabled={isReadOnly}
-                    onClick={() => { handleInputChange('tier', 'VIP'); setFormRightTab('timeline'); }}
-                    className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 disabled:opacity-80 ${
-                      formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-505 text-indigo-707 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-55'
-                    }`}
-                  >
-                    <span className="font-black text-sm">VIP</span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isReadOnly}
-                    onClick={() => { handleInputChange('tier', 'VVIP'); setFormRightTab('billing'); }}
-                    className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 disabled:opacity-80 ${
-                      formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-505 text-amber-707 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-55'
-                    }`}
-                  >
-                    <span className="font-black text-sm text-amber-600">VVIP</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-600 block">Ngày khám / Điều trị</label>
-                <input 
-                  type="date" 
-                  value={formData.date}
-                  disabled={isReadOnly}
-                  onChange={(e) => handleInputChange('date', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white disabled:bg-slate-50 disabled:text-slate-500"
-                />
-              </div>
-
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-bold text-slate-605 block">Site thăm khám</label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  {sites.map(s => {
-                    const isAssigned = (currentUser?.assignedSite || 'Tất cả') === 'Tất cả' || currentUser?.assignedSite === s.label;
-                    return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        disabled={!isAssigned || isReadOnly}
-                        onClick={() => handleInputChange('site', s.label)}
-                        className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center disabled:opacity-80 ${
-                          formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
-                        }`}
-                      >
-                        {s.label} {!isAssigned && '🔒'}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="space-y-1.5 md:col-span-2 animate-fadeIn">
-                <label className="text-xs font-bold text-slate-605 block">Khu Vực Khám *</label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <button
-                    type="button"
-                    disabled={isReadOnly}
-                    onClick={() => handleInputChange('examinationArea', 'Khu Tiêu Chuẩn')}
-                    className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center disabled:opacity-80 ${
-                      formData.examinationArea === 'Khu Tiêu Chuẩn' ? 'bg-teal-50 border-teal-505 text-teal-755 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
-                    }`}
-                  >
-                    Khu Tiêu Chuẩn
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isReadOnly}
-                    onClick={() => handleInputChange('examinationArea', 'Khu VIP')}
-                    className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center disabled:opacity-80 ${
-                      formData.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-505 text-indigo-755 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
-                    }`}
-                  >
-                    Khu VIP
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isReadOnly}
-                    onClick={() => handleInputChange('examinationArea', 'Nội Trú/Cấp cứu/ICU')}
-                    className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center disabled:opacity-80 ${
-                      formData.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'bg-rose-50 border-rose-500 text-rose-755 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
-                    }`}
-                  >
-                    Nội Trú/Cấp cứu/ICU
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
-                <select
-                  value={formData.treatmentType || 'Ngoại trú'}
-                  disabled={isReadOnly}
-                  onChange={(e) => handleTreatmentTypeChange(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 cursor-pointer disabled:bg-slate-50 disabled:text-slate-500"
-                >
-                  <option value="Ngoại trú">Ngoại trú</option>
-                  <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
-                  <option value="Nội trú/ICU">Nội trú/ICU</option>
-                  <option value="Ngoài viện">Ngoài viện</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-bold text-slate-600 block">Trạng thái</label>
-                <select
-                  value={formData.status}
-                  disabled={isReadOnly}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white cursor-pointer disabled:bg-slate-50 disabled:text-slate-500"
-                >
-                  {workflowStatuses.map(status => (
-                    <option key={status.id} value={status.id}>{status.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {['Scheduled', 'Preparing', 'ReceivedInfo'].includes(formData.status) && (
-                <div className="space-y-2 md:col-span-2 p-4 bg-indigo-50/50 border border-indigo-101 rounded-2xl animate-fadeIn">
-                  <label className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-                    <UserCheck className="w-4.5 h-4.5 text-indigo-600" /> Nhân Sự Đón Tiếp Chỉ Định *
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                    {registrableStaffList.map(staff => {
-                      const isAssigned = (formData.recipients || []).includes(staff.uid);
-                      return (
-                        <button
-                          key={staff.uid}
-                          type="button"
-                          disabled={isReadOnly}
-                          onClick={() => handleToggleRecipient(staff.uid)}
-                          className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition disabled:opacity-80 ${
-                            isAssigned ? 'bg-white border-indigo-600 text-indigo-900 shadow-2xs font-extrabold' : 'bg-white/40 border-slate-200 text-slate-600 hover:bg-white'
-                          }`}
-                        >
-                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${isAssigned ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'}`}>
-                            {isAssigned && <Check className="w-2.5 h-2.5 text-white stroke-[3px]" />}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-xs truncate">{staff.name}</div>
-                            <div className="text-[9px] text-slate-404 font-medium truncate uppercase">{staff.role} • {staff.title}</div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-bold text-slate-600 block">HĐQT Phê Duyệt/Chỉ đạo</label>
-                <div className="space-y-2">
-                  {!isReadOnly && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {["Sếp Dũng", "Sếp Hoa", "Sếp Nga", "Sếp Thông"].map((boss) => (
-                        <button
-                          key={boss}
-                          type="button"
-                          onClick={() => handleInputChange('boardApproval', boss)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
-                            formData.boardApproval === boss ? 'bg-slate-900 border-slate-900 text-white shadow-xs font-extrabold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                          }`}
-                        >
-                          {boss}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <input 
-                    type="text" 
-                    placeholder="Thành viên hội đồng quản trị chỉ đạo..."
-                    value={formData.boardApproval}
-                    disabled={isReadOnly}
-                    onChange={(e) => handleInputChange('boardApproval', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-semibold bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-bold text-slate-600 block">Ghi chú</label>
-                <textarea 
-                  rows="5"
-                  placeholder="Mô tả ghi chú nếu có..."
-                  value={formData.notes}
-                  disabled={isReadOnly}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-medium bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
-                ></textarea>
-              </div>
-            </div>
-          </div>
-
-          {currentId && (
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
-              <div className="flex justify-between items-center border-b border-slate-101 pb-3">
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-1.5 h-4 bg-emerald-600 rounded-sm inline-block"></span>
-                  Nhật Ký Thăm Hỏi & Chăm Sóc Sức Khỏe Realtime
-                </h3>
-                <span className="bg-indigo-50 text-indigo-707 font-extrabold text-[10px] px-2.5 py-0.5 rounded-md border border-indigo-101 font-mono">
-                  {(formData.roundingLogs || []).length} lượt thăm
-                </span>
-              </div>
-
-              {['Nội trú/ICU', 'Cấp cứu/Daycare'].includes(formData.treatmentType) && (
-                <div className="p-3 bg-emerald-50/50 border border-emerald-101 text-[11px] text-emerald-800 rounded-2xl font-bold">
-                  ℹ️ Khách hàng đang ở chế độ điều trị nội trú trọng điểm. Đề xuất nhân sự CSKH và Quản lý thực hiện đi buồng thăm hỏi định kỳ 2 lần/ngày.
-                </div>
-              )}
-
-              {linkedVisits.length > 0 && (
-                <div className="p-4 bg-indigo-50 border border-indigo-101 rounded-2xl flex flex-col gap-2">
-                  <span className="text-[10px] font-black text-indigo-755 uppercase tracking-wider block">Các nhánh đón tiếp liên đới:</span>
-                  <div className="flex flex-wrap gap-2">
-                    {linkedVisits.map(v => (
-                      <button
-                        key={v.id}
-                        type="button"
-                        onClick={() => initiateView(v)}
-                        className="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-707 hover:bg-indigo-50 rounded-lg text-[10px] font-black transition flex items-center gap-1"
-                      >
-                        <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-500" />
-                        {v.tier} - Chuyên khoa: {v.specialties?.join(', ')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {!isReadOnly && (
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-555 uppercase tracking-wide">Đánh giá nhanh tình trạng</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[
-                        { label: "🟢 Ổn định", value: "Ổn định" },
-                        { label: "🟡 Cần theo dõi", value: "Cần theo dõi" },
-                        { label: "🔴 Diễn biến xấu", value: "Diễn biến xấu" },
-                        { label: "🔵 Có chỉ định mới", value: "Có chỉ định mới" }
-                      ].map((statusItem) => (
-                        <button
-                          key={statusItem.value}
-                          type="button"
-                          onClick={() => setNewRoundingLog(prev => ({ ...prev, status: statusItem.value }))}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
-                            newRoundingLog.status === statusItem.value ? 'bg-slate-900 border-slate-900 text-white font-extrabold' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-                          }`}
-                        >
-                          {statusItem.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-555 uppercase tracking-wide">Nội dung ghi nhận lâm sàng / Đề xuất của khách</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Nhập tình trạng sức khỏe, mong muốn hoặc đề xuất điều trị..."
-                        value={newRoundingLog.notes}
-                        onChange={(e) => setNewRoundingLog(prev => ({ ...prev, notes: e.target.value }))}
-                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddRoundingLog}
-                        className="px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs hover:bg-indigo-700 transition flex items-center gap-1.5 shrink-0"
-                      >
-                        <Check className="w-4 h-4 stroke-[3px]" /> Ghi nhận
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                {(formData.roundingLogs || []).length === 0 ? (
-                  <div className="text-center py-6 text-slate-404 text-xs font-semibold">Chưa có lượt thăm hỏi và theo dõi sức khỏe nào được ghi nhận.</div>
-                ) : (
-                  (formData.roundingLogs || []).map((log) => (
-                    <div key={log.id} className="p-3 bg-slate-50/60 border border-slate-150 rounded-2xl text-xs flex justify-between gap-3 items-start animate-fadeIn">
-                      <div className="space-y-1.5 min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-extrabold text-slate-900">{log.visitor}</span>
-                          <span className="text-[10px] font-mono text-slate-404 font-bold">
-                            {new Date(log.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - {new Date(log.timestamp).toLocaleDateString('vi-VN')}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                            log.status === 'Ổn định' ? 'bg-emerald-50 text-emerald-705 border border-emerald-200' :
-                            log.status === 'Cần theo dõi' ? 'bg-amber-50 text-amber-705 border border-amber-200' :
-                            log.status === 'Diễn biến xấu' ? 'bg-rose-50 text-rose-705 border border-rose-200' :
-                            'bg-blue-50 text-blue-705 border border-blue-200'
-                          }`}>
-                            {log.status}
-                          </span>
-                        </div>
-                        <p className="text-slate-655 font-medium leading-relaxed break-words">{log.notes}</p>
-                      </div>
-                      {!isReadOnly && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteRoundingLog(log.id)}
-                          className="p-1 text-slate-404 hover:text-rose-500 rounded-lg transition"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-
-          {(patientVisitHistory.length > 0 || (formData.history && formData.history.length > 0)) && (
-            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
-              <button
-                type="button"
-                onClick={() => setIsHistoryPanelExpanded(!isHistoryPanelExpanded)}
-                className="w-full flex justify-between items-center text-xs font-black text-slate-800 hover:text-indigo-655 transition focus:outline-hidden"
-              >
-                <span className="flex items-center gap-2">
-                  <History className="w-4.5 h-4.5 text-indigo-600" />
-                  Lịch sử & Nhật ký hoạt động ({patientVisitHistory.length} lượt khám cũ)
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-slate-404 font-bold">{isHistoryPanelExpanded ? "Thu nhỏ" : "Bấm để xem"}</span>
-                  <ChevronDown className={`w-4 h-4 transition-transform duration-250 ${isHistoryPanelExpanded ? 'rotate-180' : ''}`} />
-                </div>
-              </button>
-
-              {isHistoryPanelExpanded && (
-                <div className="space-y-4 pt-4 border-t border-slate-101">
-                  <div className="flex border-b border-slate-101 pb-2 overflow-x-auto gap-2">
-                    {patientVisitHistory.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setLeftFormTab('visitHistory')}
-                        className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 flex items-center gap-1 ${
-                          leftFormTab === 'visitHistory' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-404 hover:text-slate-655'
-                        }`}
-                      >
-                        <History className="w-3.5 h-3.5" /> Lịch sử tiếp đón ({patientVisitHistory.length})
-                      </button>
-                    )}
-                    {formData.history && formData.history.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setLeftFormTab('timeline')}
-                        className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 ${
-                          leftFormTab === 'timeline' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-404 hover:text-slate-655'
-                        }`}
-                      >
-                        Lịch sử Timeline
-                      </button>
-                    )}
-                  </div>
-
-                  {leftFormTab === 'visitHistory' && patientVisitHistory.length > 0 && (
-                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
-                      {patientVisitHistory.map((visit) => {
-                        const vSite = sites.find(s => s.label === visit.site) || sites[0];
-                        return (
-                          <div key={visit.id} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-3 relative hover:shadow-xs transition duration-150">
-                            <div className="flex justify-between items-start gap-1">
-                              <div>
-                                <div className="font-bold text-[11px] text-slate-900">{visit.date ? formatDateVN(visit.date) : "Lượt khám cũ"}</div>
-                                <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1 ${vSite.bg}`}>{vSite.label}</span>
-                              </div>
-                              {!isReadOnly && (
-                                <button
-                                  type="button"
-                                  onClick={() => setCopyConfirmModal({ show: true, visitToCopy: visit })}
-                                  className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-202 text-indigo-600 rounded-lg text-[9px] font-black flex items-center gap-1 transition shadow-2xs"
-                                >
-                                  <Copy className="w-3 h-3" /> Sao chép nhanh
-                                </button>
-                              )}
-                            </div>
-                            <div className="space-y-1 text-[10px] text-slate-655 font-semibold">
-                              <div>Khu vực: <strong className="text-slate-800">{visit.examinationArea || 'Khu VIP'}</strong></div>
-                              {visit.boardApproval && (
-                                <div>Chỉ đạo: <span className="bg-slate-900 text-white font-black px-1.5 py-0.5 rounded-xs text-[8px]">{visit.boardApproval}</span></div>
-                              )}
-                              {visit.notes && <div className="italic text-slate-404 truncate">"{visit.notes}"</div>}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {leftFormTab === 'timeline' && (
-                    <div className="p-4 bg-slate-55 rounded-2xl border border-slate-202 max-h-[350px] overflow-y-auto pr-1">
-                      <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
-                        {formData.history?.map((log, index) => (
-                          <div key={index} className="relative">
-                            <span className="absolute -left-[22px] top-1 bg-indigo-60 text-indigo-655 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
-                            <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
-                            <div className="text-[9px] text-slate-404 mt-1 flex justify-between font-bold">
-                              <span>Bởi: {log.user}</span>
-                              <span className="font-mono">{new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'})}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4" ref={specRef}>
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-              Chuyên khoa thăm khám
-            </h3>
-            {!isReadOnly && (
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm chuyên khoa..."
-                  value={specSearch}
-                  onChange={(e) => { setSpecSearch(e.target.value); setIsSpecDropdownOpen(true); }}
-                  onFocus={() => setIsSpecDropdownOpen(true)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800"
-                />
-                {isSpecDropdownOpen && (
-                  <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1">
-                    {filteredSpecialties.length === 0 ? (
-                      <div className="text-xs text-slate-405 font-bold text-center py-4">Không tìm thấy chuyên khoa phù hợp</div>
-                    ) : (
-                      filteredSpecialties.map((spec) => {
-                        const isSelected = formData.specialties.includes(spec);
-                        return (
-                          <button
-                            key={spec}
-                            type="button"
-                            onClick={() => toggleSpecialtySelection(spec)}
-                            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${isSelected ? 'bg-indigo-50 text-indigo-755' : 'hover:bg-slate-55 text-slate-700'}`}
-                          >
-                            <span>{spec}</span>
-                            {isSelected && <Check className="w-4 h-4 text-indigo-650" />}
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-            {formData.specialties.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-101">
-                {formData.specialties.map((spec) => {
-                  const config = formData.specialtyConfigs?.[spec] || 'vvip_discount';
-                  return (
-                    <div key={spec} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold">
-                      <span>{spec}</span>
-                      {formData.tier === 'VVIP' && !isReadOnly && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newConfig = config === 'vvip_discount' ? 'vip_takecare' : 'vvip_discount';
-                            setFormData(prev => ({
-                              ...prev,
-                              specialtyConfigs: { ...(prev.specialtyConfigs || {}), [spec]: newConfig }
-                            }));
-                          }}
-                          className={`px-1.5 py-0.5 rounded-md text-[9px] font-black transition ${config === 'vvip_discount' ? 'bg-amber-500 text-slate-955' : 'bg-indigo-500 text-white'}`}
-                        >
-                          {config === 'vvip_discount' ? 'Giảm VVIP' : 'Chăm sóc VIP'}
-                        </button>
-                      )}
-                      {!isReadOnly && (
-                        <button type="button" onClick={() => toggleSpecialtySelection(spec)} className="p-0.5 hover:bg-slate-800 rounded-full transition">
-                          <X className="w-3 h-3 text-slate-404" />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {formData.tier === 'VVIP' && canViewBilling && (
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
-              <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
-                <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                Chi Phí Điều Trị & Lâm Sàng Thực Tế
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
-                  <div className="relative">
-                    <input 
-                      type="text" 
-                      value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
-                      disabled={isReadOnly}
-                      onChange={(e) => handleCurrencyChange('phiKham', e.target.value)}
-                      placeholder="0"
-                      className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
-                    />
-                    <span className="absolute right-3 top-3 text-[10px] text-slate-404 font-bold">VNĐ</span>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
-                  <div className="relative">
-                    <input 
-                      type="text" 
-                      value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
-                      disabled={isReadOnly}
-                      onChange={(e) => handleCurrencyChange('clsCdha', e.target.value)}
-                      placeholder="0"
-                      className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
-                    />
-                    <span className="absolute right-3 top-3 text-[10px] text-slate-404 font-bold">VNĐ</span>
-                  </div>
-                </div>
-                <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-bold text-slate-655 block">Thuốc/vacxin</label>
-                  <div className="relative">
-                    <input 
-                      type="text" 
-                      value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
-                      disabled={isReadOnly}
-                      onChange={(e) => handleCurrencyChange('thuocVacxin', e.target.value)}
-                      placeholder="0"
-                      className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white"
-                    />
-                    <span className="absolute right-3 top-3 text-[10px] text-slate-404 font-bold">VNĐ</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-6">
-          {formData.tier === 'VVIP' && canViewBilling && (
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
-              <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800">
-                <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
-                  <FileSpreadsheet className="w-4 h-4 text-indigo-400" /> Bảng chi phí/duyệt giảm
-                </h3>
-                <div className="space-y-1.5 pt-2 relative z-10">
-                  <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
-                  <input 
-                    type="text" 
-                    value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
-                    disabled={isReadOnly}
-                    onChange={(e) => handleCurrencyChange('insuranceAdvance', e.target.value)}
-                    placeholder="0"
-                    className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-850 border border-slate-750 focus:outline-hidden text-xs font-bold text-white font-mono"
-                  />
-                </div>
-                <div className="space-y-3 relative z-10">
-                  <div className="flex bg-slate-850 p-0.5 rounded-xl border border-slate-750">
-                    <button
-                      type="button"
-                      disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly}
-                      onClick={() => setFormData(prev => ({ ...prev, discountType: 'percent', approvedDiscountAmount: 0 }))}
-                      className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition ${(formData.discountType || 'percent') === 'percent' ? 'bg-slate-700 text-white shadow-2xs font-black' : 'text-slate-404 hover:text-slate-200'}`}
-                    >
-                      Giảm theo %
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly}
-                      onClick={() => setFormData(prev => ({ ...prev, discountType: 'fixed', discountRate: 0 }))}
-                      className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition ${formData.discountType === 'fixed' ? 'bg-slate-700 text-white shadow-2xs font-black' : 'text-slate-404 hover:text-slate-200'}`}
-                    >
-                      Số tiền cố định
-                    </button>
-                  </div>
-                  {formData.discountType === 'percent' ? (
-                    <div className="relative">
-                      <input 
-                        type="number" 
-                        min="0"
-                        max="100"
-                        value={formData.discountRate || ''}
-                        disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly} 
-                        onChange={(e) => handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                        placeholder="0"
-                        className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white text-xs font-black"
-                      />
-                      <span className="absolute right-3 top-3 text-[10px] text-slate-555 font-bold font-mono">%</span>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <input 
-                        type="text" 
-                        value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : ''}
-                        disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly} 
-                        onChange={(e) => {
-                          const cleanValue = e.target.value.replace(/\D/g, '');
-                          const numValue = cleanValue === '' ? 0 : parseInt(cleanValue, 10);
-                          handleInputChange('approvedDiscountAmount', numValue);
-                        }}
-                        placeholder="0"
-                        className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white text-xs font-black"
-                      />
-                      <span className="absolute right-3 top-3 text-[10px] text-slate-555 font-bold font-mono">VNĐ</span>
-                    </div>
-                  )}
-                </div>
-                <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-404">Tổng phí tự động:</span>
-                    <span className="font-extrabold text-slate-105 font-mono">{formatCurrency(formData.totalAmount)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-404">Số tiền duyệt giảm:</span>
-                    <span className="font-extrabold text-rose-405 font-mono">-{formatCurrency(formData.approvedDiscountAmount)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-404">Khấu trừ BHYT/Tạm ứng:</span>
-                    <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
-                  </div>
-                  <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
-                    <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
-                    <span className="text-lg font-black text-emerald-400 font-mono">
-                      {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-              Ảnh Phê Duyệt Gửi Kèm
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {formData.approvalImages?.map((img, index) => (
-                <div key={index} className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-50 animate-fadeIn">
-                  <img src={img} alt="Công văn" className="w-full h-full object-cover" />
-                  {!isReadOnly && (
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        const updated = formData.approvalImages.filter((_, i) => i !== index);
-                        handleInputChange('approvalImages', updated);
-                      }}
-                      className="absolute right-1.5 top-1.5 p-1 bg-red-655 hover:bg-red-705 text-white rounded-full transition shadow-md"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
-              {!isReadOnly && (
-                <label className="border-2 border-dashed border-slate-202 rounded-2xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-slate-55 hover:border-slate-300 transition duration-200 aspect-video">
-                  <Upload className="w-5 h-5 text-slate-404" />
-                  <span className="text-[10px] font-bold text-slate-700">Tải thêm ảnh</span>
-                  <input type="file" accept="image/*" multiple onChange={handleMultipleImagesUpload} className="hidden" />
-                </label>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </form>
-  );
-}
-
-function Monitoring({
-  patients,
-  currentUser,
-  userRole,
-  systemSettings,
-  calendarMode,
-  setCalendarMode,
-  currentCalendarDate,
-  setCurrentCalendarDate,
-  searchTerm,
-  setSearchTerm,
-  filterTier,
-  setFilterTier,
-  filterSpecialty,
-  setFilterSpecialty,
-  filterSite,
-  setFilterSite,
-  filterDate,
-  setFilterDate,
-  visiblePatients,
-  filteredPatients,
-  isLoading,
-  handleCalendarNavigate,
-  initiateView,
-  handleCopyText,
-  setConfirmModal,
-  setLightboxImages,
-  setLightboxIndex,
-  hasAccessToPatient,
-  isFirebaseConnected,
-  db,
-  doc,
-  deleteDoc,
-  appId,
-  showNotification
-}) {
-  const weekDays = useMemo(() => {
-    const startOfWeek = new Date(currentCalendarDate);
-    const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); 
-    startOfWeek.setDate(diff);
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const nextDay = new Date(startOfWeek);
-      nextDay.setDate(startOfWeek.getDate() + i);
-      days.push(nextDay);
-    }
-    return days;
-  }, [currentCalendarDate]);
-
-  const monthDays = useMemo(() => {
-    const year = currentCalendarDate.getFullYear();
-    const month = currentCalendarDate.getMonth();
-    const firstDayIndex = new Date(year, month, 1).getDay();
-    const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1; 
-    const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
-    const days = [];
-    for (let i = 0; i < adjustedFirstDayIndex; i++) days.push(null);
-    for (let i = 1; i <= totalDaysInMonth; i++) days.push(new Date(year, month, i));
-    return days;
-  }, [currentCalendarDate]);
-
-  return (
-    <div className="space-y-6 animate-fadeIn">
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-lg font-black text-slate-955 flex items-center gap-2">
-          <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo Dõi Hồ Sơ Khách Hàng VIP-VVIP
-        </h2>
-      </div>
-
-      <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex justify-between items-center flex-wrap gap-3">
-        <div className="flex bg-slate-101 p-1 rounded-xl">
-          <button onClick={() => setCalendarMode('list')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'list' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-555 hover:text-slate-805'}`}>Dạng Danh Sách</button>
-          <button onClick={() => { setCalendarMode('week'); setCurrentCalendarDate(new Date()); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'week' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-555 hover:text-slate-805'}`}>Lịch Tuần</button>
-          <button onClick={() => { setCalendarMode('month'); setCurrentCalendarDate(new Date()); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'month' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-555 hover:text-slate-805'}`}>Lịch Tháng</button>
-        </div>
-        {calendarMode !== 'list' && (
-          <div className="flex items-center gap-2">
-            <button onClick={() => handleCalendarNavigate('prev')} className="p-2 border border-slate-200 rounded-xl hover:bg-slate-55 transition"><ChevronLeft className="w-4 h-4" /></button>
-            <span className="text-xs font-extrabold text-slate-800 min-w-[120px] text-center">
-              {calendarMode === 'week' ? `Tuần ${formatDateVN(weekDays[0].toISOString().split('T')[0])}` : `Tháng ${currentCalendarDate.getMonth() + 1} / ${currentCalendarDate.getFullYear()}`}
-            </span>
-            <button onClick={() => handleCalendarNavigate('next')} className="p-2 border border-slate-205 rounded-xl hover:bg-slate-55 transition"><ChevronRight className="w-4 h-4" /></button>
-          </div>
-        )}
-      </div>
-
-      {calendarMode === 'list' && (
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="flex-1 relative">
-              <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-404" />
-              <input type="text" placeholder="Tìm theo tên, mã PID, ghi chú..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden text-xs font-bold bg-white" />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <select value={filterTier} onChange={(e) => setFilterTier(e.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"><option value="">Tất cả hạng</option><option value="VIP">VIP</option><option value="VVIP">VVIP</option></select>
-              <select value={filterSpecialty} onChange={(e) => setFilterSpecialty(e.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"><option value="">Tất cả chuyên khoa</option>{systemSettings.specialties.map((spec, idx) => (<option key={idx} value={spec}>{spec}</option>))}</select>
-              <select value={filterSite} onChange={(e) => setFilterSite(e.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white"><option value="">Tất cả Site</option>{sites.map(s => (<option key={s.id} value={s.label}>{s.label}</option>))}</select>
-              <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white" />
-              {(searchTerm || filterTier || filterSpecialty || filterDate || filterSite) && (
-                <button onClick={() => { setSearchTerm(''); setFilterTier(''); setFilterSpecialty(''); setFilterDate(''); setFilterSite(''); }} className="px-3 py-2 text-rose-505 hover:bg-rose-50 rounded-xl text-xs font-bold transition">Xóa lọc</button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {calendarMode === 'list' && (
-        isLoading ? (
-          <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
-            <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
-            <p className="text-slate-404 font-semibold text-xs animate-pulse">Đang cập nhật...</p>
-          </div>
-        ) : filteredPatients.length === 0 ? (
-          <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
-            <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto text-slate-404"><ClipboardList className="w-8 h-8" /></div>
-            <div>
-              <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy hồ sơ nào phù hợp</h3>
-              <p className="text-slate-404 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-55 border-b border-slate-200 text-[10px] text-slate-404 font-black uppercase tracking-wider">
-                    <th className="py-4 px-5">PID / Khách Hàng</th>
-                    <th className="py-4 px-3">Phân hạng</th>
-                    <th className="py-4 px-3">Ngày Khám / Site / Khu vực</th>
-                    <th className="py-4 px-3">Chuyên Khoa</th>
-                    <th className="py-4 px-3">HĐQT Chỉ Đạo</th>
-                    <th className="py-4 px-3 text-right">Tổng Chi Phí</th>
-                    <th className="py-4 px-3 text-right">Duyệt Giảm</th>
-                    <th className="py-4 px-3 text-right">Thực Thu</th>
-                    <th className="py-4 px-5 text-right">Tác vụ</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 text-xs">
-                  {filteredPatients.map((p) => {
-                    const canViewBilling = hasAccessToPatient(p, 'billing:view');
-                    const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
-                    const pSite = sites.find(s => s.label === p.site) || sites[0];
-                    return (
-                      <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 cursor-pointer" onClick={() => initiateView(p)}>
-                        <td className="py-4 px-5">
-                          <div onClick={(e) => handleCopyText(e, p.name, "Họ và tên")} className="font-extrabold text-slate-955 text-sm hover:text-indigo-600 cursor-copy">{maskName(p.name)}</div>
-                          <div onClick={(e) => handleCopyText(e, p.pid, "Mã PID")} className="text-[10px] text-indigo-600 font-mono font-black mt-0.5 hover:text-indigo-850 cursor-copy">PID: {maskPID(p.pid)}</div>
-                        </td>
-                        <td className="py-4 px-3">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${p.tier === 'VVIP' ? 'bg-amber-100 text-amber-808 border border-amber-200' : 'bg-indigo-50 text-indigo-707 border border-indigo-100'}`}>
-                            <Sparkles className="w-3 h-3" /> {p.tier}
-                          </span>
-                        </td>
-                        <td className="py-4 px-3">
-                          <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>{pSite.label}</span>
-                            <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-202 text-indigo-707' : p.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'bg-rose-50 border-rose-202 text-rose-707' : 'bg-teal-50 border-teal-202 text-teal-707'}`}>{p.examinationArea || '---'}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-3">
-                          <div className="flex flex-wrap gap-1 max-w-[180px]">
-                            {p.specialties?.map((s, idx) => (
-                              <span key={idx} className="text-[9px] bg-slate-50 text-slate-605 border border-slate-202 px-1.5 py-0.5 rounded font-bold">{s}</span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-4 px-3">
-                          <div className="font-bold text-slate-700">{p.boardApproval || '---'}</div>
-                          {p.notes && <div className="text-[10px] text-slate-404 max-w-[150px] truncate" title={p.notes}>{p.notes}</div>}
-                        </td>
-                        <td className="py-4 px-3 text-right font-bold text-slate-900 font-mono">
-                          {p.tier === 'VIP' ? <span className="text-slate-404 font-sans text-[10px]">Thanh toán quầy</span> : canViewBilling ? formatCurrency(p.totalAmount) : <span className="text-slate-405">🔒 Khóa</span>}
-                        </td>
-                        <td className="py-4 px-3 text-right">
-                          {p.tier === 'VIP' ? <span className="text-slate-404 font-sans text-[10px]">---</span> : canViewBilling ? (
-                            <>
-                              <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
-                              <div className="text-[9px] text-slate-404 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
-                            </>
-                          ) : <span className="text-slate-405">🔒 Khóa</span>}
-                        </td>
-                        <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
-                          {p.tier === 'VIP' ? <span className="text-slate-404 font-sans text-[10px]">Hóa đơn gốc</span> : canViewBilling ? formatCurrency(realCollected) : <span className="text-slate-405">🔒 Khóa</span>}
-                        </td>
-                        <td className="py-4 px-5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-end gap-1.5">
-                            {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
-                              <button onClick={() => { setLightboxImages(p.approvalImages || [p.approvalImage]); setLightboxIndex(0); }} className="p-1.5 bg-slate-50 border border-slate-202 text-slate-605 hover:bg-slate-100 rounded-xl transition"><ImageIcon className="w-4 h-4" /></button>
-                            )}
-                            <button onClick={() => initiateView(p)} className="p-1.5 bg-slate-50 border border-slate-202 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition"><Edit3 className="w-4 h-4" /></button>
-                            {userRole !== 'nhanvien' ? (
-                              <button 
-                                onClick={() => {
-                                  setConfirmModal({
-                                    show: true,
-                                    title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
-                                    message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
-                                    action: async () => {
-                                      try {
-                                        if (isFirebaseConnected && db) {
-                                          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
-                                          showNotification("Đã xóa hồ sơ thành công!");
-                                        } else {
-                                          const updated = patients.filter(item => item.id !== p.id);
-                                          localStorage.setItem('local_patients', JSON.stringify(updated));
-                                          showNotification("Đã xóa hồ sơ cục bộ!");
-                                        }
-                                      } catch (err) {
-                                        console.error(err);
-                                      }
-                                      setConfirmModal({ show: false, action: null, message: '', title: '' });
-                                    }
-                                  });
-                                }} 
-                                className="p-1.5 bg-rose-50 border border-rose-202 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            ) : <span className="p-1.5 text-slate-305 cursor-not-allowed"><Lock className="w-4 h-4" /></span>}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )
-      )}
-
-      {calendarMode === 'week' && (
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm overflow-x-auto min-w-full">
-          {weekDays.map((day, idx) => {
-            const dateStr = day.toISOString().split('T')[0];
-            const dayPatients = visiblePatients.filter(p => p.date === dateStr);
-            const isCurrentToday = dateStr === todayStr;
-
-            return (
-              <div 
-                key={idx} 
-                className={`p-3 rounded-2xl border min-h-[220px] flex flex-col space-y-3 ${
-                  isCurrentToday ? 'bg-indigo-50/40 border-indigo-200' : 'bg-slate-50/40 border-slate-150'
-                }`}
-              >
-                <div className="text-center pb-2 border-b border-slate-250">
-                  <span className="text-[10px] uppercase font-black text-slate-404 block">
-                    {day.toLocaleDateString('vi-VN', { weekday: 'short' })}
-                  </span>
-                  <span className={`text-sm font-extrabold font-mono inline-block px-2 py-0.5 rounded-full ${
-                    isCurrentToday ? 'bg-indigo-600 text-white' : 'text-slate-800'
-                  }`}>
-                    {day.getDate()}
-                  </span>
-                </div>
-
-                <div className="flex-1 space-y-2 overflow-y-auto max-h-[300px]">
-                  {dayPatients.length === 0 ? (
-                    <div className="text-center text-[10px] text-slate-350 font-bold pt-8">Không có ca</div>
-                  ) : (
-                    dayPatients.map(p => (
-                      <div 
-                        key={p.id}
-                        onClick={() => initiateView(p)}
-                        className="p-2 bg-white border border-slate-200 rounded-xl shadow-3xs hover:border-indigo-400 transition cursor-pointer space-y-1 text-left"
-                      >
-                        <div 
-                          onClick={(e) => handleCopyText(e, p.name, "Họ và tên")}
-                          className="font-extrabold text-[10px] text-slate-800 truncate hover:text-indigo-600 cursor-copy"
-                        >
-                          {maskName(p.name)}
-                        </div>
-                        <div className="flex items-center justify-between gap-1 text-[8px] text-slate-455">
-                          <span 
-                            onClick={(e) => handleCopyText(e, p.pid, "Mã PID")}
-                            className="font-mono hover:text-indigo-600 cursor-copy"
-                          >
-                            PID: {maskPID(p.pid)}
-                          </span>
-                          <span className={`px-1 rounded-sm uppercase font-black text-[7px] ${
-                            p.tier === 'VVIP' ? 'bg-amber-101 text-amber-808' : 'bg-indigo-50 text-indigo-707'
-                          }`}>
-                            {p.tier}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {calendarMode === 'month' && (
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-black uppercase text-slate-404 pb-2 border-b border-slate-101">
-            <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span>
-          </div>
-          
-          <div className="grid grid-cols-7 gap-2">
-            {monthDays.map((day, idx) => {
-              if (!day) return <div key={idx} className="aspect-square bg-slate-50/20 rounded-xl border border-transparent"></div>;
-
-              const dateStr = day.toISOString().split('T')[0];
-              const dayPatients = visiblePatients.filter(p => p.date === dateStr);
-              const isCurrentToday = dateStr === todayStr;
-
-              return (
-                <div 
-                  key={idx}
-                  onClick={() => {
-                    if (dayPatients.length > 0) {
-                      setFilterDate(dateStr);
-                      setCalendarMode('list');
-                    }
-                  }}
-                  className={`aspect-square p-2 rounded-2xl border flex flex-col justify-between transition-all relative ${
-                    dayPatients.length > 0 ? 'cursor-pointer hover:border-indigo-400 shadow-3xs' : ''
-                  } ${
-                    isCurrentToday ? 'bg-indigo-50/50 border-indigo-200' : 'bg-white border-slate-150'
-                  }`}
-                >
-                  <span className={`text-[11px] font-black font-mono leading-none ${
-                    isCurrentToday ? 'text-indigo-600 font-black' : 'text-slate-550'
-                  }`}>
-                    {day.getDate()}
-                  </span>
-
-                  {dayPatients.length > 0 && (
-                    <div className="flex gap-1 flex-wrap justify-end">
-                      {dayPatients.slice(0, 3).map((p, pIdx) => (
-                        <span 
-                          key={pIdx} 
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            p.tier === 'VVIP' ? 'bg-amber-400' : 'bg-indigo-500'
-                          }`} 
-                          title={`${p.name} (${p.tier})`}
-                        />
-                      ))}
-                      {dayPatients.length > 3 && (
-                        <span className="text-[7px] text-slate-404 font-bold">+{dayPatients.length - 3}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SettingsTab({
-  systemSettings,
-  currentUser,
-  userRole,
-  staffList,
-  newStaff,
-  setNewStaff,
-  editingStaffUid,
-  setEditingStaffUid,
-  newSpecialtyInput,
-  setNewSpecialtyInput,
-  handlePermissionChange,
-  handleNotificationPermissionChange,
-  handleFormulaCheckboxChange,
-  handleDiscountFormulaChange,
-  handleAddSpecialty,
-  handleRemoveSpecialty,
-  handleCreateStaff,
-  handleEditStaff,
-  handleDeleteStaff
-}) {
-  return (
-    <div className="space-y-6 animate-fadeIn">
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-        <h2 className="text-lg font-black text-slate-900 font-sans">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
-      </div>
-
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div>
-          <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-            <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-            Ma Trận Phân Quyền Tác Vụ (Data Operations Matrix)
-          </h3>
-        </div>
-        <div className="overflow-x-auto border border-slate-150 rounded-2xl">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-slate-55 border-b border-slate-150 text-[10px] text-slate-404 font-black uppercase tracking-wider">
-                <th className="p-4">Quyền hạn / Chức năng</th>
-                <th className="p-4 text-center">nhanvien</th>
-                <th className="p-4 text-center">quanly_site</th>
-                <th className="p-4 text-center">quanly</th>
-                <th className="p-4 text-center">lanhdao</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-150">
-              {[
-                { key: 'patients:view', label: 'Xem danh sách hồ sơ' },
-                { key: 'patients:create', label: 'Đăng ký tiếp đón VIP' },
-                { key: 'patients:update', label: 'Cập nhật hành trình' },
-                { key: 'patients:delete', label: 'Xóa vĩnh viễn hồ sơ' },
-                { key: 'billing:view', label: 'Xem chi phí VVIP' },
-                { key: 'billing:discount', label: 'Duyệt % giảm chi phí' }
-              ].map((perm) => (
-                <tr key={perm.key} className="hover:bg-slate-50/50">
-                  <td className="p-4 font-bold text-slate-800">{perm.label}</td>
-                  {['nhanvien', 'quanly_site', 'quanly', 'lanhdao'].map((role) => (
-                    <td key={role} className="p-4 text-center">
-                      <select
-                        value={systemSettings.permissions?.[perm.key]?.[role] || 'none'}
-                        onChange={(e) => handlePermissionChange(perm.key, role, e.target.value)}
-                        className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-700 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
-                      >
-                        <option value="none">❌ Không quyền</option>
-                        <option value="view_assigned">👁️ Xem Site gán</option>
-                        <option value="write_assigned">📍 Ghi Site gán</option>
-                        <option value="all">🌐 Toàn hệ thống</option>
-                      </select>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <div>
-          <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-            <span className="w-1.5 h-4 bg-emerald-605 rounded-sm inline-block"></span>
-            Ma Trận Cấp Quyền Nhận Thông Báo
-          </h3>
-        </div>
-        <div className="overflow-x-auto border border-slate-150 rounded-2xl">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-slate-55 border-b border-slate-150 text-[10px] text-slate-404 font-black uppercase tracking-wider">
-                <th className="p-4">Sự kiện kích hoạt cảnh báo</th>
-                <th className="p-4 text-center">nhanvien</th>
-                <th className="p-4 text-center">quanly_site</th>
-                <th className="p-4 text-center">quanly</th>
-                <th className="p-4 text-center">lanhdao</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-150">
-              {[
-                { key: 'notify:create', label: 'Thông báo khi tiếp nhận ca mới' },
-                { key: 'notify:status', label: 'Thông báo khi cập nhật trạng thái hành trình' }
-              ].map((perm) => (
-                <tr key={perm.key} className="hover:bg-slate-50/50">
-                  <td className="p-4 font-bold text-slate-800">{perm.label}</td>
-                  {['nhanvien', 'quanly_site', 'quanly', 'lanhdao'].map((role) => (
-                    <td key={role} className="p-4 text-center">
-                      <select
-                        value={systemSettings.notificationPermissions?.[perm.key]?.[role] || 'none'}
-                        onChange={(e) => handleNotificationPermissionChange(perm.key, role, e.target.value)}
-                        className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-700 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
-                      >
-                        <option value="none">❌ Không nhận</option>
-                        <option value="assigned_only">👥 Chỉ ca được gán</option>
-                        <option value="assigned_site">📍 Chỉ Site được gán</option>
-                        <option value="all">🌐 Toàn hệ thống</option>
-                      </select>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-          <div>
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
-              Cấu Hinh Các Trường Cộng Tổng
-            </h3>
-          </div>
-          <div className="space-y-3">
-            {[
-              { key: 'phiKham', label: 'Phí khám/Điều trị' },
-              { key: 'ngoaiTru', label: 'Ngoại trú' },
-              { key: 'capCuu', label: 'Cấp cứu/daycare' },
-              { key: 'noiTru', label: 'Nội trú/ICU' },
-              { key: 'ngoaiVien', label: 'Ngoại viện' },
-              { key: 'clsCdha', label: 'CLS/CDHA' },
-              { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
-            ].map((field) => (
-              <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-150 hover:bg-slate-50 cursor-pointer transition">
-                <input 
-                  type="checkbox"
-                  checked={systemSettings.totalFormulaFields?.[field.key] || false}
-                  onChange={() => handleFormulaCheckboxChange(field.key)}
-                  className="w-4 h-4 rounded-md text-indigo-600 focus:ring-indigo-500 border-slate-305"
-                />
-                <span className="text-xs font-bold text-slate-707">{field.label}</span>
-              </label>
-            ))}
-          </div>
-
-          <div className="border-t border-slate-150 pt-6 space-y-4">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Phương Thức Tính Số Tiền Duyệt Giảm</h3>
-            <div className="space-y-2.5">
-              <button
-                type="button"
-                onClick={() => handleDiscountFormulaChange('only_total')}
-                className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-55'}`}
-              >
-                <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'}`}>
-                  {systemSettings.discountFormulaType === 'only_total' && <span className="w-2 h-2 rounded-full bg-white"></span>}
-                </div>
-                <div>
-                  <strong className="text-xs text-slate-800 block font-sans">Duyệt giảm trên tổng gốc</strong>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDiscountFormulaChange('total_minus_insurance_advance')}
-                className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-55'}`}
-              >
-                <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'}`}>
-                  {systemSettings.discountFormulaType === 'total_minus_insurance_advance' && <span className="w-2 h-2 rounded-full bg-white"></span>}
-                </div>
-                <div>
-                  <strong className="text-xs text-slate-800 block font-sans">Khấu trừ bảo hiểm & tạm ứng trước khi giảm</strong>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-              Quản Lý Danh Mục Chuyên Khoa
-            </h3>
-            <div className="flex gap-2">
-              <input type="text" placeholder="Thêm chuyên khoa mới..." value={newSpecialtyInput} onChange={(e) => setNewSpecialtyInput(e.target.value)} className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-505" />
-              <button type="button" onClick={handleAddSpecialty} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold transition"><Plus className="w-4 h-4" /></button>
-            </div>
-            <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-              {systemSettings.specialties?.map((spec, idx) => (
-                <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-101 bg-slate-50/50 hover:bg-slate-55 transition">
-                  <span className="text-xs font-bold text-slate-707">{spec}</span>
-                  <button type="button" onClick={() => handleRemoveSpecialty(spec)} className="p-1 text-slate-405 hover:text-red-500 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-              Quản Trị Phân Quyền Nhân Sự
-            </h3>
-            <form onSubmit={handleCreateStaff} className="space-y-3 bg-slate-55 p-4 rounded-2xl border border-slate-200">
-              <div className="grid grid-cols-2 gap-2">
-                <input type="text" placeholder="Họ tên nhân viên..." value={newStaff.name} onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })} className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white font-bold" required />
-                <input type="text" placeholder="Chức danh" value={newStaff.title} onChange={(e) => setNewStaff({ ...newStaff, title: e.target.value })} className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white font-medium" />
-              </div>
-              <input type="email" placeholder="Email..." value={newStaff.email} onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white font-medium" required />
-              <input type="text" placeholder="Mã UID..." value={newStaff.uid} disabled={editingStaffUid !== null} onChange={(e) => setNewStaff({ ...newStaff, uid: e.target.value })} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white font-mono font-bold" required />
-              
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-555 block uppercase">Site Giao Việc</label>
-                <select value={newStaff.assignedSite || 'Tất cả'} onChange={(e) => setNewStaff({ ...newStaff, assignedSite: e.target.value })} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white font-bold cursor-pointer">
-                  <option value="Tất cả">Tất cả (Toàn hệ thống)</option>
-                  <option value="BV Tâm Anh - Tân Sơn Hòa">BV Tâm Anh - Tân Sơn Hòa</option>
-                  <option value="PK Tâm Anh - Tân Hưng">PK Tâm Anh - Tân Hưng</option>
-                  <option value="BV Tâm Anh - Chánh Hưng">BV Tâm Anh - Chánh Hưng</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-555 block uppercase">Vai trò</label>
-                <select value={newStaff.role} onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white font-bold cursor-pointer">
-                  <option value="nhanvien">nhanvien</option>
-                  <option value="quanly_site">quanly_site</option>
-                  <option value="quanly">quanly</option>
-                  <option value="lanhdao">lanhdao</option>
-                  <option value="admin">admin</option>
-                </select>
-              </div>
-
-              <div className="flex gap-2">
-                {editingStaffUid && <button type="button" onClick={() => { setEditingStaffUid(null); setNewStaff({ name: '', email: '', role: 'nhanvien', uid: '', title: '', assignedSite: 'Tất cả' }); }} className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-101 transition">Hủy</button>}
-                <button type="submit" className="flex-1 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1">{editingStaffUid ? "Cập nhật" : "Đăng ký"}</button>
-              </div>
-            </form>
-
-            <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
-              {staffList.map((staff) => (
-                <div key={staff.uid} className="flex justify-between items-center p-3 rounded-2xl border border-slate-200 bg-slate-50/50">
-                  <div>
-                    <div className="text-xs font-bold text-slate-800">{staff.name}</div>
-                    <div className="text-[9px] text-slate-404 font-mono">{staff.email}</div>
-                    <div className="text-[9px] text-indigo-600 font-semibold mt-0.5">📍 Site: {staff.assignedSite || 'Tất cả'}</div>
-                    <div className="text-[9px] text-slate-405 italic">UID: {staff.uid}</div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-black px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-sm uppercase">{staff.role}</span>
-                    <button type="button" onClick={() => handleEditStaff(staff)} className="p-1 border border-slate-200 text-slate-404 hover:text-indigo-606 hover:border-indigo-202 rounded transition"><Edit3 className="w-3.5 h-3.5" /></button>
-                    {staff.uid !== "acc_admin" && <button type="button" onClick={() => handleDeleteStaff(staff.uid)} className="p-1 border border-slate-200 text-slate-404 hover:text-red-500 hover:border-red-202 rounded transition"><X className="w-3.5 h-3.5" /></button>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -2052,7 +292,6 @@ export default function App() {
     pid: '',
     date: new Date().toISOString().split('T')[0],
     specialties: [],
-    specialtyConfigs: {},
     site: 'BV Tâm Anh - Tân Sơn Hòa',
     examinationArea: '',
     ngoaiTru: true,
@@ -2072,32 +311,43 @@ export default function App() {
     status: 'Waiting',
     recipients: [],
     history: [],
-    roundingLogs: [],
-    sessionGroupId: ''
+    roundingLogs: []
   });
 
-  const [newRoundingLog, setNewRoundingLog] = useState({ status: 'Ổn định', notes: '' });
+  const [newRoundingLog, setNewRoundingLog] = useState({
+    status: 'Ổn định',
+    notes: ''
+  });
+
   const [newSpecialtyInput, setNewSpecialtyInput] = useState('');
   const [notification, setNotification] = useState(null);
   const [iosNotificationStatus, setIosNotificationStatus] = useState('unknown');
+
   const [notifications, setNotifications] = useState([]);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+  const [activePushAlerts, setActivePushAlerts] = useState([]);
   const isInitialMount = useRef(true);
   const notificationCenterRef = useRef(null);
+
   const [specSearch, setSpecSearch] = useState('');
   const [isSpecDropdownOpen, setIsSpecDropdownOpen] = useState(false);
   const specRef = useRef(null);
+
   const [isReadOnly, setIsReadOnly] = useState(true);
   const appStartTime = useRef(new Date());
   const patientsRef = useRef([]);
 
-  useEffect(() => { patientsRef.current = patients; }, [patients]);
+  useEffect(() => {
+    patientsRef.current = patients;
+  }, [patients]);
 
   const canShowTab = (tabName) => {
     if (!currentUser) return false;
     const role = currentUser.role || 'nhanvien';
     if (role === 'admin') return true;
-    if (role === 'lanhdao') return ['dashboard', 'monitoring'].includes(tabName);
+    if (role === 'lanhdao') {
+      return ['dashboard', 'monitoring'].includes(tabName);
+    }
     return ['dashboard', 'register', 'monitoring'].includes(tabName);
   };
 
@@ -2106,9 +356,11 @@ export default function App() {
     const role = currentUser.role || 'nhanvien';
     if (role === 'admin') return true;
     const userSite = currentUser.assignedSite || 'Tất cả';
+    
     const permLevel = systemSettings?.permissions?.[action]?.[role] || 'none';
     if (permLevel === 'none') return false;
     if (permLevel === 'all') return true;
+    
     if (permLevel === 'write_assigned' || permLevel === 'view_assigned') {
       if (userSite === 'Tất cả') return true;
       return patient?.site === userSite;
@@ -2121,8 +373,111 @@ export default function App() {
     setTimeout(() => setNotification(null), 3500);
   };
 
+  const triggerPushAlert = (title, message, dataRecipients = [], type = 'info', patientId = null) => {
+    const hasTargetedRecipients = Array.isArray(dataRecipients) && dataRecipients.length > 0;
+
+    if (currentUser) {
+      const isManagerOrAdmin = ['admin', 'lanhdao', 'quanly'].includes(currentUser?.role);
+      const isAssigned = hasTargetedRecipients && dataRecipients.includes(currentUser?.uid);
+      
+      if (hasTargetedRecipients && !isManagerOrAdmin && !isAssigned) {
+        return;
+      }
+    }
+
+    const id = Date.now() + Math.random().toString(36).substr(2, 9);
+    const newAlert = { id, title, message, type, patientId };
+
+    setNotifications(prev => [
+      {
+        id,
+        title,
+        message,
+        type,
+        timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        read: false,
+        patientId
+      },
+      ...prev
+    ]);
+
+    if (Notification.permission === 'granted') {
+      try {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification(title, {
+            body: message,
+            icon: 'https://iili.io/F66acRs.png',
+            badge: 'https://iili.io/F66acRs.png'
+          });
+        });
+      } catch (e) {
+        try {
+          new Notification(title, { body: message, icon: 'https://iili.io/F66acRs.png' });
+        } catch (err) {
+          console.warn(err);
+        }
+      }
+    }
+  };
+
+  const handleNotificationClick = (patientId) => {
+    if (!patientId) return;
+    const targetPatient = patients.find(p => p.id === patientId);
+    if (targetPatient) {
+      initiateView(targetPatient);
+    }
+  };
+
   const checkIosPermissionStatus = () => {
-    if ('Notification' in window) setIosNotificationStatus(Notification.permission);
+    if ('Notification' in window) {
+      setIosNotificationStatus(Notification.permission);
+    }
+  };
+
+  const saveFcmTokenToDatabase = async (userId) => {
+    if (!db || !messaging) return;
+    try {
+      const token = await getToken(messaging, {
+        vapidKey: WEBPUSH_VAPID_KEY
+      });
+      if (token) {
+        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userId);
+        await updateDoc(userDocRef, { fcmToken: token }).catch(async (e) => {
+          await setDoc(userDocRef, { fcmToken: token }, { merge: true }).catch(err => console.warn(err));
+        });
+      }
+    } catch (err) {
+      console.warn(err);
+    }
+  };
+
+  const requestIosNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      showNotification("Thiết bị không hỗ trợ thông báo đẩy.", "error");
+      return;
+    }
+
+    try {
+      if ('serviceWorker' in navigator) {
+        await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      }
+      
+      const permission = await Notification.requestPermission();
+      setIosNotificationStatus(permission);
+      
+      if (permission === 'granted') {
+        showNotification("Đã kích hoạt thành công thông báo!");
+        if (currentUser && currentUser?.uid) {
+          await saveFcmTokenToDatabase(currentUser?.uid);
+        }
+        triggerPushAlert("🟢 Đã bật thông báo", "Hệ thống sẵn sàng nhận dữ liệu thời gian thực.");
+      } else {
+        showNotification("Quyền thông báo bị từ chối.", "error");
+      }
+    } catch (error) {
+      console.error(error);
+      showNotification("Không thể xin quyền. Hãy mở ứng dụng từ Màn hình chính.", "error");
+    }
   };
 
   const handleCopyText = (e, text, label) => {
@@ -2143,8 +498,71 @@ export default function App() {
     document.body.removeChild(textArea);
   };
 
+  const stopScanner = () => {
+    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+      html5QrCodeRef.current.stop().then(() => {
+        html5QrCodeRef.current.clear();
+        setIsScanning(false);
+        setScannerError('');
+      }).catch(err => {
+        console.error(err);
+        setIsScanning(false);
+        setScannerError('');
+      });
+    } else {
+      setIsScanning(false);
+      setScannerError('');
+    }
+  };
+
+  const resetForm = () => {
+    setCurrentId(null);
+    setFormRightTab('billing');
+    setIsHistoryPanelExpanded(false);
+    setIsReadOnly(false);
+
+    const userSite = currentUser?.assignedSite || 'Tất cả';
+    const defaultSite = userSite !== 'Tất cả' ? userSite : 'BV Tâm Anh - Tân Sơn Hòa';
+
+    setFormData({
+      name: '',
+      tier: 'VIP',
+      boardApproval: '',
+      notes: '',
+      pid: '',
+      date: new Date().toISOString().split('T')[0],
+      specialties: [],
+      site: defaultSite,
+      examinationArea: '',
+      ngoaiTru: true,
+      capCuu: false,
+      noiTru: false,
+      ngoaiVien: false,
+      treatmentType: 'Ngoại trú',
+      phiKham: 0,
+      clsCdha: 0,
+      thuocVacxin: 0,
+      insuranceAdvance: 0,
+      discountType: 'percent',
+      discountRate: 0,
+      approvedDiscountAmount: 0,
+      totalAmount: 0,
+      approvalImages: [],
+      status: 'Waiting',
+      recipients: [],
+      history: [],
+      roundingLogs: []
+    });
+  };
+
   const handleLogout = async () => {
     if (isFirebaseConnected && auth && currentUser) {
+      try {
+        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', currentUser?.uid);
+        await updateDoc(userDocRef, { fcmToken: null }).catch(e => console.warn(e));
+      } catch (err) {
+        console.warn(err);
+      }
       signOut(auth).catch(e => console.warn(e));
     }
     setCurrentUser(null);
@@ -2153,31 +571,17 @@ export default function App() {
     showNotification("Đăng xuất thành công. Đã khóa phiên làm việc.");
   };
 
-  const resetForm = () => {
-    setCurrentId(null);
-    setFormRightTab('billing');
-    setIsHistoryPanelExpanded(false);
-    setIsReadOnly(false);
-    const userSite = currentUser?.assignedSite || 'Tất cả';
-    const defaultSite = userSite !== 'Tất cả' ? userSite : 'BV Tâm Anh - Tân Sơn Hòa';
-    setFormData({
-      name: '', tier: 'VIP', boardApproval: '', notes: '', pid: '', date: new Date().toISOString().split('T')[0],
-      specialties: [], specialtyConfigs: {}, site: defaultSite, examinationArea: '', ngoaiTru: true, capCuu: false,
-      noiTru: false, ngoaiVien: false, treatmentType: 'Ngoại trú', phiKham: 0, clsCdha: 0, thuocVacxin: 0,
-      insuranceAdvance: 0, discountType: 'percent', discountRate: 0, approvedDiscountAmount: 0, totalAmount: 0,
-      approvalImages: [], status: 'Waiting', recipients: [], history: [], roundingLogs: [], sessionGroupId: ''
-    });
-  };
-
   const handleLogin = (e) => {
     e.preventDefault();
     if (!loginEmail.trim() || !loginPassword.trim()) {
       setAuthError("Email và mật khẩu không được bỏ trống.");
       return;
     }
+
     const localAccount = staffList.find(
       (acc) => acc?.email?.toLowerCase() === loginEmail.trim().toLowerCase()
     );
+
     if (isFirebaseConnected && auth) {
       signInWithEmailAndPassword(auth, loginEmail.trim(), loginPassword)
         .then(async (userCredential) => {
@@ -2226,6 +630,617 @@ export default function App() {
     }
   };
 
+  useEffect(() => {
+    if (currentUser) {
+      if (!canShowTab(activeTab)) {
+        setActiveTab('dashboard');
+      }
+    }
+  }, [currentUser, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'register' && !currentId) {
+      const userSite = currentUser?.assignedSite || 'Tất cả';
+      if (userSite !== 'Tất cả') {
+        setFormData(prev => ({ ...prev, site: userSite }));
+      }
+    }
+  }, [activeTab, currentId, currentUser]);
+
+  useEffect(() => {
+    function handleClickOutsideSpec(event) {
+      if (specRef.current && !specRef.current.contains(event.target)) {
+        setIsSpecDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutsideSpec);
+    return () => document.removeEventListener("mousedown", handleClickOutsideSpec);
+  }, []);
+
+  const filteredSpecialties = useMemo(() => {
+    return (systemSettings?.specialties || []).filter(s =>
+      s?.toLowerCase().includes(specSearch.toLowerCase())
+    );
+  }, [systemSettings?.specialties, specSearch]);
+
+  const handleTreatmentTypeChange = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      treatmentType: value,
+      ngoaiTru: value === 'Ngoại trú',
+      capCuu: value === 'Cấp cứu/Daycare',
+      noiTru: value === 'Nội trú/ICU',
+      ngoaiVien: value === 'Ngoài viện'
+    }));
+  };
+
+  useEffect(() => {
+    let html5QrCode;
+    if (isScanning) {
+      const startCamera = async () => {
+        if (typeof window.Html5Qrcode === 'undefined') {
+          await new Promise(resolve => setTimeout(resolve, 800));
+          if (typeof window.Html5Qrcode === 'undefined') {
+            setScannerError("Chưa tải xong thư viện quét mã. Vui lòng thử lại.");
+            return;
+          }
+        }
+
+        try {
+          html5QrCode = new window.Html5Qrcode("reader");
+          html5QrCodeRef.current = html5QrCode;
+          
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            {
+              fps: 15,
+              qrbox: (width, height) => {
+                const size = Math.min(width, height) * 0.75;
+                return { width: size, height: size };
+              }
+            },
+            (decodedText) => {
+              handleInputChange('pid', decodedText);
+              showNotification("Đã quét thành công mã: " + decodedText);
+              stopScanner();
+            },
+            (errorMessage) => {
+            }
+          );
+        } catch (err) {
+          console.error(err);
+          setScannerError("Không thể truy cập camera. Vui lòng cấp quyền camera trong cài đặt trình duyệt.");
+        }
+      };
+      
+      startCamera();
+    }
+
+    return () => {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+        }).catch(e => console.warn(e));
+      }
+    };
+  }, [isScanning]);
+
+  useEffect(() => {
+    checkIosPermissionStatus();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        .then((registration) => {
+          console.log("Firebase SW registered scope:", registration.scope);
+        })
+        .catch((err) => {
+          console.warn("Lỗi đăng ký Firebase Service Worker:", err);
+        });
+    }
+
+    if (!document.getElementById('html5-qrcode-script')) {
+      const script = document.createElement('script');
+      script.id = 'html5-qrcode-script';
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js';
+      script.async = true;
+      document.head.appendChild(script);
+    }
+
+    function handleClickOutside(event) {
+      if (notificationCenterRef.current && !notificationCenterRef.current.contains(event.target)) {
+        setShowNotificationCenter(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    const faviconUrl = 'https://iili.io/F66acRs.png';
+    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+    link.type = 'image/png';
+    link.rel = 'shortcut icon';
+    link.href = faviconUrl;
+    document.getElementsByTagName('head')[0].appendChild(link);
+
+    const savedStaff = localStorage.getItem('crm_staff_accounts');
+    if (!savedStaff) {
+      localStorage.setItem('crm_staff_accounts', JSON.stringify(mockStaffAccounts));
+      setStaffList(mockStaffAccounts);
+    } else {
+      setStaffList(JSON.parse(savedStaff));
+    }
+
+    const savedSettings = localStorage.getItem('local_settings');
+    if (!savedSettings) {
+      localStorage.setItem('local_settings', JSON.stringify(defaultSystemSettings));
+      setSystemSettings(defaultSystemSettings);
+    } else {
+      setSystemSettings(JSON.parse(savedSettings));
+    }
+
+    const savedUser = localStorage.getItem('crm_current_user');
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        if (parsedUser) {
+          setCurrentUser(parsedUser);
+          setUserRole(parsedUser?.role || 'nhanvien');
+        }
+      } catch (err) {
+        console.error("Error parsing local user:", err);
+      }
+    }
+
+    if (auth && db && isFirebaseConfigured) {
+      setIsFirebaseConnected(true);
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          try {
+            const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', firebaseUser.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              setCurrentUser(userData);
+              setUserRole(userData?.role || 'nhanvien');
+              saveFcmTokenToDatabase(firebaseUser.uid).catch(e => console.warn(e));
+            } else {
+              const fallbackUser = { 
+                uid: firebaseUser.uid, 
+                email: firebaseUser.email, 
+                role: 'nhanvien', 
+                name: firebaseUser.email ? firebaseUser.email.split('@')[0] : 'Nhân viên',
+                title: 'Nhân viên chuyên ban',
+                assignedSite: 'Tất cả'
+              };
+              setCurrentUser(fallbackUser);
+              setUserRole('nhanvien');
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        setIsLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
+      setIsFirebaseConnected(false);
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    setIsLoading(true);
+
+    if (isFirebaseConnected && db) {
+      const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
+      const settingsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
+      const usersCol = collection(db, 'artifacts', appId, 'public', 'data', 'users');
+
+      const unsubscribeSettings = onSnapshot(settingsDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setSystemSettings(docSnap.data());
+        } else {
+          setDoc(settingsDocRef, systemSettings).catch(e => console.warn(e));
+        }
+      }, (err) => console.error(err));
+
+      const unsubscribeUsers = onSnapshot(usersCol, (snapshot) => {
+        const list = [];
+        snapshot.forEach((docSnap) => {
+          list.push({ uid: docSnap.id, ...docSnap.data() });
+        });
+        setStaffList(list);
+      }, (err) => console.error(err));
+
+      const unsubscribePatients = onSnapshot(patientsCol, (snapshot) => {
+        const list = [];
+        snapshot.forEach((docSnap) => {
+          list.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        list.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        if (isInitialMount.current) {
+          isInitialMount.current = false;
+        } else {
+          snapshot.docChanges().forEach((change) => {
+            const data = change.doc.data();
+            const docTime = data.updatedAt ? new Date(data.updatedAt) : (data.createdAt ? new Date(data.createdAt) : null);
+            const isRecent = docTime && docTime.getTime() > appStartTime.current.getTime();
+            if (!isRecent) return;
+
+            const role = currentUser.role || 'nhanvien';
+            const userSite = currentUser.assignedSite || 'Tất cả';
+
+            let permKey = '';
+            if (change.type === 'added') {
+              permKey = 'notify:create';
+            } else if (change.type === 'modified') {
+              const prevPatients = patientsRef.current;
+              const prevPatient = prevPatients.find(p => p.id === change.doc.id);
+              if (prevPatient && prevPatient.status !== data.status) {
+                permKey = 'notify:status';
+              }
+            }
+
+            if (!permKey) return;
+
+            let level = systemSettings.notificationPermissions?.[permKey]?.[role] || 'none';
+            if (role === 'admin') level = 'all';
+
+            if (level === 'none') return;
+
+            if (level === 'assigned_only') {
+              const isAssigned = Array.isArray(data.recipients) && data.recipients.includes(currentUser.uid);
+              if (!isAssigned) return;
+            }
+
+            if (level === 'assigned_site') {
+              if (userSite !== 'Tất cả' && data.site !== userSite) return;
+            }
+
+            if (role === 'lanhdao') {
+              const bossKeyword = data.boardApproval ? data.boardApproval.replace("Sếp ", "").trim().toLowerCase() : "";
+              const isTargetBoss = bossKeyword && currentUser.name.toLowerCase().includes(bossKeyword);
+              if (!isTargetBoss) return;
+            }
+
+            const statusLabel = workflowStatuses.find(s => s.id === data.status)?.label || data.status;
+
+            if (change.type === "added") {
+              triggerPushAlert(
+                `🆕 Tiếp nhận khách ${data?.tier || 'VIP'}`,
+                `Bệnh nhân: ${data?.name || '---'} (PID: ${data?.pid || '---'}) đã được xếp trạng thái: ${statusLabel}.`,
+                data?.recipients || [],
+                'info',
+                change.doc.id
+              );
+            } else if (change.type === "modified") {
+              triggerPushAlert(
+                `🔄 Cập nhật hành trình`,
+                `Hồ sơ khách hàng ${data?.name || '---'} (PID: ${data?.pid || '---'}) vừa đổi trạng thái sang: ${statusLabel}.`,
+                data?.recipients || [],
+                'success',
+                change.doc.id
+              );
+            }
+          });
+        }
+
+        setPatients(list);
+        setIsLoading(false);
+      }, (error) => {
+        console.warn(error);
+        const savedPatients = localStorage.getItem('local_patients');
+        if (savedPatients) {
+          setPatients(JSON.parse(savedPatients));
+        }
+        setIsLoading(false);
+      });
+
+      return () => {
+        unsubscribeSettings();
+        unsubscribeUsers();
+        unsubscribePatients();
+      };
+    } else {
+      const savedPatients = localStorage.getItem('local_patients');
+      if (savedPatients) {
+        setPatients(JSON.parse(savedPatients));
+      }
+      setIsLoading(false);
+    }
+  }, [currentUser, isFirebaseConnected]);
+
+  const calculatedSums = useMemo(() => {
+    if (formData?.tier === 'VIP') {
+      return { totalAmount: 0, approvedDiscountAmount: 0 };
+    }
+    const formulas = systemSettings?.totalFormulaFields || {};
+    let total = 0;
+    
+    if (formulas.phiKham) total += Number(formData?.phiKham || 0);
+    if (formulas.clsCdha) total += Number(formData?.clsCdha || 0);
+    if (formulas.thuocVacxin) total += Number(formData?.thuocVacxin || 0);
+
+    let discountBase = total;
+    if (systemSettings?.discountFormulaType === 'total_minus_insurance_advance') {
+      discountBase = Math.max(0, total - Number(formData?.insuranceAdvance || 0));
+    }
+
+    let discountAmount = 0;
+    if (formData?.discountType === 'fixed') {
+      discountAmount = Number(formData?.approvedDiscountAmount || 0);
+    } else {
+      discountAmount = Math.round(discountBase * (Number(formData?.discountRate || 0) / 100));
+    }
+
+    return {
+      totalAmount: total,
+      approvedDiscountAmount: discountAmount
+    };
+  }, [formData, systemSettings]);
+
+  useEffect(() => {
+    if (formData?.totalAmount !== calculatedSums.totalAmount || formData?.approvedDiscountAmount !== calculatedSums.approvedDiscountAmount) {
+      setFormData(prev => ({
+        ...prev,
+        totalAmount: calculatedSums.totalAmount,
+        approvedDiscountAmount: calculatedSums.approvedDiscountAmount
+      }));
+    }
+  }, [calculatedSums.totalAmount, calculatedSums.approvedDiscountAmount]);
+
+  const matchedPatientProfile = useMemo(() => {
+    if (!formData?.pid?.trim()) return null;
+    return patients.find(p => p?.pid?.trim().toLowerCase() === formData?.pid?.trim().toLowerCase());
+  }, [formData?.pid, patients]);
+
+  const patientVisitHistory = useMemo(() => {
+    if (!formData?.pid?.trim()) return [];
+    return patients.filter(p => p?.pid?.trim().toLowerCase() === formData?.pid?.trim().toLowerCase() && p.id !== currentId);
+  }, [formData?.pid, patients, currentId]);
+
+  useEffect(() => {
+    if (patientVisitHistory.length > 0) {
+      setLeftFormTab('visitHistory');
+    } else {
+      setLeftFormTab('timeline');
+    }
+  }, [patientVisitHistory.length]);
+
+  useEffect(() => {
+    if (matchedPatientProfile && !currentId) {
+      setFormData(prev => {
+        if (prev?.name !== matchedPatientProfile?.name) {
+          return { ...prev, name: matchedPatientProfile?.name || '' };
+        }
+        return prev;
+      });
+    }
+  }, [matchedPatientProfile, currentId]);
+
+  const handleInputChange = (field, val) => {
+    if (field === 'discountRate' && !hasAccessToPatient(formData, 'billing:discount')) {
+      showNotification("Tài khoản không có quyền duyệt chiết khấu!", "error");
+      return;
+    }
+    setFormData(prev => ({ ...prev, [field]: val }));
+  };
+
+  const handleCurrencyChange = (field, rawValue) => {
+    const cleanValue = rawValue.replace(/\D/g, '');
+    const numValue = cleanValue === '' ? 0 : parseInt(cleanValue, 10);
+    handleInputChange(field, numValue);
+  };
+
+  const toggleSpecialtySelection = (spec) => {
+    if (isReadOnly) return;
+    setFormData(prev => {
+      const exists = prev?.specialties?.includes(spec);
+      if (exists) {
+        return { ...prev, specialties: prev?.specialties?.filter(s => s !== spec) };
+      } else {
+        return { ...prev, specialties: [...(prev?.specialties || []), spec] };
+      }
+    });
+  };
+
+  const handleMultipleImagesUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    const readers = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const img = new Image();
+          img.src = reader.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800;
+            const scale = MAX_WIDTH / img.width;
+            canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
+            canvas.height = img.width > MAX_WIDTH ? img.height * scale : img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          };
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(readers).then((newImages) => {
+      setFormData(prev => ({
+        ...prev,
+        approvalImages: [...(prev?.approvalImages || []), ...newImages]
+      }));
+      showNotification("Đã thêm các ảnh phê duyệt thành công!");
+    });
+  };
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const isFutureOrPreArrival = (patient) => {
+    if (!patient) return false;
+    const isPreArrivalStatus = ['Scheduled', 'Preparing', 'ReceivedInfo'].includes(patient?.status);
+    const isFutureDate = patient?.date > todayStr;
+    return isPreArrivalStatus || isFutureDate;
+  };
+
+  const isUserAssignedToPatient = (patient) => {
+    if (!currentUser || !patient) return false;
+    if (Array.isArray(patient?.recipients) && patient?.recipients.includes(currentUser?.uid)) {
+      return true;
+    }
+    return false;
+  };
+
+  const visiblePatients = useMemo(() => {
+    return patients.filter(p => {
+      if (!p) return false;
+      
+      const canView = hasAccessToPatient(p, 'patients:view');
+      if (!canView) return false;
+
+      if (currentUser && ['nhanvien', 'quanly_site'].includes(currentUser?.role)) {
+        if (isFutureOrPreArrival(p)) {
+          return isUserAssignedToPatient(p);
+        }
+      }
+      return true;
+    });
+  }, [patients, currentUser, systemSettings?.permissions]);
+
+  const filteredPatients = useMemo(() => {
+    return visiblePatients.filter(p => {
+      if (!p) return false;
+      const matchSearch = 
+        p?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p?.pid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p?.boardApproval?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p?.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchSpecialty = !filterSpecialty || p?.specialties?.includes(filterSpecialty);
+      const matchTier = !filterTier || p?.tier === filterTier;
+      const matchDate = !filterDate || p?.date === filterDate;
+      const matchSite = !filterSite || p?.site === filterSite;
+
+      return matchSearch && matchSpecialty && matchTier && matchDate && matchSite;
+    });
+  }, [visiblePatients, searchTerm, filterSpecialty, filterTier, filterDate, filterSite]);
+
+  const dashMetrics = useMemo(() => {
+    const filtered = visiblePatients.filter(p => {
+      if (!p) return false;
+      if (dashFilterMode === 'today') {
+        return p?.date === todayStr;
+      } else {
+        return p?.date >= dashStartDate && p?.date <= dashEndDate;
+      }
+    });
+
+    let totalPatients = filtered.length;
+    let vipCount = filtered.filter(p => p?.tier === 'VIP').length;
+    let vvipCount = filtered.filter(p => p?.tier === 'VVIP').length;
+    let totalRevenue = filtered.reduce((sum, p) => sum + (p?.totalAmount || 0), 0);
+    let totalDiscount = filtered.reduce((sum, p) => sum + (p?.approvedDiscountAmount || 0), 0);
+    let totalCollected = filtered.reduce((sum, p) => sum + Math.max(0, (p?.totalAmount || 0) - (p?.approvedDiscountAmount || 0)), 0);
+
+    return { totalPatients, vipCount, vvipCount, totalRevenue, totalDiscount, totalCollected };
+  }, [visiblePatients, dashFilterMode, dashStartDate, dashEndDate, todayStr]);
+
+  const metrics = useMemo(() => {
+    let totalPatients = filteredPatients.length;
+    let vipCount = filteredPatients.filter(p => p?.tier === 'VIP').length;
+    let vvipCount = filteredPatients.filter(p => p?.tier === 'VVIP').length;
+    let totalRevenue = filteredPatients.reduce((sum, p) => sum + (p?.totalAmount || 0), 0);
+    let totalDiscount = filteredPatients.reduce((sum, p) => sum + (p?.approvedDiscountAmount || 0), 0);
+    let totalCollected = filteredPatients.reduce((sum, p) => sum + Math.max(0, (p?.totalAmount || 0) - (p?.approvedDiscountAmount || 0)), 0);
+
+    return { totalPatients, vipCount, vvipCount, totalRevenue, totalDiscount, totalCollected };
+  }, [filteredPatients]);
+
+  const kanbanPatients = useMemo(() => {
+    return visiblePatients.filter(p => {
+      if (!p) return false;
+      const isToday = p?.date === todayStr;
+      const isNotCompleted = p?.status !== 'Completed';
+      const matchDate = !filterDate ? (isToday || isNotCompleted) : p?.date === filterDate;
+      const matchSite = !filterSite || p?.site === filterSite;
+      return matchDate && matchSite;
+    });
+  }, [visiblePatients, filterDate, filterSite, todayStr]);
+
+  const unreadCount = useMemo(() => {
+    return notifications.filter(n => !n.read).length;
+  }, [notifications]);
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+  };
+
+  const weekDays = useMemo(() => {
+    const startOfWeek = new Date(currentCalendarDate);
+    const day = startOfWeek.getDay();
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); 
+    startOfWeek.setDate(diff);
+
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const nextDay = new Date(startOfWeek);
+      nextDay.setDate(startOfWeek.getDate() + i);
+      days.push(nextDay);
+    }
+    return days;
+  }, [currentCalendarDate]);
+
+  const monthDays = useMemo(() => {
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const adjustedFirstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1; 
+    const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const days = [];
+    for (let i = 0; i < adjustedFirstDayIndex; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= totalDaysInMonth; i++) {
+      days.push(new Date(year, month, i));
+    }
+    return days;
+  }, [currentCalendarDate]);
+
+  const briefingStats = useMemo(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    const tomorrowPatients = visiblePatients.filter(p => p && p?.date === tomorrowStr);
+    
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 8);
+    const sevenDaysStr = sevenDaysFromNow.toISOString().split('T')[0];
+
+    const nextWeekPatients = visiblePatients.filter(p => p && p?.date > tomorrowStr && p?.date <= sevenDaysStr);
+
+    return {
+      tomorrowPatients,
+      nextWeekCount: nextWeekPatients.length,
+      tomorrowDateFormatted: tomorrow.toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' })
+    };
+  }, [visiblePatients]);
+
   const savePatient = async (e) => {
     e.preventDefault();
     if (!formData?.name?.trim()) {
@@ -2240,12 +1255,14 @@ export default function App() {
       showNotification("Vui lòng lựa chọn Khu Vực Khám!", "error");
       return;
     }
+
     const action = currentId ? 'patients:update' : 'patients:create';
     const isAllowed = hasAccessToPatient(formData, action);
     if (!isAllowed) {
       showNotification("Lỗi: Tài khoản không có quyền đăng ký hoặc chỉnh sửa hồ sơ trên Site này!", "error");
       return;
     }
+
     const currentHistory = formData?.history || [];
     let newLog = {};
     if (currentId) {
@@ -2261,132 +1278,77 @@ export default function App() {
         user: currentUser?.name || 'Hệ thống'
       };
     }
-    const hasVVIPDiscount = formData.specialties.some(spec => (formData.specialtyConfigs?.[spec] || 'vvip_discount') === 'vvip_discount');
-    const hasVIPTakecare = formData.specialties.some(spec => formData.specialtyConfigs?.[spec] === 'vip_takecare');
-    const isVVIPWithMixedSpecialties = formData.tier === 'VVIP' && hasVVIPDiscount && hasVIPTakecare;
 
-    if (isVVIPWithMixedSpecialties) {
-      const sessionGroupId = formData.sessionGroupId || `group_${formData.pid}_${Date.now()}`;
-      const vvipSpecialties = formData.specialties.filter(spec => (formData.specialtyConfigs?.[spec] || 'vvip_discount') === 'vvip_discount');
-      const vipSpecialties = formData.specialties.filter(spec => formData.specialtyConfigs?.[spec] === 'vip_takecare');
-      const payloadVVIP = {
-        ...formData,
-        specialties: vvipSpecialties,
-        notes: formData.notes + "\n(Ca tách luồng VVIP)",
-        sessionGroupId,
-        updatedAt: new Date().toISOString(),
-        updatedBy: currentUser?.name || 'Hệ thống',
-        history: [...currentHistory, {
-          timestamp: new Date().toISOString(),
-          action: "Tách luồng điều trị: Nhánh VVIP",
-          user: currentUser?.name || 'Hệ thống'
-        }]
-      };
-      const payloadVIP = {
-        ...formData,
-        tier: 'VIP',
-        specialties: vipSpecialties,
-        notes: formData.notes + "\n(Ca tách luồng VIP Chăm sóc)",
-        sessionGroupId,
+    let payload = {
+      ...formData,
+      status: formData?.status || 'Waiting',
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentUser?.name || 'Hệ thống',
+      history: [...currentHistory, newLog]
+    };
+
+    if (formData?.tier === 'VIP') {
+      payload = {
+        ...payload,
         phiKham: 0,
         clsCdha: 0,
         thuocVacxin: 0,
         insuranceAdvance: 0,
+        discountType: 'percent',
         discountRate: 0,
         approvedDiscountAmount: 0,
-        totalAmount: 0,
-        updatedAt: new Date().toISOString(),
-        updatedBy: currentUser?.name || 'Hệ thống',
-        history: [...currentHistory, {
-          timestamp: new Date().toISOString(),
-          action: "Tách luồng điều trị: Nhánh VIP Chăm sóc",
-          user: currentUser?.name || 'Hệ thống'
-        }]
+        totalAmount: 0
       };
-      try {
-        if (isFirebaseConnected && db) {
-          const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
-          if (currentId) {
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payloadVVIP);
-            await addDoc(patientsCol, { ...payloadVIP, createdAt: new Date().toISOString() });
-            showNotification("Cập nhật và tách luồng thành công!");
-          } else {
-            await addDoc(patientsCol, { ...payloadVVIP, createdAt: new Date().toISOString() });
-            await addDoc(patientsCol, { ...payloadVIP, createdAt: new Date().toISOString() });
-            showNotification("Đăng ký và tự động tách luồng thành công!");
-          }
-        } else {
-          let updatedList = [...patients];
-          const newVIPDoc = { id: `vip_${Date.now()}`, ...payloadVIP, createdAt: new Date().toISOString() };
-          if (currentId) {
-            updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payloadVVIP } : p);
-            updatedList.unshift(newVIPDoc);
-            showNotification("Cập nhật và tách luồng cục bộ thành công!");
-          } else {
-            const newVVIPDoc = { id: `vvip_${Date.now()}`, ...payloadVVIP, createdAt: new Date().toISOString() };
-            updatedList.unshift(newVVIPDoc);
-            updatedList.unshift(newVIPDoc);
-            showNotification("Đăng ký và tách luồng cục bộ thành công!");
-          }
-          setPatients(updatedList);
-          localStorage.setItem('local_patients', JSON.stringify(updatedList));
-        }
-        resetForm();
-        setActiveTab('monitoring');
-      } catch (err) {
-        console.warn(err);
-      }
-    } else {
-      let payload = {
-        ...formData,
-        status: formData?.status || 'Waiting',
-        updatedAt: new Date().toISOString(),
-        updatedBy: currentUser?.name || 'Hệ thống',
-        history: [...currentHistory, newLog]
-      };
-      if (formData?.tier === 'VIP') {
-        payload = {
-          ...payload,
-          phiKham: 0,
-          clsCdha: 0,
-          thuocVacxin: 0,
-          insuranceAdvance: 0,
-          discountRate: 0,
-          approvedDiscountAmount: 0,
-          totalAmount: 0
-        };
-      }
-      const firstImg = payload.approvalImages && payload.approvalImages.length > 0 ? payload.approvalImages[0] : '';
-      payload.approvalImage = firstImg;
-      try {
-        if (isFirebaseConnected && db) {
-          if (currentId) {
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payload);
-            showNotification("Cập nhật thành công!");
-          } else {
-            const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
-            await addDoc(patientsCol, { ...payload, createdAt: new Date().toISOString() });
-            showNotification("Đăng ký thành công!");
-          }
-        } else {
-          let updatedList = [...patients];
-          if (currentId) {
-            updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
-            showNotification("Cập nhật thành công!");
-          } else {
-            const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
-            updatedList.unshift(newDoc);
-            showNotification("Đã lưu hồ sơ thành công!");
-          }
-          setPatients(updatedList);
-          localStorage.setItem('local_patients', JSON.stringify(updatedList));
-        }
-        resetForm();
-        setActiveTab('monitoring');
-      } catch (err) {
-        console.warn(err);
-      }
     }
+
+    const firstImg = payload.approvalImages && payload.approvalImages.length > 0 ? payload.approvalImages[0] : '';
+    payload.approvalImage = firstImg;
+
+    try {
+      if (isFirebaseConnected && db) {
+        const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
+        if (currentId) {
+          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payload);
+          showNotification("Cập nhật thành công!");
+        } else {
+          await addDoc(patientsCol, { ...payload, createdAt: new Date().toISOString() });
+          showNotification("Đăng ký thành công!");
+        }
+      } else {
+        let updatedList = [...patients];
+        if (currentId) {
+          updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
+          showNotification("Cập nhật thành công!");
+        } else {
+          const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
+          updatedList.unshift(newDoc);
+          showNotification("Đã lưu hồ sơ thành công!");
+        }
+        setPatients(updatedList);
+        localStorage.setItem('local_patients', JSON.stringify(updatedList));
+      }
+      resetForm();
+      setActiveTab('monitoring');
+    } catch (err) {
+      console.warn(err);
+      let updatedList = [...patients];
+      if (currentId) {
+        updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
+        showNotification("Đã lưu cập nhật vào thiết bị (Chế độ Dự Phòng)!");
+      } else {
+        const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
+        updatedList.unshift(newDoc);
+        showNotification("Đã lưu hồ sơ mới vào thiết bị (Chế độ Dự Phòng)!");
+      }
+      setPatients(updatedList);
+      localStorage.setItem('local_patients', JSON.stringify(updatedList));
+      resetForm();
+      setActiveTab('monitoring');
+    }
+  };
+
+  const handleLoginSubmit = (e) => {
+    handleLogin(e);
   };
 
   const initiateView = (patient) => {
@@ -2395,6 +1357,7 @@ export default function App() {
 
   const initiateEdit = (patient, forceReadOnly = false) => {
     if (!patient) return;
+
     setCurrentId(patient.id);
     setFormRightTab(patient.tier === 'VIP' ? 'timeline' : 'billing');
     setIsHistoryPanelExpanded(false);
@@ -2404,6 +1367,7 @@ export default function App() {
     else if (patient.noiTru) initTreatmentType = 'Nội trú/ICU';
     else if (patient.ngoaiVien) initTreatmentType = 'Ngoài viện';
     else if (patient.treatmentType) initTreatmentType = patient.treatmentType;
+
     setFormData({
       name: patient?.name || '',
       tier: patient?.tier || 'VIP',
@@ -2412,7 +1376,6 @@ export default function App() {
       pid: patient?.pid || '',
       date: patient?.date || new Date().toISOString().split('T')[0],
       specialties: patient?.specialties || [],
-      specialtyConfigs: patient?.specialtyConfigs || {},
       site: patient?.site || 'BV Tâm Anh - Tân Sơn Hòa',
       examinationArea: patient?.examinationArea || '',
       ngoaiTru: patient?.ngoaiTru !== undefined ? patient?.ngoaiTru : (initTreatmentType === 'Ngoại trú'),
@@ -2432,8 +1395,7 @@ export default function App() {
       status: patient?.status || 'Waiting',
       recipients: patient?.recipients || [],
       history: patient?.history || [],
-      roundingLogs: patient?.roundingLogs || [],
-      sessionGroupId: patient?.sessionGroupId || ''
+      roundingLogs: patient?.roundingLogs || []
     });
     setActiveTab('register');
   };
@@ -2441,21 +1403,25 @@ export default function App() {
   const handleUpdateStatus = async (patientId, newStatus) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
+
     const canUpdate = hasAccessToPatient(patient, 'patients:update');
     if (!canUpdate) {
       showNotification("Lỗi: Bạn không có quyền chỉnh sửa trạng thái cho ca khám thuộc chi nhánh này!", "error");
       return;
     }
+
     if (userRole === 'nhanvien') {
       const currentStatus = patient?.status || 'Waiting';
       const isAllowed = 
         (currentStatus === 'Waiting' && newStatus === 'Examining') || 
         (currentStatus === 'Pharmacy' && newStatus === 'Completed');
+
       if (!isAllowed) {
         showNotification("Lỗi: Tài khoản nhân viên chỉ được phép chuyển trạng thái theo đúng luồng bàn giao quy định!", "error");
         return;
       }
     }
+
     const statusLabel = workflowStatuses.find(s => s.id === newStatus)?.label || newStatus;
     const currentHistory = patient?.history || [];
     const newLog = {
@@ -2464,6 +1430,7 @@ export default function App() {
       user: currentUser?.name || 'Hệ thống'
     };
     const updatedHistory = [...currentHistory, newLog];
+
     try {
       if (isFirebaseConnected && db) {
         const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'patients', patientId);
@@ -2488,22 +1455,25 @@ export default function App() {
         });
         setPatients(updatedList);
         localStorage.setItem('local_patients', JSON.stringify(updatedList));
+        triggerPushAlert("🔄 Cập nhật hành trình (Cục bộ)", `Khách hàng ${patient?.name || 'VIP'} đã được cập nhật trạng thái mới.`, patient?.recipients || [], "success", patientId);
       }
       showNotification("Đã cập nhật trạng thái hành trình khám!");
     } catch (err) {
       console.error(err);
+      showNotification("Lỗi đồng bộ trạng thái lên database!", "error");
     }
   };
 
   const executeCopyVisit = (visit) => {
     if (!visit) return;
     const previousImages = visit?.approvalImages || (visit?.approvalImage ? [visit?.approvalImage] : []);
+    
     const userSite = currentUser?.assignedSite || 'Tất cả';
     const finalSite = userSite !== 'Tất cả' ? userSite : (visit?.site || 'BV Tâm Anh - Tân Sơn Hòa');
+
     setFormData(prev => ({
       ...prev,
       specialties: visit?.specialties || [],
-      specialtyConfigs: visit?.specialtyConfigs || {},
       site: finalSite,
       examinationArea: visit?.examinationArea || '',
       boardApproval: visit?.boardApproval || '',
@@ -2543,6 +1513,7 @@ export default function App() {
       showNotification("Vui lòng điền đầy đủ thông tin!", "error");
       return;
     }
+
     const created = {
       uid: newStaff?.uid?.trim(),
       name: newStaff?.name?.trim(),
@@ -2551,6 +1522,7 @@ export default function App() {
       title: newStaff?.title?.trim() || 'Nhân viên chuyên ban',
       assignedSite: newStaff?.assignedSite || 'Tất cả'
     };
+
     if (isFirebaseConnected && db) {
       try {
         const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', created.uid);
@@ -2558,6 +1530,7 @@ export default function App() {
         showNotification(editingStaffUid ? "Đã cập nhật thông tin nhân viên!" : "Đã đăng ký và đẩy phân quyền lên Firebase Cloud!");
       } catch (err) {
         console.error(err);
+        showNotification("Lỗi đồng bộ phân quyền lên Firebase Cloud!", "error");
       }
     } else {
       let updatedList;
@@ -2571,6 +1544,7 @@ export default function App() {
       setStaffList(updatedList);
       localStorage.setItem('crm_staff_accounts', JSON.stringify(updatedList));
     }
+
     setNewStaff({ name: '', email: '', role: 'nhanvien', uid: '', title: '', assignedSite: 'Tất cả' });
     setEditingStaffUid(null);
   };
@@ -2580,6 +1554,7 @@ export default function App() {
       showNotification("Không thể tự xóa tài khoản chính đang hoạt động!", "error");
       return;
     }
+
     setConfirmModal({
       show: true,
       title: "Xác nhận gỡ bỏ tài khoản",
@@ -2597,6 +1572,7 @@ export default function App() {
           }
         } catch (err) {
           console.error(err);
+          showNotification("Gặp sự cố khi gỡ bỏ tài khoản!", "error");
         }
         setConfirmModal({ show: false, action: null, message: '', title: '' });
       }
@@ -2648,19 +1624,23 @@ export default function App() {
 
   const handleAddSpecialty = () => {
     if (!newSpecialtyInput.trim()) return;
+
     const inputParts = newSpecialtyInput.split(',').map(p => p.trim()).filter(p => p !== '');
     let addedCount = 0;
     let updatedSpecialties = [...(systemSettings?.specialties || [])];
+
     inputParts.forEach(spec => {
       if (!updatedSpecialties.includes(spec)) {
         updatedSpecialties.push(spec);
         addedCount++;
       }
     });
+
     if (addedCount === 0) {
       showNotification("Các chuyên khoa đã tồn tại!", "error");
       return;
     }
+
     saveSettingsOnDb({ ...systemSettings, specialties: updatedSpecialties });
     setNewSpecialtyInput('');
     showNotification(`Đã thêm mới ${addedCount} chuyên khoa!`);
@@ -2724,189 +1704,103 @@ export default function App() {
     showNotification("Đã xóa lượt ghi nhận.");
   };
 
-  const handleInputChange = (field, val) => {
-    if (field === 'discountRate' && !hasAccessToPatient(formData, 'billing:discount')) {
-      showNotification("Tài khoản không có quyền duyệt chiết khấu!", "error");
-      return;
-    }
-    setFormData(prev => ({ ...prev, [field]: val }));
-  };
-
-  const handleCurrencyChange = (field, rawValue) => {
-    const cleanValue = rawValue.replace(/\D/g, '');
-    const numValue = cleanValue === '' ? 0 : parseInt(cleanValue, 10);
-    handleInputChange(field, numValue);
-  };
-
-  const toggleSpecialtySelection = (spec) => {
-    if (isReadOnly) return;
-    setFormData(prev => {
-      const exists = prev?.specialties?.includes(spec);
-      if (exists) {
-        const updatedConfigs = { ...(prev.specialtyConfigs || {}) };
-        delete updatedConfigs[spec];
-        return {
-          ...prev,
-          specialties: prev?.specialties?.filter(s => s !== spec),
-          specialtyConfigs: updatedConfigs
-        };
-      } else {
-        return {
-          ...prev,
-          specialties: [...(prev?.specialties || []), spec],
-          specialtyConfigs: {
-            ...(prev.specialtyConfigs || {}),
-            [spec]: 'vvip_discount'
-          }
-        };
-      }
-    });
-  };
-
-  const handleMultipleImagesUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-    const readers = files.map(file => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const img = new Image();
-          img.src = reader.result;
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 800;
-            const scale = MAX_WIDTH / img.width;
-            canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
-            canvas.height = img.width > MAX_WIDTH ? img.height * scale : img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.7));
-          };
-        };
-        reader.readAsDataURL(file);
-      });
-    });
-    Promise.all(readers).then((newImages) => {
-      setFormData(prev => ({
-        ...prev,
-        approvalImages: [...(prev?.approvalImages || []), ...newImages]
-      }));
-      showNotification("Đã thêm các ảnh phê duyệt thành công!");
-    });
-  };
-
-  const stopScanner = () => {
-    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-      html5QrCodeRef.current.stop().then(() => {
-        html5QrCodeRef.current.clear();
-        setIsScanning(false);
-        setScannerError('');
-      }).catch(err => {
-        console.error(err);
-        setIsScanning(false);
-        setScannerError('');
-      });
-    } else {
-      setIsScanning(false);
-      setScannerError('');
-    }
-  };
-
-  const visiblePatients = useMemo(() => {
-    return patients.filter(p => hasAccessToPatient(p, 'patients:view'));
-  }, [patients, currentUser, systemSettings]);
-
-  const filteredPatients = useMemo(() => {
-    return visiblePatients.filter(p => {
-      const matchSearch = p?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || p?.pid?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchSpecialty = !filterSpecialty || p?.specialties?.includes(filterSpecialty);
-      const matchTier = !filterTier || p?.tier === filterTier;
-      const matchDate = !filterDate || p?.date === filterDate;
-      const matchSite = !filterSite || p?.site === filterSite;
-      return matchSearch && matchSpecialty && matchTier && matchDate && matchSite;
-    });
-  }, [visiblePatients, searchTerm, filterSpecialty, filterTier, filterDate, filterSite]);
-
-  const kanbanPatients = useMemo(() => {
-    return visiblePatients.filter(p => {
-      const isToday = p?.date === todayStr;
-      const matchSite = !filterSite || p?.site === filterSite;
-      return isToday && matchSite;
-    });
-  }, [visiblePatients, filterSite]);
-
-  const todayStr = new Date().toISOString().split('T')[0];
-
-  const dashMetrics = useMemo(() => {
-    const filtered = visiblePatients.filter(p => p?.date === todayStr);
-    let totalPatients = filtered.length;
-    let vipCount = filtered.filter(p => p?.tier === 'VIP').length;
-    let vvipCount = filtered.filter(p => p?.tier === 'VVIP').length;
-    let totalRevenue = filtered.reduce((sum, p) => sum + (p?.totalAmount || 0), 0);
-    let totalDiscount = filtered.reduce((sum, p) => sum + (p?.approvedDiscountAmount || 0), 0);
-    return { totalPatients, vipCount, vvipCount, totalRevenue, totalDiscount };
-  }, [visiblePatients]);
-
-  const briefingStats = useMemo(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
-    const tomorrowPatients = visiblePatients.filter(p => p?.date === tomorrowStr);
-    return {
-      tomorrowPatients,
-      nextWeekCount: visiblePatients.filter(p => p?.date > tomorrowStr).length,
-      tomorrowDateFormatted: tomorrow.toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' })
-    };
-  }, [visiblePatients]);
-
-  const linkedVisits = useMemo(() => {
-    if (!formData.sessionGroupId) return [];
-    return patients.filter(p => p.sessionGroupId === formData.sessionGroupId && p.id !== currentId);
-  }, [formData.sessionGroupId, patients, currentId]);
-
   const registrableStaffList = useMemo(() => {
     return staffList.filter(s => s && ['nhanvien', 'quanly_site'].includes(s?.role));
   }, [staffList]);
 
-  const patientVisitHistory = useMemo(() => {
-    if (!formData?.pid?.trim()) return [];
-    return patients.filter(p => p?.pid?.trim().toLowerCase() === formData?.pid?.trim().toLowerCase() && p.id !== currentId);
-  }, [formData?.pid, patients, currentId]);
-
-  const filteredSpecialties = useMemo(() => {
-    return (systemSettings?.specialties || []).filter(s =>
-      s?.toLowerCase().includes(specSearch.toLowerCase())
-    );
-  }, [systemSettings?.specialties, specSearch]);
-
-  const handleTreatmentTypeChange = (value) => {
-    setFormData(prev => ({
-      ...prev,
-      treatmentType: value,
-      ngoaiTru: value === 'Ngoại trú',
-      capCuu: value === 'Cấp cứu/Daycare',
-      noiTru: value === 'Nội trú/ICU',
-      ngoaiVien: value === 'Ngoài viện'
-    }));
+  const handleCalendarNavigate = (direction) => {
+    const nextDate = new Date(currentCalendarDate);
+    if (calendarMode === 'week') {
+      nextDate.setDate(nextDate.getDate() + (direction === 'next' ? 7 : -7));
+    } else if (calendarMode === 'month') {
+      nextDate.setMonth(nextDate.getMonth() + (direction === 'next' ? 1 : -1));
+    }
+    setCurrentCalendarDate(nextDate);
   };
 
-  useEffect(() => {
-    function handleClickOutsideSpec(event) {
-      if (specRef.current && !specRef.current.contains(event.target)) {
-        setIsSpecDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutsideSpec);
-    return () => document.removeEventListener("mousedown", handleClickOutsideSpec);
-  }, []);
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-tr from-slate-100 via-indigo-50/20 to-slate-200 flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden text-slate-800">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/5 rounded-full filter blur-3xl -translate-x-12 -translate-y-12"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full filter blur-3xl translate-x-12 translate-y-12"></div>
+
+        <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-200 p-8 rounded-3xl shadow-2xl relative z-10 space-y-6">
+          <div className="text-center space-y-3">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2.5 shadow-sm border border-slate-200 mx-auto">
+              <img 
+                src="https://iili.io/F66acRs.png" 
+                alt="Hospital Logo" 
+                className="w-full h-full object-contain" 
+              />
+            </div>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-black tracking-tight text-slate-900">
+                QL KH VIP-VVIP
+              </h1>
+              <p className="text-xs text-slate-404 font-semibold tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
+            </div>
+          </div>
+
+          {authError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-605 text-center font-bold flex items-center gap-1.5 justify-center">
+              <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-500" />
+              {authError}
+            </div>
+          )}
+
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email </label>
+              <input 
+                type="email" 
+                placeholder="nhập email tại đây"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
+              />
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-555 uppercase tracking-wider block">Mật khẩu</label>
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full pl-4 pr-10 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => { setShowPassword(!showPassword); }}
+                  className="absolute right-3 top-3.5 text-slate-404 hover:text-slate-600 transition"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
+            >
+              <Lock className="w-4 h-4" /> Xác thực
+            </button>
+          </form>
+
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 antialiased pb-20 md:pb-12 relative">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
+      
       {lightboxImages.length > 0 && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4">
           <div className="absolute top-4 right-4 z-50 flex gap-2">
             <button 
-              onClick={() => setLightboxImages([])}
+              onClick={() => { setLightboxImages([]); }}
               className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition"
             >
               <X className="w-5 h-5" />
@@ -2924,11 +1818,13 @@ export default function App() {
                 <ChevronLeft className="w-6 h-6" />
               </button>
             )}
+            
             <img 
               src={lightboxImages[lightboxIndex]} 
               alt="Chứng từ văn bản phê duyệt" 
               className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
             />
+
             {lightboxImages.length > 1 && (
               <button
                 onClick={(e) => {
@@ -2959,13 +1855,13 @@ export default function App() {
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button 
-                onClick={() => setCopyConfirmModal({ show: false, visitToCopy: null })}
+                onClick={() => { setCopyConfirmModal({ show: false, visitToCopy: null }); }}
                 className="px-4 py-2 border border-slate-200 text-slate-655 hover:bg-slate-55 text-xs font-bold rounded-xl transition"
               >
                 Hủy bỏ
               </button>
               <button 
-                onClick={() => executeCopyVisit(copyConfirmModal.visitToCopy)}
+                onClick={() => { executeCopyVisit(copyConfirmModal.visitToCopy); }}
                 className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white rounded-xl transition shadow-xs"
               >
                 Xác nhận sao chép
@@ -2991,7 +1887,7 @@ export default function App() {
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 border border-slate-200 shadow-2xl">
             <div>
               <h4 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center justify-center gap-1.5">
-                <Scan className="w-4 h-4 text-indigo-605" /> Trình quét mã camera
+                <Scan className="w-4 h-4 text-indigo-605 a" /> Trình quét mã camera
               </h4>
               <p className="text-[11px] text-slate-404 font-semibold mt-1">
                 {scannerError ? "Lỗi truy cập thiết bị" : "Đặt mã vạch hoặc mã QR của bệnh nhân vào giữa khung hình"}
@@ -2999,7 +1895,7 @@ export default function App() {
             </div>
 
             {scannerError ? (
-              <div className="p-4 bg-rose-50 border border-rose-101 rounded-2xl text-[11px] text-rose-605 font-semibold space-y-2">
+              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-[11px] text-rose-605 font-semibold space-y-2">
                 <p>{scannerError}</p>
                 <button 
                   type="button"
@@ -3016,6 +1912,7 @@ export default function App() {
             ) : (
               <div className="relative w-full aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 flex items-center justify-center">
                 <div id="reader" className="absolute inset-0 w-full h-full"></div>
+                
                 <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 z-10">
                   <div className="flex justify-between">
                     <div className="w-4 h-4 border-t-4 border-l-4 border-indigo-500 rounded-tl-xs"></div>
@@ -3033,7 +1930,7 @@ export default function App() {
             <button
               type="button"
               onClick={stopScanner}
-              className="px-4 py-1.5 border border-slate-200 text-slate-555 hover:bg-slate-55 text-[11px] font-bold rounded-xl transition w-full"
+              className="px-4 py-1.5 border border-slate-200 text-slate-550 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition w-full"
             >
               Hủy bỏ quét
             </button>
@@ -3051,7 +1948,7 @@ export default function App() {
             <p className="text-sm text-slate-555 leading-relaxed font-medium">{confirmModal.message}</p>
             <div className="flex justify-end gap-2 pt-2">
               <button 
-                onClick={() => setConfirmModal({ show: false, action: null, message: '', title: '' })}
+                onClick={() => { setConfirmModal({ show: false, action: null, message: '', title: '' }); }}
                 className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 rounded-xl transition"
               >
                 Hủy bỏ
@@ -3077,140 +1974,2103 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
+            
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1">
-                <img src="https://iili.io/F66acRs.png" alt="Hospital Logo" className="w-full h-full object-contain" />
+                <img 
+                  src="https://iili.io/F66acRs.png" 
+                  alt="Hospital Logo" 
+                  className="w-full h-full object-contain" 
+                />
               </div>
               <div>
-                <h1 className="text-sm font-black tracking-tight text-slate-900">QL KH VIP-VVIP <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-wider">{userRole}</span></h1>
+                <h1 className="text-sm font-black tracking-tight text-slate-900 flex items-center gap-1.5">
+                  QL KH VIP-VVIP
+                  <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-wider">
+                    {userRole}
+                  </span>
+                </h1>
+                <p className="text-[10px] text-slate-404 font-semibold">
+                  {currentUser?.assignedSite && currentUser.assignedSite !== 'Tất cả' ? `📍 Chi nhánh: ${currentUser.assignedSite}` : '🌐 Toàn hệ thống'}
+                </p>
               </div>
             </div>
 
             <nav className="hidden md:flex items-center gap-1">
-              {canShowTab('dashboard') && <button onClick={() => { resetForm(); setActiveTab('dashboard'); }} className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'dashboard' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>Bảng điều khiển</button>}
-              {canShowTab('register') && <button onClick={() => { resetForm(); setActiveTab('register'); }} className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'register' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>Tiếp nhận</button>}
-              {canShowTab('monitoring') && <button onClick={() => { resetForm(); setActiveTab('monitoring'); }} className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'monitoring' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>Theo dõi</button>}
-              {userRole === 'admin' && <button onClick={() => setActiveTab('settings')} className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'settings' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>Cấu hình</button>}
+              {canShowTab('dashboard') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('dashboard'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'dashboard' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <LayoutDashboard className="w-4 h-4" /> Bảng điều khiển
+                </button>
+              )}
+              
+              {canShowTab('register') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('register'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'register' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ
+                </button>
+              )}
+
+              {canShowTab('monitoring') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'monitoring' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <ClipboardList className="w-4 h-4" /> Theo dõi hồ sơ
+                </button>
+              )}
+
+              {userRole === 'admin' && (
+                <button 
+                  onClick={() => { setActiveTab('settings'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'settings' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Settings className="w-4 h-4" /> Cấu hình hệ thống
+                </button>
+              )}
             </nav>
 
-            <div className="flex items-center gap-3">
-              {currentUser && (
-                <button onClick={handleLogout} className="p-2 text-slate-404 hover:text-red-500 hover:bg-red-50 rounded-xl border border-slate-200 transition"><LogOut className="w-5 h-5" /></button>
+            <div className="flex items-center gap-3 relative" ref={notificationCenterRef}>
+              <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold">
+                <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
+                {isFirebaseConnected ? 'Live' : 'Offline'}
+              </div>
+
+              <button 
+                onClick={() => { setShowNotificationCenter(!showNotificationCenter); }}
+                className={`p-2 rounded-xl transition-all relative border border-slate-200 ${
+                  showNotificationCenter ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-505 hover:bg-slate-100'
+                }`}
+                title="Trung tâm thông báo"
+              >
+                {unreadCount > 0 ? (
+                  <>
+                    <BellRing className="w-5 h-5 text-indigo-600" />
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-indigo-600 text-white font-black text-[9px] rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                      {unreadCount}
+                    </span>
+                  </>
+                ) : (
+                  <Bell className="w-5 h-5" />
+                )}
+              </button>
+
+              {showNotificationCenter && (
+                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 p-4 space-y-3">
+                  <div className="flex justify-between items-center border-b border-slate-101 pb-2">
+                    <div className="flex items-center gap-1.5">
+                      <BellRing className="w-4 h-4 text-indigo-600" />
+                      <h4 className="text-xs font-black text-slate-900">Trung tâm thông báo</h4>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={markAllAsRead}
+                        className="text-[10px] text-indigo-600 hover:text-indigo-800 font-extrabold transition"
+                      >
+                        Đã đọc tất cả
+                      </button>
+                      <button 
+                        onClick={clearAllNotifications}
+                        className="text-[10px] text-rose-505 hover:text-rose-700 font-extrabold transition"
+                      >
+                        Xóa tất cả
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                    {iosNotificationStatus !== 'granted' && (
+                      <div className="p-3 bg-indigo-50 border border-indigo-101 rounded-2xl text-xs text-indigo-800 space-y-1.5">
+                        <p className="font-extrabold text-[11px]">Bật nhận tin ngầm khi đóng ứng dụng (FCM)</p>
+                        <button
+                          type="button"
+                          onClick={requestIosNotificationPermission}
+                          className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-black transition"
+                        >
+                          Cấp quyền thông báo đẩy
+                        </button>
+                      </div>
+                    )}
+
+                    {notifications.length === 0 ? (
+                      <div className="text-center py-8 text-slate-404 space-y-2">
+                        <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-400" />
+                        <p className="text-[11px] font-bold">Hệ thống chưa ghi nhận thông báo mới.</p>
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <div 
+                          key={n.id}
+                          onClick={() => { handleNotificationClick(n.patientId); setShowNotificationCenter(false); }}
+                          className={`p-3 rounded-2xl border text-xs transition flex gap-2 items-start cursor-pointer hover:bg-slate-50 ${
+                            n.read ? 'border-slate-200 bg-slate-50/50' : 'border-indigo-100 bg-indigo-50/30'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                            n.type === 'success' ? 'bg-emerald-500' :
+                            n.type === 'error' ? 'bg-rose-500' : 'bg-indigo-500'
+                          }`} />
+                          <div className="flex-1 space-y-0.5">
+                            <strong className="text-slate-800 block leading-tight">{n.title}</strong>
+                            <p className="text-[11px] text-slate-555 leading-normal font-medium">{n.message}</p>
+                            <span className="text-[9px] text-slate-404 font-bold block flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3" /> {n.timestamp}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               )}
+
+              <div className="hidden sm:block text-right">
+                <div className="text-xs font-extrabold text-slate-955">{currentUser?.name || ''}</div>
+                <div className="text-[10px] text-indigo-655 font-extrabold uppercase tracking-wide">{currentUser?.title || userRole}</div>
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="p-2 text-slate-404 hover:text-red-500 hover:bg-red-50 rounded-xl border border-slate-200 transition-all"
+                title="Đăng xuất"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
             </div>
+
           </div>
         </div>
       </header>
 
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-3 shadow-xl rounded-t-3xl">
+        {canShowTab('dashboard') && (
+          <button 
+            onClick={() => { resetForm(); setActiveTab('dashboard'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-404'}`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            <span>Bảng điều khiển</span>
+          </button>
+        )}
+        {canShowTab('register') && (
+          <button 
+            onClick={() => { resetForm(); setActiveTab('register'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'register' ? 'text-indigo-600' : 'text-slate-404'}`}
+          >
+            <Plus className="w-5 h-5" />
+            <span>Tiếp nhận VIP</span>
+          </button>
+        )}
+        {canShowTab('monitoring') && (
+          <button 
+            onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'monitoring' ? 'text-indigo-600' : 'text-slate-404'}`}
+          >
+            <ClipboardList className="w-5 h-5" />
+            <span>Theo dõi hồ sơ</span>
+          </button>
+        )}
+        {userRole === 'admin' && (
+          <button 
+            onClick={() => { setActiveTab('settings'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-404'}`}
+          >
+            <Settings className="w-5 h-5" />
+            <span>Cấu hình</span>
+          </button>
+        )}
+      </div>
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {!currentUser ? (
-          <div className="max-w-md mx-auto bg-white p-8 rounded-3xl shadow-xl border border-slate-200 mt-20 space-y-6">
-            <div className="text-center space-y-3">
-              <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-center mx-auto p-2">
-                <img src="https://iili.io/F66acRs.png" alt="Logo" className="w-full h-full object-contain" />
-              </div>
-              <h2 className="text-xl font-black text-slate-900">Xác thực quyền truy cập</h2>
-            </div>
-            {authError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-605 text-center font-bold flex items-center gap-1.5 justify-center">
-                <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-500" />
-                {authError}
-              </div>
-            )}
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email </label>
-                <input 
-                  type="email" 
-                  placeholder="nhập email tại đây"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
-                  required
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-555 uppercase tracking-wider block">Mật khẩu</label>
-                <div className="relative">
-                  <input 
-                    type={showPassword ? "text" : "password"} 
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full pl-4 pr-10 py-3 bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm focus:outline-hidden text-slate-800 font-medium shadow-2xs"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3.5 text-slate-404 hover:text-slate-600 transition"
+        
+        {activeTab === 'dashboard' && canShowTab('dashboard') && (
+          <div className="space-y-8">
+            
+            <div className="bg-gradient-to-tr from-[#312e81] via-[#4338ca] to-[#6d28d9] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-indigo-500/30">
+              <div className="absolute right-0 top-0 w-96 h-96 bg-white/5 rounded-full filter blur-3xl opacity-20 translate-x-24 -translate-y-24"></div>
+              
+              <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="space-y-3 max-w-xl">
+                  <span className="px-3 py-1 bg-amber-400 text-[#1e1b4b] rounded-full text-[10px] font-black uppercase tracking-wider">
+                    Trợ lý ảo đón tiếp VIP
+                  </span>
+                  <h3 className="text-xl sm:text-2xl font-black tracking-tight leading-tight">
+                    Kế Hoạch Chủ Động Cho Ngày Mai & Tuần Tới
+                  </h3>
+                  <div className="space-y-2 text-xs text-indigo-100 font-semibold pt-1">
+                    <p className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                      Ngày mai ({briefingStats.tomorrowDateFormatted}): 
+                      <strong className="text-white ml-1"> {briefingStats.tomorrowPatients.length} ca tiếp đón </strong>
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-sky-400"></span>
+                      Tuần tới: 
+                      <strong className="text-white ml-1"> {briefingStats.nextWeekCount} ca đón tiếp đã lên lịch </strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 w-full md:w-auto">
+                  <button 
+                    onClick={() => {
+                      const tomorrow = new Date();
+                      tomorrow.setDate(tomorrow.getDate() + 1);
+                      setFilterDate(tomorrow.toISOString().split('T')[0]);
+                      setCalendarMode('list');
+                      setActiveTab('monitoring');
+                    }}
+                    className="flex-1 md:flex-none px-5 py-3 bg-white text-indigo-900 hover:bg-indigo-50 text-xs font-black rounded-xl shadow-md transition transform active:scale-95 whitespace-nowrap"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    Xem lịch ngày mai
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setFilterDate('');
+                      setCalendarMode('week');
+                      setActiveTab('monitoring');
+                    }}
+                    className="flex-1 md:flex-none px-5 py-3 bg-indigo-950/30 border border-indigo-400/30 hover:bg-indigo-950/50 text-white text-xs font-black rounded-xl transition transform active:scale-95"
+                  >
+                    Mở lịch tuần
                   </button>
                 </div>
               </div>
-              <button type="submit" className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-xl text-sm transition flex items-center justify-center gap-2">
-                Xác thực
-              </button>
-            </form>
+            </div>
+
+            <div className="bg-gradient-to-tr from-[#1e293b] to-[#4f46e5] rounded-3xl p-5 text-white relative overflow-hidden shadow-md border border-slate-700/85 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="absolute right-0 top-0 w-80 h-80 bg-white/5 rounded-full filter blur-2xl opacity-10 translate-x-20 -translate-y-20 pointer-events-none"></div>
+              <div className="relative z-10 space-y-1.5 max-w-2xl">
+                <span className="px-2.5 py-0.5 bg-amber-400 text-slate-955 rounded-md text-[9px] font-black uppercase tracking-wider inline-block">
+                  Phòng Chăm Sóc Khách Hàng
+                </span>
+                <h2 className="text-lg sm:text-xl font-black tracking-tight leading-snug">
+                  Chào, {currentUser?.name || ''}!
+                </h2>
+                <p className="text-[11px] sm:text-xs text-slate-300 leading-normal font-semibold">
+                  Công cụ hỗ trợ quản lý và theo dõi việc tiếp đón và chi phí của nhóm Khách hàng VIP, VVIP, Ngoại giao của Ban giám đốc.
+                </p>
+              </div>
+              {canShowTab('register') && (
+                <div className="shrink-0 relative z-10">
+                  <button 
+                    onClick={() => { resetForm(); setActiveTab('register'); }}
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-300 text-slate-955 hover:from-amber-500 hover:to-amber-400 text-xs font-black rounded-xl shadow-md flex items-center gap-1.5 transition transform active:scale-95"
+                  >
+                    <Plus className="w-4 h-4 stroke-[3px]" /> Tiếp nhận hồ sơ mới <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {(userRole === 'admin' || userRole === 'lanhdao' || userRole === 'quanly') && (
+              <div className="space-y-4">
+                
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-3xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                    <h3 className="text-xs font-black text-slate-850 uppercase tracking-wider">
+                      {dashFilterMode === 'today' ? "Nhật ký chỉ số của ngày hôm nay" : "Chỉ số thống kê theo khoảng ngày"}
+                    </h3>
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => { setDashFilterMode('today'); }}
+                        className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition ${
+                          dashFilterMode === 'today' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-505 hover:text-slate-850'
+                        }`}
+                      >
+                        Hôm nay
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setDashFilterMode('range'); }}
+                        className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                          dashFilterMode === 'range' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-505 hover:text-slate-855'
+                        }`}
+                      >
+                        Tùy chọn 📅
+                      </button>
+                    </div>
+
+                    {dashFilterMode === 'range' && (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 bg-slate-55 border border-slate-200 px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-655">
+                        <div className="flex items-center gap-1">
+                          <span>Từ:</span>
+                          <input 
+                            type="date" 
+                            value={dashStartDate}
+                            onChange={(e) => { setDashStartDate(e.target.value); }}
+                            className="bg-transparent border-none text-[11px] font-black text-slate-800 focus:outline-hidden cursor-pointer"
+                          />
+                        </div>
+                        <span className="hidden sm:inline text-slate-300">➔</span>
+                        <div className="flex items-center gap-1">
+                          <span>Đến:</span>
+                          <input 
+                            type="date" 
+                            value={dashEndDate}
+                            onChange={(e) => { setDashEndDate(e.target.value); }}
+                            className="bg-transparent border-none text-[11px] font-black text-slate-800 focus:outline-hidden cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
+                    <div className="p-3.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+                      <Users className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-404 font-black block uppercase tracking-wider">Khách hàng</span>
+                      <span className="text-xl font-black text-slate-900">{dashMetrics.totalPatients}</span>
+                      <span className="text-[11px] text-slate-500 block">
+                        VIP: {dashMetrics.vipCount} | VVIP: {dashMetrics.vvipCount}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
+                    <div className="p-3.5 rounded-xl bg-indigo-50 text-indigo-600 border-indigo-100">
+                      <Activity className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-404 font-black block uppercase tracking-wider">Tổng chi phí</span>
+                      <span className="text-xl font-black text-slate-900">{formatCurrency(dashMetrics.totalRevenue)}</span>
+                      <span className="text-[11px] text-slate-500 block">
+                        Tổng chi phí sử dụng (VVIP)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-100">
+                      <CreditCard className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-404 font-black block uppercase tracking-wider">Tổng duyệt giảm</span>
+                      <span className="text-xl font-black text-rose-605">-{formatCurrency(dashMetrics.totalDiscount)}</span>
+                      <span className="text-[11px] text-rose-405 block font-bold">
+                        Ban lãnh đạo duyệt
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <ArrowRightLeft className="w-5 h-5 text-indigo-600" />
+                    Hành Trình Khách Hàng (Realtime Kanban)
+                  </h3>
+                  <p className="text-[11px] text-slate-404 font-semibold mt-1">Cập nhật tiến độ tiếp đón trong ngày của từng khách hàng.</p>
+                </div>
+                
+                <div className="flex flex-wrap gap-2 items-center w-full lg:w-auto">
+                  <span className="text-[10px] font-bold text-slate-404 uppercase">Lọc nhanh:</span>
+                  <select 
+                    value={filterSite}
+                    onChange={(e) => { setFilterSite(e.target.value); }}
+                    className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white cursor-pointer"
+                  >
+                    <option value="">Tất cả các Site</option>
+                    {sites.map(s => (
+                      <option key={s.id} value={s.label}>{s.label}</option>
+                    ))}
+                  </select>
+                  
+                  <input 
+                    type="date"
+                    value={filterDate}
+                    onChange={(e) => { setFilterDate(e.target.value); }}
+                    className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white cursor-pointer"
+                  />
+
+                  {(filterSite || filterDate) && (
+                    <button 
+                      onClick={() => { setFilterSite(''); setFilterDate(''); }}
+                      className="px-2.5 py-1 text-rose-500 hover:bg-rose-50 rounded-xl text-[11px] font-black transition"
+                    >
+                      Xóa bộ lọc
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-4 overflow-x-auto pb-4 items-stretch select-none">
+                {workflowStatuses.map(col => {
+                  const colPatients = kanbanPatients.filter(p => (p.status || 'Waiting') === col.id);
+                  const isEmpty = colPatients.length === 0;
+
+                  if (isEmpty) {
+                    return (
+                      <div 
+                        key={col.id} 
+                        className="w-12 bg-slate-100/40 rounded-2xl py-3 px-1 border border-slate-200 flex flex-col items-center justify-start transition-all duration-300 ease-in-out shrink-0 select-none cursor-pointer"
+                        title={`Trống: ${col.label}`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${col.dot} mb-2`}></span>
+                        <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-555 mb-2 font-mono">
+                          0
+                        </span>
+                        <span className="text-[9px] font-extrabold text-slate-400 whitespace-nowrap [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
+                          {col.label}
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div 
+                      key={col.id} 
+                      className="bg-slate-50/60 rounded-2xl p-3 border border-slate-200 flex flex-col min-w-[180px] flex-1 transition-all duration-300 ease-in-out shrink-0"
+                    >
+                      <div className="flex justify-between items-center pb-3 border-b border-slate-200 mb-3">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className={`w-2 h-2 rounded-full ${col.dot}`}></span>
+                          <span className="text-[10px] font-black text-slate-700 truncate">{col.label}</span>
+                        </div>
+                        <span className="text-[10px] font-black bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-555 font-mono">
+                          {colPatients.length}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 space-y-3 overflow-y-auto max-h-[350px]">
+                        {colPatients.map(p => {
+                          const patientSite = sites.find(s => s.label === p.site) || sites[0];
+                          return (
+                            <div 
+                              key={p.id}
+                              onClick={() => { initiateView(p); }}
+                              className={`p-3 rounded-xl border shadow-2xs hover:shadow-xs transition duration-150 space-y-2.5 relative group cursor-pointer ${patientSite.cardBg}`}
+                            >
+                              <div className="flex justify-between items-start gap-1">
+                                <span 
+                                  onClick={(e) => handleCopyText(e, p.pid, "Mã PID")}
+                                  className="text-[8px] text-slate-555 font-mono font-black truncate hover:text-indigo-600 cursor-copy"
+                                  title="Bấm để copy PID đầy đủ"
+                                >
+                                  PID: {maskPID(p.pid)}
+                                </span>
+                                <div className="flex gap-1">
+                                  <span className={`px-1 py-0.5 rounded-xs text-[7px] font-bold uppercase ${
+                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-100 text-indigo-800' : 
+                                    p.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'bg-rose-100 text-rose-800' : 'bg-teal-100 text-teal-800'
+                                  }`}>
+                                    {p.examinationArea === 'Khu VIP' ? 'VIP' : p.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'NT/CC/ICU' : 'TC'}
+                                  </span>
+                                  <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
+                                    p.tier === 'VVIP' ? 'bg-amber-100 text-amber-808' : 'bg-indigo-50 text-indigo-707'
+                                  }`}>
+                                    {p.tier}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div 
+                                onClick={(e) => handleCopyText(e, p.name, "Họ và tên")}
+                                className="font-extrabold text-[11px] text-slate-800 leading-tight truncate hover:text-indigo-600 cursor-copy" 
+                                title="Bấm để copy Họ tên đầy đủ"
+                              >
+                                {maskName(p.name)}
+                              </div>
+
+                              <div className="space-y-1" onClick={(e) => { e.stopPropagation(); }}>
+                                <select
+                                  value={p.status || 'Waiting'}
+                                  onChange={(e) => { handleUpdateStatus(p.id, e.target.value); }}
+                                  className="w-full px-1.5 py-1 text-[9px] font-black border border-slate-200 rounded-md bg-white text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-indigo-505 cursor-pointer"
+                                >
+                                  {workflowStatuses.map(st => (
+                                    <option key={st.id} value={st.id}>{st.label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
+                <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo dõi hồ sơ
+                </h4>
+                <button 
+                  onClick={() => { setCalendarMode('list'); setActiveTab('monitoring'); }}
+                  className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
+                >
+                  Đến bảng giám sát <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {userRole === 'admin' && (
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
+                  <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-indigo-600" /> Cấu hình hệ thống
+                  </h4>
+                  <button 
+                    onClick={() => { setActiveTab('settings'); }}
+                    className="text-xs font-black text-indigo-605 hover:text-indigo-800 flex items-center gap-1 transition w-fit"
+                  >
+                    Đến trang cấu hình <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
           </div>
-        ) : (
-          <>
-            {activeTab === 'dashboard' && canShowTab('dashboard') && (
-              <Dashboard 
-                currentUser={currentUser} userRole={userRole} systemSettings={systemSettings} kanbanPatients={kanbanPatients}
-                dashMetrics={dashMetrics} dashFilterMode={dashFilterMode} setDashFilterMode={setDashFilterMode}
-                dashStartDate={dashStartDate} setDashStartDate={setDashStartDate} dashEndDate={dashEndDate} setDashEndDate={setDashEndDate}
-                filterSite={filterSite} setFilterSite={setFilterSite} filterDate={filterDate} setFilterDate={setFilterDate}
-                initiateView={initiateEdit} handleCopyText={handleCopyText} handleUpdateStatus={handleUpdateStatus}
-                briefingStats={briefingStats} setFilterDateGlobal={setFilterDate} setCalendarModeGlobal={setCalendarMode}
-                setActiveTabGlobal={setActiveTab} resetForm={resetForm}
-              />
-            )}
-
-            {activeTab === 'register' && canShowTab('register') && (
-              <PatientForm 
-                currentUser={currentUser} userRole={userRole} currentId={currentId} isReadOnly={isReadOnly} setIsReadOnly={setIsReadOnly}
-                formData={formData} setFormData={setFormData} newRoundingLog={newRoundingLog} setNewRoundingLog={setNewRoundingLog}
-                isScanning={isScanning} setIsScanning={setIsScanning} scannerError={scannerError} setScannerError={setScannerError}
-                specSearch={specSearch} setSpecSearch={setSpecSearch} isSpecDropdownOpen={isSpecDropdownOpen} setIsSpecDropdownOpen={setIsSpecDropdownOpen}
-                leftFormTab={leftFormTab} setLeftFormTab={setLeftFormTab} isHistoryPanelExpanded={isHistoryPanelExpanded} setIsHistoryPanelExpanded={setIsHistoryPanelExpanded}
-                handleInputChange={handleInputChange} handleCurrencyChange={handleCurrencyChange} toggleSpecialtySelection={toggleSpecialtySelection}
-                handleMultipleImagesUpload={handleMultipleImagesUpload} handleToggleRecipient={handleToggleRecipient}
-                handleAddRoundingLog={handleAddRoundingLog} handleDeleteRoundingLog={handleDeleteRoundingLog} savePatient={savePatient}
-                resetForm={resetForm} setActiveTab={setActiveTab} initiateView={initiateView} handleCopyText={handleCopyText}
-                setCopyConfirmModal={setCopyConfirmModal} registrableStaffList={registrableStaffList} patientVisitHistory={patientVisitHistory}
-                linkedVisits={linkedVisits} hasAccessToPatient={hasAccessToPatient} stopScanner={stopScanner} filteredSpecialties={filteredSpecialties}
-              />
-            )}
-
-            {activeTab === 'monitoring' && canShowTab('monitoring') && (
-              <Monitoring 
-                patients={patients} currentUser={currentUser} userRole={userRole} systemSettings={systemSettings}
-                calendarMode={calendarMode} setCalendarMode={setCalendarMode} currentCalendarDate={currentCalendarDate} setCurrentCalendarDate={setCurrentCalendarDate}
-                searchTerm={searchTerm} setSearchTerm={setSearchTerm} filterTier={filterTier} setFilterTier={setFilterTier}
-                filterSpecialty={filterSpecialty} setFilterSpecialty={setFilterSpecialty} filterSite={filterSite} setFilterSite={setFilterSite}
-                filterDate={filterDate} setFilterDate={setFilterDate} visiblePatients={visiblePatients} filteredPatients={filteredPatients}
-                isLoading={isLoading} initiateView={initiateEdit} handleCopyText={handleCopyText} setConfirmModal={setConfirmModal}
-                setLightboxImages={setLightboxImages} setLightboxIndex={setLightboxIndex} hasAccessToPatient={hasAccessToPatient}
-                isFirebaseConnected={isFirebaseConnected} db={db} doc={doc} deleteDoc={deleteDoc} appId={appId} showNotification={showNotification}
-              />
-            )}
-
-            {activeTab === 'settings' && userRole === 'admin' && (
-              <SettingsTab 
-                systemSettings={systemSettings} currentUser={currentUser} userRole={userRole} staffList={staffList}
-                newStaff={newStaff} setNewStaff={setNewStaff} editingStaffUid={editingStaffUid} setEditingStaffUid={setEditingStaffUid}
-                newSpecialtyInput={newSpecialtyInput} setNewSpecialtyInput={setNewSpecialtyInput}
-                handlePermissionChange={handlePermissionChange} handleNotificationPermissionChange={handleNotificationPermissionChange}
-                handleFormulaCheckboxChange={handleFormulaCheckboxChange} handleDiscountFormulaChange={handleDiscountFormulaChange}
-                handleAddSpecialty={handleAddSpecialty} handleRemoveSpecialty={handleRemoveSpecialty}
-                handleCreateStaff={handleCreateStaff} handleEditStaff={handleEditStaff} handleDeleteStaff={handleDeleteStaff}
-              />
-            )}
-          </>
         )}
+
+        {activeTab === 'register' && canShowTab('register') && (
+          <form onSubmit={savePatient} className="space-y-6 animate-fadeIn relative">
+            
+            <div className="sticky top-16 z-30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/95 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-md">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <h2 className="text-base font-black text-slate-955 flex items-center gap-1.5">
+                  {currentId ? (isReadOnly ? "Chi tiết hồ sơ bệnh nhân" : "Cập Nhật Tiến Độ") : "Tạo lượt Tiếp Đón VIP/VVIP"}
+                </h2>
+                {currentId && isReadOnly && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-105 border border-slate-200 text-slate-500 uppercase tracking-wider">
+                    <Lock className="w-3 h-3" /> Chế độ chỉ xem
+                  </span>
+                )}
+                {currentId && !isReadOnly && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-50 border border-amber-200 text-amber-707 uppercase tracking-wider">
+                    <Unlock className="w-3 h-3 text-amber-600" /> Chế độ chỉnh sửa
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button 
+                  type="button" 
+                  onClick={() => { resetForm(); setActiveTab('monitoring'); }}
+                  className="px-4 py-2 border border-slate-200 text-slate-605 hover:bg-slate-55 text-xs font-bold rounded-xl transition"
+                >
+                  Hủy bỏ
+                </button>
+                {currentId && isReadOnly ? (
+                  <div key="read-only-action-container">
+                    {hasAccessToPatient(formData, 'patients:update') && (
+                      <button
+                        key="edit-btn-v4"
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setIsReadOnly(false);
+                        }}
+                        className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
+                      >
+                        <Edit3 className="w-4 h-4" /> Sửa hồ sơ
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div key="edit-submit-action-container">
+                    <button 
+                      key="submit-btn-v4"
+                      type="submit"
+                      className="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition transform active:scale-95"
+                    >
+                      <Check className="w-4 h-4" /> {currentId ? "Cập nhật" : "Đăng ký"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
+              
+              <div className="lg:col-span-2 space-y-6">
+                
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Thông Tin Hành Chính
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-600 block">Mã PID *</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          placeholder="Nhập/Quét mã bệnh nhân PID..."
+                          value={formData.pid}
+                          disabled={isReadOnly}
+                          onChange={(e) => { handleInputChange('pid', e.target.value); }}
+                          className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-mono font-black bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
+                          required
+                        />
+                        {!isReadOnly && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setScannerError('');
+                              setIsScanning(true);
+                            }}
+                            className="px-3 bg-slate-101 hover:bg-slate-250 border border-slate-200 rounded-xl text-slate-600 transition flex items-center gap-1 text-[11px] font-bold shadow-2xs"
+                          >
+                            <Scan className="w-4 h-4 text-slate-505" /> Quét mã
+                          </button>
+                        )}
+                      </div>
+                      {matchedPatientProfile && (
+                        <div className="text-emerald-600 font-extrabold text-[11px]">
+                          🟢 Đã tìm thấy KH: {matchedPatientProfile.name}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-600 block">Họ & Tên khách hàng *</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nhập họ và tên Khách hàng"
+                        value={formData.name}
+                        disabled={isReadOnly}
+                        onChange={(e) => { handleInputChange('name', e.target.value); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-605 block">Phân Hạng Tiếp Đón</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          disabled={isReadOnly}
+                          onClick={() => {
+                            handleInputChange('tier', 'VIP');
+                            setFormRightTab('timeline');
+                          }}
+                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 disabled:opacity-80 ${
+                            formData.tier === 'VIP' ? 'bg-indigo-50 border-indigo-505 text-indigo-707 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-55'
+                          }`}
+                        >
+                          <span className="font-black text-sm">VIP</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isReadOnly}
+                          onClick={() => {
+                            handleInputChange('tier', 'VVIP');
+                            setFormRightTab('billing');
+                          }}
+                          className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-200 text-left flex flex-col justify-center h-16 disabled:opacity-80 ${
+                            formData.tier === 'VVIP' ? 'bg-amber-50 border-amber-505 text-amber-707 shadow-2xs font-black' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-55'
+                          }`}
+                        >
+                          <span className="font-black text-sm text-amber-600">VVIP</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-600 block">Ngày khám / Điều trị</label>
+                      <input 
+                        type="date" 
+                        value={formData.date}
+                        disabled={isReadOnly}
+                        onChange={(e) => { handleInputChange('date', e.target.value); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white disabled:bg-slate-50 disabled:text-slate-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-605 block">Site thăm khám</label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        {sites.map(s => {
+                          const isAssigned = (currentUser?.assignedSite || 'Tất cả') === 'Tất cả' || currentUser?.assignedSite === s.label;
+                          return (
+                            <button
+                              key={s.id}
+                              type="button"
+                              disabled={!isAssigned || isReadOnly}
+                              onClick={() => { handleInputChange('site', s.label); }}
+                              className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center disabled:opacity-80 ${
+                                formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-555 hover:bg-slate-55/50'
+                              }`}
+                            >
+                              {s.label} {!isAssigned && '🔒'}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2 animate-fadeIn">
+                      <label className="text-xs font-bold text-slate-605 block">Khu Vực Khám *</label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <button
+                          type="button"
+                          disabled={isReadOnly}
+                          onClick={() => { handleInputChange('examinationArea', 'Khu Tiêu Chuẩn'); }}
+                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center disabled:opacity-80 ${
+                            formData.examinationArea === 'Khu Tiêu Chuẩn' ? 'bg-teal-50 border-teal-505 text-teal-755 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
+                          }`}
+                        >
+                          Khu Tiêu Chuẩn
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isReadOnly}
+                          onClick={() => { handleInputChange('examinationArea', 'Khu VIP'); }}
+                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center disabled:opacity-80 ${
+                            formData.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-505 text-indigo-755 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
+                          }`}
+                        >
+                          Khu VIP
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isReadOnly}
+                          onClick={() => { handleInputChange('examinationArea', 'Nội Trú/Cấp cứu/ICU'); }}
+                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center disabled:opacity-80 ${
+                            formData.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'bg-rose-50 border-rose-500 text-rose-755 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
+                          }`}
+                        >
+                          Nội Trú/Cấp cứu/ICU
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-655 block">Hình thức điều trị</label>
+                      <select
+                        value={formData.treatmentType || 'Ngoại trú'}
+                        disabled={isReadOnly}
+                        onChange={(e) => { handleTreatmentTypeChange(e.target.value); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800 cursor-pointer disabled:bg-slate-50 disabled:text-slate-500"
+                      >
+                        <option value="Ngoại trú">Ngoại trú</option>
+                        <option value="Cấp cứu/Daycare">Cấp cứu/Daycare</option>
+                        <option value="Nội trú/ICU">Nội trú/ICU</option>
+                        <option value="Ngoài viện">Ngoài viện</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-600 block">Trạng thái</label>
+                      <select
+                        value={formData.status}
+                        disabled={isReadOnly}
+                        onChange={(e) => { handleInputChange('status', e.target.value); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-800 bg-white cursor-pointer disabled:bg-slate-50 disabled:text-slate-500"
+                      >
+                        {workflowStatuses.map(status => (
+                          <option key={status.id} value={status.id}>{status.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {['Scheduled', 'Preparing', 'ReceivedInfo'].includes(formData.status) && (
+                      <div className="space-y-2 md:col-span-2 p-4 bg-indigo-50/50 border border-indigo-101 rounded-2xl animate-fadeIn">
+                        <label className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+                          <UserCheck className="w-4.5 h-4.5 text-indigo-600" /> Nhân Sự Đón Tiếp Chỉ Định *
+                        </label>
+                        <p className="text-[10px] text-slate-404 font-semibold leading-relaxed">
+                          Chọn lễ tân hoặc quản lý site chịu trách nhiệm chuẩn bị và nắm thông tin hành trình đón khách này:
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                          {registrableStaffList.map(staff => {
+                            const isAssigned = (formData.recipients || []).includes(staff.uid);
+                            return (
+                              <button
+                                key={staff.uid}
+                                type="button"
+                                disabled={isReadOnly}
+                                onClick={() => { handleToggleRecipient(staff.uid); }}
+                                className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition disabled:opacity-80 ${
+                                  isAssigned 
+                                    ? 'bg-white border-indigo-600 text-indigo-900 shadow-2xs font-extrabold' 
+                                    : 'bg-white/40 border-slate-200 text-slate-600 hover:bg-white'
+                                }`}
+                              >
+                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                  isAssigned ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                                }`}>
+                                  {isAssigned && <Check className="w-2.5 h-2.5 text-white stroke-[3px]" />}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-xs truncate">{staff.name}</div>
+                                  <div className="text-[9px] text-slate-404 font-medium truncate uppercase">{staff.role} • {staff.title}</div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-600 block">HĐQT Phê Duyệt/Chỉ đạo</label>
+                      <div className="space-y-2">
+                        {!isReadOnly && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {["Sếp Dũng", "Sếp Hoa", "Sếp Nga", "Sếp Thông"].map((boss) => (
+                              <button
+                                key={boss}
+                                type="button"
+                                onClick={() => { handleInputChange('boardApproval', boss); }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                                  formData.boardApproval === boss 
+                                    ? 'bg-slate-900 border-slate-900 text-white shadow-xs font-extrabold' 
+                                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                                }`}
+                              >
+                                {boss}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <input 
+                          type="text" 
+                          placeholder="Thành viên hội đồng quản trị chỉ đạo..."
+                          value={formData.boardApproval}
+                          disabled={isReadOnly}
+                          onChange={(e) => { handleInputChange('boardApproval', e.target.value); }}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-semibold bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-bold text-slate-600 block">Ghi chú</label>
+                      <textarea 
+                        rows="5"
+                        placeholder="Mô tả ghi chú nếu có..."
+                        value={formData.notes}
+                        disabled={isReadOnly}
+                        onChange={(e) => { handleInputChange('notes', e.target.value); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-medium bg-white text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
+                      ></textarea>
+                    </div>
+
+                  </div>
+                </div>
+
+                {currentId && (
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                      <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-1.5 h-4 bg-emerald-600 rounded-sm inline-block"></span>
+                        Nhật Ký Thăm Hỏi & Chăm Sóc Sức Khỏe Realtime
+                      </h3>
+                      <span className="bg-indigo-50 text-indigo-707 font-extrabold text-[10px] px-2.5 py-0.5 rounded-md border border-indigo-100 font-mono">
+                        {(formData.roundingLogs || []).length} lượt thăm
+                      </span>
+                    </div>
+
+                    {['Nội trú/ICU', 'Cấp cứu/Daycare'].includes(formData.treatmentType) ? (
+                      <div className="p-3 bg-emerald-50/50 border border-emerald-101 text-[11px] text-emerald-800 rounded-2xl font-bold">
+                        ℹ️ Khách hàng đang ở chế độ điều trị nội trú trọng điểm. Đề xuất nhân sự CSKH và Quản lý thực hiện đi buồng thăm hỏi định kỳ 2 lần/ngày.
+                      </div>
+                    ) : null}
+
+                    {!isReadOnly && (
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-555 uppercase tracking-wide">Đánh giá nhanh tình trạng</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              { label: "🟢 Ổn định", value: "Ổn định" },
+                              { label: "🟡 Cần theo dõi", value: "Cần theo dõi" },
+                              { label: "🔴 Diễn biến xấu", value: "Diễn biến xấu" },
+                              { label: "🔵 Có chỉ định mới", value: "Có chỉ định mới" }
+                            ].map((statusItem) => (
+                              <button
+                                key={statusItem.value}
+                                type="button"
+                                onClick={() => { setNewRoundingLog(prev => ({ ...prev, status: statusItem.value })); }}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                                  newRoundingLog.status === statusItem.value
+                                    ? 'bg-slate-900 border-slate-900 text-white font-extrabold'
+                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                                }`}
+                              >
+                                {statusItem.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-slate-555 uppercase tracking-wide">Nội dung ghi nhận lâm sàng / Đề xuất của khách</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="Nhập tình trạng sức khỏe, mong muốn hoặc đề xuất điều trị..."
+                              value={newRoundingLog.notes}
+                              onChange={(e) => { setNewRoundingLog(prev => ({ ...prev, notes: e.target.value })); }}
+                              className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleAddRoundingLog}
+                              className="px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs hover:bg-indigo-700 transition flex items-center gap-1.5 shrink-0"
+                            >
+                              <Check className="w-4 h-4 stroke-[3px]" /> Ghi nhận
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                      {(formData.roundingLogs || []).length === 0 ? (
+                        <div className="text-center py-6 text-slate-400 text-xs font-semibold">
+                          Chưa có lượt thăm hỏi và theo dõi sức khỏe nào được ghi nhận.
+                        </div>
+                      ) : (
+                        (formData.roundingLogs || []).map((log) => (
+                          <div key={log.id} className="p-3 bg-slate-50/60 border border-slate-150 rounded-2xl text-xs flex justify-between gap-3 items-start animate-fadeIn">
+                            <div className="space-y-1.5 min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-extrabold text-slate-900">{log.visitor}</span>
+                                <span className="text-[10px] font-mono text-slate-400 font-bold">
+                                  {new Date(log.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - {new Date(log.timestamp).toLocaleDateString('vi-VN')}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                  log.status === 'Ổn định' ? 'bg-emerald-50 text-emerald-705 border border-emerald-200' :
+                                  log.status === 'Cần theo dõi' ? 'bg-amber-50 text-amber-705 border border-amber-200' :
+                                  log.status === 'Diễn biến xấu' ? 'bg-rose-50 text-rose-705 border border-rose-200' :
+                                  'bg-blue-50 text-blue-705 border border-blue-200'
+                                }`}>
+                                  {log.status}
+                                </span>
+                              </div>
+                              <p className="text-slate-655 font-medium leading-relaxed break-words">
+                                {log.notes}
+                              </p>
+                            </div>
+                            {!isReadOnly && (
+                              <button
+                                type="button"
+                                onClick={() => { handleDeleteRoundingLog(log.id); }}
+                                className="p-1 text-slate-400 hover:text-rose-500 rounded-lg transition"
+                                title="Xóa"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {(patientVisitHistory.length > 0 || (formData.history && formData.history.length > 0)) && (
+                  <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
+                    
+                    <button
+                      type="button"
+                      onClick={() => { setIsHistoryPanelExpanded(!isHistoryPanelExpanded); }}
+                      className="w-full flex justify-between items-center text-xs font-black text-slate-800 hover:text-indigo-655 transition focus:outline-hidden"
+                    >
+                      <span className="flex items-center gap-2">
+                        <History className="w-4.5 h-4.5 text-indigo-600" />
+                        Lịch sử & Nhật ký hoạt động ({patientVisitHistory.length} lượt khám cũ)
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-slate-404 font-bold">
+                          {isHistoryPanelExpanded ? "Thu nhỏ" : "Bấm để xem"}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-250 ${isHistoryPanelExpanded ? 'rotate-180' : ''}`} />
+                      </div>
+                    </button>
+
+                    {isHistoryPanelExpanded && (
+                      <div className="space-y-4 pt-4 border-t border-slate-101">
+                        <div className="flex border-b border-slate-101 pb-2 overflow-x-auto gap-2">
+                          {patientVisitHistory.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => { setLeftFormTab('visitHistory'); }}
+                              className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 flex items-center gap-1 ${
+                                leftFormTab === 'visitHistory' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-404 hover:text-slate-655'
+                              }`}
+                            >
+                              <History className="w-3.5 h-3.5" />
+                              Lịch sử tiếp đón ({patientVisitHistory.length})
+                            </button>
+                          )}
+
+                          {formData.history && formData.history.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => { setLeftFormTab('timeline'); }}
+                              className={`py-2 text-xs font-black text-center transition border-b-2 whitespace-nowrap px-1.5 ${
+                                leftFormTab === 'timeline' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-404 hover:text-slate-655'
+                              }`}
+                            >
+                              Lịch sử Timeline
+                            </button>
+                          )}
+                        </div>
+
+                        {leftFormTab === 'visitHistory' && patientVisitHistory.length > 0 && (
+                          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+                            <div className="space-y-3">
+                              {patientVisitHistory.map((visit) => {
+                                const vSite = sites.find(s => s.label === visit.site) || sites[0];
+                                return (
+                                  <div key={visit.id} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-3 relative hover:shadow-xs transition duration-150">
+                                    
+                                    <div className="flex justify-between items-start gap-1">
+                                      <div>
+                                        <div className="font-bold text-[11px] text-slate-900">
+                                          {visit.date ? formatDateVN(visit.date) : "Lượt khám cũ"}
+                                        </div>
+                                        <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border mt-1 ${vSite.bg}`}>
+                                          {vSite.label}
+                                        </span>
+                                      </div>
+                                      
+                                      {!isReadOnly && (
+                                        <button
+                                          type="button"
+                                          onClick={() => { setCopyConfirmModal({ show: true, visitToCopy: visit }); }}
+                                          className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-202 text-indigo-600 rounded-lg text-[9px] font-black flex items-center gap-1 transition shadow-2xs"
+                                          title="Sao chép toàn bộ thông tin chỉ định này sang lượt mới"
+                                        >
+                                          <Copy className="w-3 h-3" /> Sao chép nhanh
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    <div className="space-y-1 text-[10px] text-slate-655 font-semibold">
+                                      <div>Khu vực: <strong className="text-slate-800">{visit.examinationArea || 'Khu VIP'}</strong></div>
+                                      {visit.boardApproval && (
+                                        <div>Chỉ đạo: <span className="bg-slate-900 text-white font-black px-1.5 py-0.5 rounded-xs text-[8px]">{visit.boardApproval}</span></div>
+                                      )}
+                                      {visit.notes && <div className="italic text-slate-404 truncate">"{visit.notes}"</div>}
+                                    </div>
+
+                                    {visit.specialties && visit.specialties.length > 0 && (
+                                      <div className="flex flex-wrap gap-1">
+                                        {visit.specialties.map((spec, i) => (
+                                          <span key={i} className="px-1.5 py-0.5 bg-slate-200/60 text-slate-707 rounded-xs text-[8px] font-bold">
+                                            {spec}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {((visit.approvalImages && visit.approvalImages.length > 0) || visit.approvalImage) && (
+                                      <div className="pt-1.5 border-t border-slate-200 flex gap-2 overflow-x-auto">
+                                        {(visit.approvalImages || [visit.approvalImage]).map((img, imgIdx) => (
+                                          <button
+                                            key={imgIdx}
+                                            type="button"
+                                            onClick={() => {
+                                              setLightboxImages(visit.approvalImages || [visit.approvalImage]);
+                                              setLightboxIndex(imgIdx);
+                                            }}
+                                            className="w-12 h-8 rounded-lg overflow-hidden border border-slate-202 shrink-0 hover:border-slate-400 transition"
+                                          >
+                                            <img src={img} alt="Văn bản cũ" className="w-full h-full object-cover" />
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {leftFormTab === 'timeline' && (
+                          <div className="p-4 bg-slate-55 rounded-2xl border border-slate-202 max-h-[350px] overflow-y-auto pr-1">
+                            <div className="relative border-l-2 border-slate-200 ml-3 pl-4 space-y-4">
+                              {formData.history?.map((log, index) => (
+                                <div key={index} className="relative">
+                                  <span className="absolute -left-[22px] top-1 bg-indigo-60 text-indigo-655 w-2.5 h-2.5 rounded-full border-2 border-white ring-4 ring-indigo-50"></span>
+                                  <div className="text-xs font-black text-slate-800 leading-snug">{log.action}</div>
+                                  <div className="text-[9px] text-slate-404 mt-1 flex justify-between font-bold">
+                                    <span>Bởi: {log.user}</span>
+                                    <span className="font-mono">
+                                      {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN', {day: 'numeric', month: 'numeric'})}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4" ref={specRef}>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Chuyên khoa thăm khám
+                  </h3>
+                  {!isReadOnly && (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Tìm kiếm chuyên khoa..."
+                        value={specSearch}
+                        onChange={(e) => {
+                          setSpecSearch(e.target.value);
+                          setIsSpecDropdownOpen(true);
+                        }}
+                        onFocus={() => { setIsSpecDropdownOpen(true); }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold bg-white text-slate-800"
+                      />
+                      {isSpecDropdownOpen && (
+                        <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 space-y-1">
+                          {filteredSpecialties.length === 0 ? (
+                            <div className="text-xs text-slate-405 font-bold text-center py-4">Không tìm thấy chuyên khoa phù hợp</div>
+                          ) : (
+                            filteredSpecialties.map((spec) => {
+                              const isSelected = formData.specialties.includes(spec);
+                              return (
+                                <button
+                                  key={spec}
+                                  type="button"
+                                  onClick={() => { toggleSpecialtySelection(spec); }}
+                                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${
+                                    isSelected ? 'bg-indigo-50 text-indigo-755' : 'hover:bg-slate-55 text-slate-700'
+                                  }`}
+                                >
+                                  <span>{spec}</span>
+                                  {isSelected && <Check className="w-4 h-4 text-indigo-650" />}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {formData.specialties.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+                      {formData.specialties.map((spec) => (
+                        <span
+                          key={spec}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold"
+                        >
+                          {spec}
+                          {!isReadOnly && (
+                            <button
+                              type="button"
+                              onClick={() => { toggleSpecialtySelection(spec); }}
+                              className="p-0.5 hover:bg-slate-850 rounded-full transition"
+                            >
+                              <X className="w-3 h-3 text-slate-405 hover:text-white" />
+                            </button>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {formData.tier === 'VVIP' && (
+                  hasAccessToPatient(formData, 'billing:view') ? (
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
+                      <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-3 flex items-center gap-2">
+                        <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                        Chi Phí Điều Trị & Lâm Sàng Thực Tế
+                      </h3>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-655 block">Phí khám/Điều trị</label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              value={formData.phiKham ? formData.phiKham.toLocaleString('vi-VN') : ''}
+                              disabled={isReadOnly}
+                              onChange={(e) => { handleCurrencyChange('phiKham', e.target.value); }}
+                              placeholder="0"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white disabled:bg-slate-50 disabled:text-slate-500"
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-404 font-bold">VNĐ</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-655 block">CLS/CDHA</label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              value={formData.clsCdha ? formData.clsCdha.toLocaleString('vi-VN') : ''}
+                              disabled={isReadOnly}
+                              onChange={(e) => { handleCurrencyChange('clsCdha', e.target.value); }}
+                              placeholder="0"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white disabled:bg-slate-50 disabled:text-slate-500"
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-404 font-bold">VNĐ</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5 md:col-span-2">
+                          <label className="text-xs font-bold text-slate-655 block">Thuốc/vacxin</label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              value={formData.thuocVacxin ? formData.thuocVacxin.toLocaleString('vi-VN') : ''}
+                              disabled={isReadOnly}
+                              onChange={(e) => { handleCurrencyChange('thuocVacxin', e.target.value); }}
+                              placeholder="0"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-955 text-xs font-bold text-slate-900 bg-white disabled:bg-slate-50 disabled:text-slate-500"
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-404 font-bold">VNĐ</span>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center py-8 space-y-2">
+                      <Lock className="w-8 h-8 text-rose-400 mx-auto" />
+                      <p className="text-xs font-bold text-slate-555">Bảng chi phí bị khóa</p>
+                    </div>
+                  )
+                )}
+
+              </div>
+
+              <div className="space-y-6">
+                
+                {formData.tier === 'VVIP' && (
+                  hasAccessToPatient(formData, 'billing:view') ? (
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-fadeIn">
+                      <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl space-y-5 relative overflow-hidden border border-slate-800">
+                        <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 rounded-full filter blur-2xl opacity-20 translate-x-10 -translate-y-10"></div>
+                        
+                        <h3 className="text-[11px] font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5 relative z-10">
+                          <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
+                          Bảng chi phí/duyệt giảm
+                        </h3>
+
+                        <div className="space-y-1.5 pt-2 relative z-10">
+                          <label className="text-[10px] font-bold text-slate-300 block">BHYT/BHTN/Tạm ứng (VNĐ)</label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              value={formData.insuranceAdvance ? formData.insuranceAdvance.toLocaleString('vi-VN') : ''}
+                              disabled={isReadOnly}
+                              onChange={(e) => { handleCurrencyChange('insuranceAdvance', e.target.value); }}
+                              placeholder="0"
+                              className="w-full pl-4 pr-12 py-2.5 rounded-xl bg-slate-850 border border-slate-750 focus:outline-hidden focus:ring-2 ring-indigo-505 text-xs font-bold text-white placeholder-slate-505 font-mono disabled:opacity-80"
+                            />
+                            <span className="absolute right-3 top-3 text-[10px] text-slate-555 font-bold font-mono">VNĐ</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 relative z-10">
+                          <div className="flex bg-slate-850 p-0.5 rounded-xl border border-slate-750">
+                            <button
+                              type="button"
+                              disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, discountType: 'percent', approvedDiscountAmount: 0 }));
+                              }}
+                              className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition ${
+                                (formData.discountType || 'percent') === 'percent'
+                                  ? 'bg-slate-700 text-white shadow-2xs font-black'
+                                  : 'text-slate-404 hover:text-slate-200'
+                              }`}
+                            >
+                              Giảm theo %
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, discountType: 'fixed', discountRate: 0 }));
+                              }}
+                              className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition ${
+                                formData.discountType === 'fixed'
+                                  ? 'bg-slate-700 text-white shadow-2xs font-black'
+                                  : 'text-slate-404 hover:text-slate-200'
+                              }`}
+                            >
+                              Số tiền cố định
+                            </button>
+                          </div>
+
+                          {(formData.discountType || 'percent') === 'percent' ? (
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
+                                Duyệt giảm (%) {!hasAccessToPatient(formData, 'billing:discount') && '🔒'}
+                              </label>
+                              <div className="relative">
+                                <input 
+                                  type="number" 
+                                  min="0"
+                                  max="100"
+                                  value={formData.discountRate || ''}
+                                  disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly} 
+                                  onChange={(e) => { handleInputChange('discountRate', Math.min(100, Math.max(0, parseInt(e.target.value) || 0))); }}
+                                  placeholder="0"
+                                  className={`w-full pl-4 pr-10 py-2.5 rounded-xl border text-xs font-black placeholder-slate-505 ${
+                                    !hasAccessToPatient(formData, 'billing:discount') || isReadOnly
+                                      ? 'bg-slate-800 border-slate-700 text-slate-555 cursor-not-allowed'
+                                      : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-505'
+                                  }`}
+                                />
+                                <span className="absolute right-3 top-3 text-[10px] text-slate-555 font-bold font-mono">%</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold text-slate-300 block flex items-center gap-1">
+                                Số tiền Duyệt giảm (VNĐ) {!hasAccessToPatient(formData, 'billing:discount') && '🔒'}
+                              </label>
+                              <div className="relative">
+                                <input 
+                                  type="text" 
+                                  value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : ''}
+                                  disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly} 
+                                  onChange={(e) => {
+                                    const cleanValue = e.target.value.replace(/\D/g, '');
+                                    const numValue = cleanValue === '' ? 0 : parseInt(cleanValue, 10);
+                                    handleInputChange('approvedDiscountAmount', numValue);
+                                  }}
+                                  placeholder="0"
+                                  className={`w-full pl-4 pr-12 py-2.5 rounded-xl border text-xs font-black placeholder-slate-505 ${
+                                    !hasAccessToPatient(formData, 'billing:discount') || isReadOnly
+                                      ? 'bg-slate-800 border-slate-700 text-slate-555 cursor-not-allowed'
+                                      : 'bg-slate-800 border-slate-700 text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-505'
+                                  }`}
+                                />
+                                <span className="absolute right-3 top-3 text-[10px] text-slate-555 font-bold font-mono">VNĐ</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
+                          
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-404">Tổng phí tự động:</span>
+                            <div className="flex items-center gap-1">
+                              <input 
+                                type="text"
+                                value={formData.totalAmount ? formData.totalAmount.toLocaleString('vi-VN') : '0'}
+                                disabled={isReadOnly}
+                                onChange={(e) => { handleCurrencyChange('totalAmount', e.target.value); }}
+                                className="w-32 bg-transparent text-right font-extrabold text-slate-105 border-b border-transparent hover:border-slate-600 focus:border-indigo-500 focus:outline-hidden font-mono disabled:opacity-80"
+                              />
+                              <span>đ</span>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-404">Số tiền duyệt giảm:</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-rose-405">-</span>
+                              <input 
+                                type="text"
+                                value={formData.approvedDiscountAmount ? formData.approvedDiscountAmount.toLocaleString('vi-VN') : '0'}
+                                disabled={formData.discountType !== 'fixed' || isReadOnly}
+                                onChange={(e) => { handleCurrencyChange('approvedDiscountAmount', e.target.value); }}
+                                className="w-32 bg-transparent text-right font-extrabold text-rose-405 border-b border-transparent hover:border-slate-600 focus:border-indigo-550 focus:outline-hidden font-mono disabled:opacity-80"
+                              />
+                              <span className="text-rose-405">đ</span>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-404">Khấu trừ BHYT/Tạm ứng:</span>
+                            <span className="font-extrabold text-indigo-400 font-mono">-{formatCurrency(formData.insuranceAdvance)}</span>
+                          </div>
+
+                          <div className="border-t border-dashed border-slate-800 pt-3 flex justify-between items-baseline">
+                            <span className="text-xs font-bold text-white">BỆNH NHÂN THỰC TRẢ:</span>
+                            <span className="text-lg font-black text-emerald-400 font-mono">
+                              {formatCurrency(Math.max(0, formData.totalAmount - formData.approvedDiscountAmount - formData.insuranceAdvance))}
+                            </span>
+                          </div>
+
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center py-8 space-y-2">
+                      <Lock className="w-8 h-8 text-rose-400 mx-auto" />
+                      <p className="text-xs font-bold text-slate-555">Bảng chi phí bị khóa</p>
+                    </div>
+                  )
+                )}
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Ảnh Phê Duyệt Gửi Kèm
+                  </h3>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-2">
+                      {formData.approvalImages?.map((img, index) => (
+                        <div key={index} className="relative rounded-2xl overflow-hidden border border-slate-200 aspect-video bg-slate-50 animate-fadeIn">
+                          <img src={img} alt="Công văn" className="w-full h-full object-cover" />
+                          {!isReadOnly && (
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const updated = formData.approvalImages.filter((_, i) => i !== index);
+                                handleInputChange('approvalImages', updated);
+                              }}
+                              className="absolute right-1.5 top-1.5 p-1 bg-red-655 hover:bg-red-705 text-white rounded-full transition shadow-md"
+                              title="Gỡ bỏ"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {!isReadOnly && (
+                        <label className="border-2 border-dashed border-slate-202 rounded-2xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition duration-200 aspect-video">
+                          <Upload className="w-5 h-5 text-slate-404" />
+                          <span className="text-[10px] font-bold text-slate-700">Tải thêm ảnh</span>
+                          <input type="file" accept="image/*" multiple onChange={handleMultipleImagesUpload} className="hidden" />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+          </form>
+        )}
+
+        {activeTab === 'monitoring' && canShowTab('monitoring') && (
+          <div className="space-y-6 animate-fadeIn">
+            
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-lg font-black text-slate-955 flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5 text-indigo-600" /> Theo Dõi Hồ Sơ Khách Hàng VIP-VVIP
+                </h2>
+              </div>
+              {canShowTab('register') && (
+                <button 
+                  onClick={() => { resetForm(); setActiveTab('register'); }}
+                  className="px-4 py-2.5 bg-slate-900 text-white hover:bg-slate-850 rounded-xl text-xs font-black flex items-center gap-1.5 border border-slate-900 transition transform active:scale-95"
+                >
+                  <Plus className="w-4 h-4" /> Tiếp nhận hồ sơ mới
+                </button>
+              )}
+            </div>
+
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex justify-between items-center flex-wrap gap-3">
+              <div className="flex bg-slate-101 p-1 rounded-xl">
+                <button 
+                  onClick={() => { setCalendarMode('list'); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'list' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-550 hover:text-slate-805'}`}
+                >
+                  Dạng Danh Sách
+                </button>
+                <button 
+                  onClick={() => { setCalendarMode('week'); setCurrentCalendarDate(new Date()); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'week' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-550 hover:text-slate-805'}`}
+                >
+                  Lịch Tuần Động
+                </button>
+                <button 
+                  onClick={() => { setCalendarMode('month'); setCurrentCalendarDate(new Date()); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${calendarMode === 'month' ? 'bg-white text-indigo-900 shadow-2xs' : 'text-slate-550 hover:text-slate-805'}`}
+                >
+                  Lịch Tháng Chi Tiết
+                </button>
+              </div>
+
+              {calendarMode !== 'list' && (
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => { handleCalendarNavigate('prev'); }}
+                    className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs font-extrabold text-slate-800 min-w-[120px] text-center">
+                    {calendarMode === 'week' ? (
+                      `Tuần ${formatDateVN(weekDays[0].toISOString().split('T')[0])}`
+                    ) : (
+                      `Tháng ${currentCalendarDate.getMonth() + 1} / ${currentCalendarDate.getFullYear()}`
+                    )}
+                  </span>
+                  <button 
+                    onClick={() => { handleCalendarNavigate('next'); }}
+                    className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {calendarMode === 'list' && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="flex-1 relative">
+                    <Search className="w-5 h-5 absolute left-3 top-3.5 text-slate-404" />
+                    <input 
+                      type="text" 
+                      placeholder="Tìm theo tên, mã PID, ghi chú..."
+                      value={searchTerm}
+                      onChange={(e) => { setSearchTerm(e.target.value); }}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-xs font-bold bg-white"
+                    />
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <select 
+                      value={filterTier}
+                      onChange={(e) => { setFilterTier(e.target.value); }}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    >
+                      <option value="">Tất cả hạng</option>
+                      <option value="VIP">VIP</option>
+                      <option value="VVIP">VVIP</option>
+                    </select>
+
+                    <select 
+                      value={filterSpecialty}
+                      onChange={(e) => { setFilterSpecialty(e.target.value); }}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    >
+                      <option value="">Tất cả chuyên khoa</option>
+                      {systemSettings.specialties.map((spec, idx) => (
+                        <option key={idx} value={spec}>{spec}</option>
+                      ))}
+                    </select>
+
+                    <select 
+                      value={filterSite}
+                      onChange={(e) => { setFilterSite(e.target.value); }}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    >
+                      <option value="">Tất cả Site</option>
+                      {sites.map(s => (
+                        <option key={s.id} value={s.label}>{s.label}</option>
+                      ))}
+                    </select>
+
+                    <input 
+                      type="date"
+                      value={filterDate}
+                      onChange={(e) => { setFilterDate(e.target.value); }}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white cursor-pointer"
+                    />
+
+                    {(searchTerm || filterTier || filterSpecialty || filterDate || filterSite) && (
+                      <button 
+                        onClick={() => { setSearchTerm(''); setFilterTier(''); setFilterSpecialty(''); setFilterDate(''); setFilterSite(''); }}
+                        className="px-3 py-2 text-rose-505 hover:bg-rose-50 rounded-xl text-xs font-bold transition"
+                      >
+                        Xóa lọc
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {calendarMode === 'week' && (
+              <div className="grid grid-cols-1 md:grid-cols-7 gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm overflow-x-auto min-w-full">
+                {weekDays.map((day, idx) => {
+                  const dateStr = day.toISOString().split('T')[0];
+                  const dayPatients = visiblePatients.filter(p => p.date === dateStr);
+                  const isCurrentToday = dateStr === todayStr;
+
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`p-3 rounded-2xl border min-h-[220px] flex flex-col space-y-3 ${
+                        isCurrentToday ? 'bg-indigo-50/40 border-indigo-200' : 'bg-slate-50/40 border-slate-150'
+                      }`}
+                    >
+                      <div className="text-center pb-2 border-b border-slate-250">
+                        <span className="text-[10px] uppercase font-black text-slate-404 block">
+                          {day.toLocaleDateString('vi-VN', { weekday: 'short' })}
+                        </span>
+                        <span className={`text-sm font-extrabold font-mono inline-block px-2 py-0.5 rounded-full ${
+                          isCurrentToday ? 'bg-indigo-600 text-white' : 'text-slate-800'
+                        }`}>
+                          {day.getDate()}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 space-y-2 overflow-y-auto max-h-[300px]">
+                        {dayPatients.length === 0 ? (
+                          <div className="text-center text-[10px] text-slate-305 font-bold pt-8">Không có ca</div>
+                        ) : (
+                          dayPatients.map(p => (
+                            <div 
+                              key={p.id}
+                              onClick={() => { initiateView(p); }}
+                              className="p-2 bg-white border border-slate-200 rounded-xl shadow-3xs hover:border-indigo-400 transition cursor-pointer space-y-1 text-left"
+                            >
+                              <div 
+                                onClick={(e) => handleCopyText(e, p.name, "Họ và tên")}
+                                className="font-extrabold text-[10px] text-slate-800 truncate hover:text-indigo-600 cursor-copy"
+                              >
+                                {maskName(p.name)}
+                              </div>
+                              <div className="flex items-center justify-between gap-1 text-[8px] text-slate-455">
+                                <span 
+                                  onClick={(e) => handleCopyText(e, p.pid, "Mã PID")}
+                                  className="font-mono hover:text-indigo-600 cursor-copy"
+                                >
+                                  PID: {maskPID(p.pid)}
+                                </span>
+                                <span className={`px-1 rounded-sm uppercase font-black text-[7px] ${
+                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-808' : 'bg-indigo-50 text-indigo-707'
+                                }`}>
+                                  {p.tier}
+                                </span>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {calendarMode === 'month' && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-black uppercase text-slate-404 pb-2 border-b border-slate-100">
+                  <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span>
+                </div>
+                
+                <div className="grid grid-cols-7 gap-2">
+                  {monthDays.map((day, idx) => {
+                    if (!day) return <div key={idx} className="aspect-square bg-slate-50/20 rounded-xl border border-transparent"></div>;
+
+                    const dateStr = day.toISOString().split('T')[0];
+                    const dayPatients = visiblePatients.filter(p => p.date === dateStr);
+                    const isCurrentToday = dateStr === todayStr;
+
+                    return (
+                      <div 
+                        key={idx}
+                        onClick={() => {
+                          if (dayPatients.length > 0) {
+                            setFilterDate(dateStr);
+                            setCalendarMode('list');
+                          }
+                        }}
+                        className={`aspect-square p-2 rounded-2xl border flex flex-col justify-between transition-all relative ${
+                          dayPatients.length > 0 ? 'cursor-pointer hover:border-indigo-400 shadow-3xs' : ''
+                        } ${
+                          isCurrentToday ? 'bg-indigo-50/50 border-indigo-200' : 'bg-white border-slate-150'
+                        }`}
+                      >
+                        <span className={`text-[11px] font-black font-mono leading-none ${
+                          isCurrentToday ? 'text-indigo-600 font-black' : 'text-slate-550'
+                        }`}>
+                          {day.getDate()}
+                        </span>
+
+                        {dayPatients.length > 0 && (
+                          <div className="flex gap-1 flex-wrap justify-end">
+                            {dayPatients.slice(0, 3).map((p, pIdx) => (
+                              <span 
+                                key={pIdx} 
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  p.tier === 'VVIP' ? 'bg-amber-400' : 'bg-indigo-500'
+                                }`} 
+                                title={`${p.name} (${p.tier})`}
+                              />
+                            ))}
+                            {dayPatients.length > 3 && (
+                              <span className="text-[7px] text-slate-404 font-bold">+{dayPatients.length - 3}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {calendarMode === 'list' && (
+              <>
+                {isLoading ? (
+                  <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center gap-3">
+                    <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+                    <p className="text-slate-404 font-semibold text-xs animate-pulse">Đang cập nhật...</p>
+                  </div>
+                ) : filteredPatients.length === 0 ? (
+                  <div className="bg-white p-16 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4">
+                    <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto text-slate-404">
+                      <ClipboardList className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-sm">Không tìm thấy hồ sơ nào phù hợp</h3>
+                      <p className="text-slate-404 text-xs mt-1 font-medium">Hệ thống chưa ghi nhận hoặc từ khóa lọc không trùng khớp.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="hidden lg:block bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-slate-55 border-b border-slate-200 text-[10px] text-slate-404 font-black uppercase tracking-wider">
+                              <th className="py-4 px-5">PID / Khách Hàng</th>
+                              <th className="py-4 px-3">Phân hạng</th>
+                              <th className="py-4 px-3">Ngày Khám / Site / Khu vực</th>
+                              <th className="py-4 px-3">Chuyên Khoa</th>
+                              <th className="py-4 px-3">HĐQT Chỉ Đạo</th>
+                              <th className="py-4 px-3 text-right">Tổng Chi Phí</th>
+                              <th className="py-4 px-3 text-right">Duyệt Giảm</th>
+                              <th className="py-4 px-3 text-right">Thực Thu</th>
+                              <th className="py-4 px-5 text-right">Tác vụ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200 text-xs">
+                            {filteredPatients.map((p) => {
+                              const canViewBilling = hasAccessToPatient(p, 'billing:view');
+                              const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
+                              const pSite = sites.find(s => s.label === p.site) || sites[0];
+                              return (
+                                <tr key={p.id} className="hover:bg-slate-50/50 transition duration-150 cursor-pointer" onClick={() => { initiateView(p); }}>
+                                  <td className="py-4 px-5">
+                                    <div 
+                                      onClick={(e) => handleCopyText(e, p.name, "Họ và tên")}
+                                      className="font-extrabold text-slate-955 text-sm hover:text-indigo-600 cursor-copy"
+                                      title="Bấm để copy Họ tên đầy đủ"
+                                    >
+                                      {maskName(p.name)}
+                                    </div>
+                                    <div 
+                                      onClick={(e) => handleCopyText(e, p.pid, "Mã PID")}
+                                      className="text-[10px] text-indigo-600 font-mono font-black mt-0.5 hover:text-indigo-800 cursor-copy"
+                                      title="Bấm để copy PID đầy đủ"
+                                    >
+                                      PID: {maskPID(p.pid)}
+                                    </div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${
+                                      p.tier === 'VVIP' ? 'bg-amber-100 text-amber-808' : 'bg-indigo-50 text-indigo-707'
+                                    }`}>
+                                      <Sparkles className="w-3 h-3" />
+                                      {p.tier}
+                                    </span>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="text-slate-550 font-bold">{p.date ? formatDateVN(p.date) : 'Trong ngày'}</div>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
+                                        {pSite.label}
+                                      </div>
+                                      <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
+                                        p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-202 text-indigo-707' : 
+                                        p.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'bg-rose-50 border-rose-200 text-rose-707' :
+                                        'bg-teal-50 border-teal-202 text-teal-707'
+                                      }`}>
+                                        {p.examinationArea || '---'}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="flex flex-wrap gap-1 max-w-[180px]">
+                                      {p.specialties?.map((s, idx) => (
+                                        <span key={idx} className="text-[9px] bg-slate-50 text-slate-600 border border-slate-202 px-1.5 py-0.5 rounded font-bold">
+                                          {s}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </td>
+                                  <td className="py-4 px-3">
+                                    <div className="font-bold text-slate-700">{p.boardApproval || '---'}</div>
+                                    {p.notes && <div className="text-[10px] text-slate-404 max-w-[150px] truncate" title={p.notes}>{p.notes}</div>}
+                                  </td>
+                                  <td className="py-4 px-3 text-right font-bold text-slate-900 font-mono">
+                                    {p.tier === 'VIP' ? (
+                                      <span className="text-slate-404 font-sans text-[10px]">Thanh toán quầy</span>
+                                    ) : canViewBilling ? (
+                                      formatCurrency(p.totalAmount)
+                                    ) : (
+                                      <span className="text-slate-405">🔒 Khóa</span>
+                                    )}
+                                  </td>
+                                  <td className="py-4 px-3 text-right">
+                                    {p.tier === 'VIP' ? (
+                                      <span className="text-slate-404 font-sans text-[10px]">---</span>
+                                    ) : canViewBilling ? (
+                                      <>
+                                        <div className="font-bold text-rose-600 font-mono font-black">-{formatCurrency(p.approvedDiscountAmount)}</div>
+                                        <div className="text-[9px] text-slate-404 font-black">Tỷ lệ: {p.discountRate || 0}%</div>
+                                      </>
+                                    ) : (
+                                      <span className="text-slate-405">🔒 Khóa</span>
+                                    )}
+                                  </td>
+                                  <td className="py-4 px-3 text-right font-extrabold text-emerald-600 font-mono">
+                                    {p.tier === 'VIP' ? (
+                                      <span className="text-slate-404 font-sans text-[10px]">Hóa đơn gốc</span>
+                                    ) : canViewBilling ? (
+                                      formatCurrency(realCollected)
+                                    ) : (
+                                      <span className="text-slate-405">🔒 Khóa</span>
+                                    )}
+                                  </td>
+                                  <td className="py-4 px-5 text-right whitespace-nowrap" onClick={(e) => { e.stopPropagation(); }}>
+                                    <div className="flex justify-end gap-1.5">
+                                      {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
+                                        <button 
+                                          onClick={() => {
+                                            const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
+                                            setLightboxImages(imgs);
+                                            setLightboxIndex(0);
+                                          }}
+                                          className="p-1.5 bg-slate-50 border border-slate-202 text-slate-605 hover:bg-slate-100 rounded-xl transition" 
+                                          title="Ảnh duyệt"
+                                        >
+                                          <ImageIcon className="w-4 h-4" />
+                                        </button>
+                                      )}
+                                      <button onClick={() => { initiateView(p); }} className="p-1.5 bg-slate-50 border border-slate-202 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
+                                        <Edit3 className="w-4 h-4" />
+                                      </button>
+                                      
+                                      {userRole !== 'nhanvien' ? (
+                                        <button 
+                                          onClick={() => {
+                                            setConfirmModal({
+                                              show: true,
+                                              title: "Xác nhận xóa hồ sơ bệnh nhân VIP",
+                                              message: "Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+                                              action: async () => {
+                                                try {
+                                                  if (isFirebaseConnected && db) {
+                                                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
+                                                    showNotification("Đã xóa hồ sơ thành công!");
+                                                  } else {
+                                                    const updated = patients.filter(item => item.id !== p.id);
+                                                    setPatients(updated);
+                                                    localStorage.setItem('local_patients', JSON.stringify(updated));
+                                                    showNotification("Đã xóa hồ sơ cục bộ!");
+                                                  }
+                                                  setConfirmModal({ show: false, action: null, message: '', title: '' });
+                                                } catch (err) {
+                                                  console.error(err);
+                                                }
+                                              }
+                                            });
+                                          }} 
+                                          className="p-1.5 bg-rose-50 border border-rose-202 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition" 
+                                          title="Xóa"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      ) : (
+                                        <span className="p-1.5 text-slate-305 cursor-not-allowed">
+                                          <Lock className="w-4 h-4" />
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
+                      {filteredPatients.map((p) => {
+                        const canViewBilling = hasAccessToPatient(p, 'billing:view');
+                        const realCollected = Math.max(0, (p.totalAmount || 0) - (p.approvedDiscountAmount || 0));
+                        const pSite = sites.find(s => s.label === p.site) || sites[0];
+                        return (
+                          <div key={p.id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 cursor-pointer" onClick={() => { initiateView(p); }}>
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span 
+                                  onClick={(e) => handleCopyText(e, p.pid, "Mã PID")}
+                                  className="text-[9px] text-indigo-600 font-mono font-black block hover:text-indigo-855 cursor-copy"
+                                  title="Bấm để copy PID đầy đủ"
+                                >
+                                  PID: {maskPID(p.pid)}
+                                </span>
+                                <h4 
+                                  onClick={(e) => handleCopyText(e, p.name, "Họ và tên")}
+                                  className="font-extrabold text-slate-900 text-sm hover:text-indigo-600 cursor-copy"
+                                  title="Bấm để copy Họ tên đầy đủ"
+                                >
+                                  {maskName(p.name)}
+                                </h4>
+                                <p className="text-[10px] text-slate-404 mt-0.5 flex items-center gap-1">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  Khám ngày: {p.date ? formatDateVN(p.date) : 'Trong ngày'}
+                                </p>
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${pSite.bg}`}>
+                                    {pSite.label}
+                                  </span>
+                                  <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
+                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-202 text-indigo-707' : 
+                                    p.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'bg-rose-50 border-rose-200 text-rose-707' :
+                                    'bg-teal-50 border-teal-202 text-teal-707'
+                                  }`}>
+                                    {p.examinationArea || '---'}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className={`inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[9px] font-black ${
+                                p.tier === 'VVIP' ? 'bg-amber-100 text-amber-808' : 'bg-indigo-50 text-indigo-707'
+                              }`}>
+                                {p.tier}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-wrap gap-1">
+                              {p.specialties?.map((s, idx) => (
+                                <span key={idx} className="text-[9px] bg-slate-50 text-slate-605 border border-slate-202 px-2.5 py-0.5 rounded font-bold">
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+
+                            <div className="bg-slate-55 p-3 rounded-2xl text-[11px] border border-slate-202 space-y-1 text-slate-655">
+                              <div>Phê duyệt/Chỉ đạo: <strong className="text-slate-900">{p.boardApproval || '---'}</strong></div>
+                              {p.notes && <div className="text-slate-555 italic">"{p.notes}"</div>}
+                            </div>
+
+                            {p.tier === 'VVIP' ? (
+                              canViewBilling ? (
+                                <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-200 py-3 text-center">
+                                  <div>
+                                    <span className="text-[8px] text-slate-404 block font-bold uppercase">Tổng phí</span>
+                                    <span className="text-[11px] font-bold text-slate-900 font-mono">{formatCurrency(p.totalAmount)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[8px] text-slate-404 block font-bold uppercase">Duyệt giảm</span>
+                                    <span className="text-[11px] font-bold text-rose-600 font-mono">-{formatCurrency(p.approvedDiscountAmount)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[8px] text-slate-404 block font-bold uppercase">Thực Thu</span>
+                                    <span className="text-[11px] font-black text-emerald-605 font-mono">{formatCurrency(realCollected)}</span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="bg-slate-50 p-2 text-center rounded-xl text-xs text-slate-400 flex items-center justify-center gap-1">
+                                  <Lock className="w-3.5 h-3.5" /> Chi phí tài chính bị khóa bảo mật
+                                </div>
+                              )
+                            ) : null}
+
+                            <div className="flex justify-end gap-2 pt-1" onClick={(e) => { e.stopPropagation(); }}>
+                              {((p.approvalImages && p.approvalImages.length > 0) || p.approvalImage) && (
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    const imgs = p.approvalImages || (p.approvalImage ? [p.approvalImage] : []);
+                                    setLightboxImages(imgs);
+                                    setLightboxIndex(0);
+                                  }}
+                                  className="px-3 py-1.5 bg-slate-50 border border-slate-202 text-slate-600 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
+                                >
+                                  <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
+                                </button>
+                              )}
+                              <button onClick={() => { initiateView(p); }} className="px-3 py-1.5 bg-slate-50 border border-slate-202 text-slate-707 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
+                                <Edit3 className="w-3.5 h-3.5" /> Sửa
+                              </button>
+                              
+                              {userRole !== 'nhanvien' && (
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    setConfirmModal({
+                                      title: "Xác nhận gỡ bỏ dữ liệu",
+                                      message: "Bạn có chắc chắn muốn gỡ bỏ vĩnh viễn hồ sơ này không? Toàn bộ chứng từ và số liệu đính kèm sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống.",
+                                      show: true,
+                                      action: async () => {
+                                        try {
+                                          if (isFirebaseConnected && db) {
+                                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', p.id));
+                                            showNotification("Đã xóa dữ liệu dám mây!");
+                                          } else {
+                                            const updated = patients.filter(item => item.id !== p.id);
+                                            setPatients(updated);
+                                            localStorage.setItem('local_patients', JSON.stringify(updated));
+                                            showNotification("Đã xóa dữ liệu!");
+                                          }
+                                          setConfirmModal({ show: false, action: null, message: '', title: '' });
+                                        } catch (err) {
+                                          console.error(err);
+                                        }
+                                      }
+                                    });
+                                  }}
+                                  className="px-3 py-1.5 bg-rose-50 border border-rose-202 text-rose-605 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" /> Xóa
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
       </main>
+
+      <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
+        <div className="max-w-7xl mx-auto px-4 text-xs text-slate-404 space-y-1 font-semibold">
+          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.1</p>
+          <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
+        </div>
+      </footer>
     </div>
   );
 }
