@@ -292,6 +292,7 @@ export default function App() {
     pid: '',
     date: new Date().toISOString().split('T')[0],
     specialties: [],
+    specialtyConfigs: {},
     site: 'BV Tâm Anh - Tân Sơn Hòa',
     examinationArea: '',
     ngoaiTru: true,
@@ -311,7 +312,8 @@ export default function App() {
     status: 'Waiting',
     recipients: [],
     history: [],
-    roundingLogs: []
+    roundingLogs: [],
+    sessionGroupId: ''
   });
 
   const [newRoundingLog, setNewRoundingLog] = useState({
@@ -325,7 +327,6 @@ export default function App() {
 
   const [notifications, setNotifications] = useState([]);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
-  const [activePushAlerts, setActivePushAlerts] = useState([]);
   const isInitialMount = useRef(true);
   const notificationCenterRef = useRef(null);
 
@@ -386,7 +387,6 @@ export default function App() {
     }
 
     const id = Date.now() + Math.random().toString(36).substr(2, 9);
-    const newAlert = { id, title, message, type, patientId };
 
     setNotifications(prev => [
       {
@@ -532,6 +532,7 @@ export default function App() {
       pid: '',
       date: new Date().toISOString().split('T')[0],
       specialties: [],
+      specialtyConfigs: {},
       site: defaultSite,
       examinationArea: '',
       ngoaiTru: true,
@@ -551,7 +552,8 @@ export default function App() {
       status: 'Waiting',
       recipients: [],
       history: [],
-      roundingLogs: []
+      roundingLogs: [],
+      sessionGroupId: ''
     });
   };
 
@@ -704,8 +706,7 @@ export default function App() {
               showNotification("Đã quét thành công mã: " + decodedText);
               stopScanner();
             },
-            (errorMessage) => {
-            }
+            () => {}
           );
         } catch (err) {
           console.error(err);
@@ -1042,9 +1043,22 @@ export default function App() {
     setFormData(prev => {
       const exists = prev?.specialties?.includes(spec);
       if (exists) {
-        return { ...prev, specialties: prev?.specialties?.filter(s => s !== spec) };
+        const updatedConfigs = { ...(prev.specialtyConfigs || {}) };
+        delete updatedConfigs[spec];
+        return {
+          ...prev,
+          specialties: prev?.specialties?.filter(s => s !== spec),
+          specialtyConfigs: updatedConfigs
+        };
       } else {
-        return { ...prev, specialties: [...(prev?.specialties || []), spec] };
+        return {
+          ...prev,
+          specialties: [...(prev?.specialties || []), spec],
+          specialtyConfigs: {
+            ...(prev.specialtyConfigs || {}),
+            [spec]: 'vvip_discount'
+          }
+        };
       }
     });
   };
@@ -1241,6 +1255,11 @@ export default function App() {
     };
   }, [visiblePatients]);
 
+  const linkedVisits = useMemo(() => {
+    if (!formData.sessionGroupId) return [];
+    return patients.filter(p => p.sessionGroupId === formData.sessionGroupId && p.id !== currentId);
+  }, [formData.sessionGroupId, patients, currentId]);
+
   const savePatient = async (e) => {
     e.preventDefault();
     if (!formData?.name?.trim()) {
@@ -1279,71 +1298,137 @@ export default function App() {
       };
     }
 
-    let payload = {
-      ...formData,
-      status: formData?.status || 'Waiting',
-      updatedAt: new Date().toISOString(),
-      updatedBy: currentUser?.name || 'Hệ thống',
-      history: [...currentHistory, newLog]
-    };
+    const hasVVIPDiscount = formData.specialties.some(spec => (formData.specialtyConfigs?.[spec] || 'vvip_discount') === 'vvip_discount');
+    const hasVIPTakecare = formData.specialties.some(spec => formData.specialtyConfigs?.[spec] === 'vip_takecare');
+    const isVVIPWithMixedSpecialties = formData.tier === 'VVIP' && hasVVIPDiscount && hasVIPTakecare;
 
-    if (formData?.tier === 'VIP') {
-      payload = {
-        ...payload,
+    if (isVVIPWithMixedSpecialties) {
+      const sessionGroupId = formData.sessionGroupId || `group_${formData.pid}_${Date.now()}`;
+      const vvipSpecialties = formData.specialties.filter(spec => (formData.specialtyConfigs?.[spec] || 'vvip_discount') === 'vvip_discount');
+      const vipSpecialties = formData.specialties.filter(spec => formData.specialtyConfigs?.[spec] === 'vip_takecare');
+
+      const payloadVVIP = {
+        ...formData,
+        specialties: vvipSpecialties,
+        notes: formData.notes + "\n(Ca tách luồng VVIP)",
+        sessionGroupId,
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUser?.name || 'Hệ thống',
+        history: [...currentHistory, {
+          timestamp: new Date().toISOString(),
+          action: "Tách luồng điều trị: Nhánh VVIP",
+          user: currentUser?.name || 'Hệ thống'
+        }]
+      };
+
+      const payloadVIP = {
+        ...formData,
+        tier: 'VIP',
+        specialties: vipSpecialties,
+        notes: formData.notes + "\n(Ca tách luồng VIP Chăm sóc)",
+        sessionGroupId,
         phiKham: 0,
         clsCdha: 0,
         thuocVacxin: 0,
         insuranceAdvance: 0,
-        discountType: 'percent',
         discountRate: 0,
         approvedDiscountAmount: 0,
-        totalAmount: 0
+        totalAmount: 0,
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUser?.name || 'Hệ thống',
+        history: [...currentHistory, {
+          timestamp: new Date().toISOString(),
+          action: "Tách luồng điều trị: Nhánh VIP Chăm sóc",
+          user: currentUser?.name || 'Hệ thống'
+        }]
       };
-    }
 
-    const firstImg = payload.approvalImages && payload.approvalImages.length > 0 ? payload.approvalImages[0] : '';
-    payload.approvalImage = firstImg;
+      try {
+        if (isFirebaseConnected && db) {
+          const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
+          if (currentId) {
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payloadVVIP);
+            await addDoc(patientsCol, { ...payloadVIP, createdAt: new Date().toISOString() });
+            showNotification("Cập nhật và tách luồng thành công!");
+          } else {
+            await addDoc(patientsCol, { ...payloadVVIP, createdAt: new Date().toISOString() });
+            await addDoc(patientsCol, { ...payloadVIP, createdAt: new Date().toISOString() });
+            showNotification("Đăng ký và tự động tách luồng thành công!");
+          }
+        } else {
+          let updatedList = [...patients];
+          const newVIPDoc = { id: `vip_${Date.now()}`, ...payloadVIP, createdAt: new Date().toISOString() };
+          if (currentId) {
+            updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payloadVVIP } : p);
+            updatedList.unshift(newVIPDoc);
+            showNotification("Cập nhật và tách luồng cục bộ thành công!");
+          } else {
+            const newVVIPDoc = { id: `vvip_${Date.now()}`, ...payloadVVIP, createdAt: new Date().toISOString() };
+            updatedList.unshift(newVVIPDoc);
+            updatedList.unshift(newVIPDoc);
+            showNotification("Đăng ký và tách luồng cục bộ thành công!");
+          }
+          setPatients(updatedList);
+          localStorage.setItem('local_patients', JSON.stringify(updatedList));
+        }
+        resetForm();
+        setActiveTab('monitoring');
+      } catch (err) {
+        console.warn(err);
+      }
+    } else {
+      let payload = {
+        ...formData,
+        status: formData?.status || 'Waiting',
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUser?.name || 'Hệ thống',
+        history: [...currentHistory, newLog]
+      };
 
-    try {
-      if (isFirebaseConnected && db) {
-        const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
-        if (currentId) {
-          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payload);
-          showNotification("Cập nhật thành công!");
-        } else {
-          await addDoc(patientsCol, { ...payload, createdAt: new Date().toISOString() });
-          showNotification("Đăng ký thành công!");
-        }
-      } else {
-        let updatedList = [...patients];
-        if (currentId) {
-          updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
-          showNotification("Cập nhật thành công!");
-        } else {
-          const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
-          updatedList.unshift(newDoc);
-          showNotification("Đã lưu hồ sơ thành công!");
-        }
-        setPatients(updatedList);
-        localStorage.setItem('local_patients', JSON.stringify(updatedList));
+      if (formData?.tier === 'VIP') {
+        payload = {
+          ...payload,
+          phiKham: 0,
+          clsCdha: 0,
+          thuocVacxin: 0,
+          insuranceAdvance: 0,
+          discountRate: 0,
+          approvedDiscountAmount: 0,
+          totalAmount: 0
+        };
       }
-      resetForm();
-      setActiveTab('monitoring');
-    } catch (err) {
-      console.warn(err);
-      let updatedList = [...patients];
-      if (currentId) {
-        updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
-        showNotification("Đã lưu cập nhật vào thiết bị (Chế độ Dự Phòng)!");
-      } else {
-        const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
-        updatedList.unshift(newDoc);
-        showNotification("Đã lưu hồ sơ mới vào thiết bị (Chế độ Dự Phòng)!");
+
+      const firstImg = payload.approvalImages && payload.approvalImages.length > 0 ? payload.approvalImages[0] : '';
+      payload.approvalImage = firstImg;
+
+      try {
+        if (isFirebaseConnected && db) {
+          if (currentId) {
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', currentId), payload);
+            showNotification("Cập nhật thành công!");
+          } else {
+            const patientsCol = collection(db, 'artifacts', appId, 'public', 'data', 'patients');
+            await addDoc(patientsCol, { ...payload, createdAt: new Date().toISOString() });
+            showNotification("Đăng ký thành công!");
+          }
+        } else {
+          let updatedList = [...patients];
+          if (currentId) {
+            updatedList = updatedList.map(p => p.id === currentId ? { ...p, ...payload } : p);
+            showNotification("Cập nhật thành công!");
+          } else {
+            const newDoc = { id: Date.now().toString(), ...payload, createdAt: new Date().toISOString() };
+            updatedList.unshift(newDoc);
+            showNotification("Đã lưu hồ sơ thành công!");
+          }
+          setPatients(updatedList);
+          localStorage.setItem('local_patients', JSON.stringify(updatedList));
+        }
+        resetForm();
+        setActiveTab('monitoring');
+      } catch (err) {
+        console.warn(err);
       }
-      setPatients(updatedList);
-      localStorage.setItem('local_patients', JSON.stringify(updatedList));
-      resetForm();
-      setActiveTab('monitoring');
     }
   };
 
@@ -1376,6 +1461,7 @@ export default function App() {
       pid: patient?.pid || '',
       date: patient?.date || new Date().toISOString().split('T')[0],
       specialties: patient?.specialties || [],
+      specialtyConfigs: patient?.specialtyConfigs || {},
       site: patient?.site || 'BV Tâm Anh - Tân Sơn Hòa',
       examinationArea: patient?.examinationArea || '',
       ngoaiTru: patient?.ngoaiTru !== undefined ? patient?.ngoaiTru : (initTreatmentType === 'Ngoại trú'),
@@ -1395,7 +1481,8 @@ export default function App() {
       status: patient?.status || 'Waiting',
       recipients: patient?.recipients || [],
       history: patient?.history || [],
-      roundingLogs: patient?.roundingLogs || []
+      roundingLogs: patient?.roundingLogs || [],
+      sessionGroupId: patient?.sessionGroupId || ''
     });
     setActiveTab('register');
   };
@@ -1460,7 +1547,6 @@ export default function App() {
       showNotification("Đã cập nhật trạng thái hành trình khám!");
     } catch (err) {
       console.error(err);
-      showNotification("Lỗi đồng bộ trạng thái lên database!", "error");
     }
   };
 
@@ -1474,6 +1560,7 @@ export default function App() {
     setFormData(prev => ({
       ...prev,
       specialties: visit?.specialties || [],
+      specialtyConfigs: visit?.specialtyConfigs || {},
       site: finalSite,
       examinationArea: visit?.examinationArea || '',
       boardApproval: visit?.boardApproval || '',
@@ -1530,7 +1617,6 @@ export default function App() {
         showNotification(editingStaffUid ? "Đã cập nhật thông tin nhân viên!" : "Đã đăng ký và đẩy phân quyền lên Firebase Cloud!");
       } catch (err) {
         console.error(err);
-        showNotification("Lỗi đồng bộ phân quyền lên Firebase Cloud!", "error");
       }
     } else {
       let updatedList;
@@ -1572,7 +1658,6 @@ export default function App() {
           }
         } catch (err) {
           console.error(err);
-          showNotification("Gặp sự cố khi gỡ bỏ tài khoản!", "error");
         }
         setConfirmModal({ show: false, action: null, message: '', title: '' });
       }
@@ -1737,7 +1822,7 @@ export default function App() {
               <h1 className="text-2xl font-black tracking-tight text-slate-900">
                 QL KH VIP-VVIP
               </h1>
-              <p className="text-xs text-slate-404 font-semibold tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
+              <p className="text-xs text-slate-400 font-semibold tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
             </div>
           </div>
 
@@ -1750,7 +1835,7 @@ export default function App() {
 
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email </label>
+              <label className="text-xs font-bold text-slate-550 uppercase tracking-wider block">Email </label>
               <input 
                 type="email" 
                 placeholder="nhập email tại đây"
@@ -1847,7 +1932,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center gap-2.5 text-indigo-600">
-              <Copy className="w-5 h-5 flex-shrink-0 text-indigo-500" />
+              <Copy className="w-5 h-5 flex-shrink-0 text-indigo-505" />
               <h3 className="text-base font-extrabold text-slate-955">Xác nhận sao chép lịch sử</h3>
             </div>
             <p className="text-xs text-slate-505 leading-relaxed font-semibold">
@@ -1887,7 +1972,7 @@ export default function App() {
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 border border-slate-200 shadow-2xl">
             <div>
               <h4 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center justify-center gap-1.5">
-                <Scan className="w-4 h-4 text-indigo-605 a" /> Trình quét mã camera
+                <Scan className="w-4 h-4 text-indigo-605" /> Trình quét mã camera
               </h4>
               <p className="text-[11px] text-slate-404 font-semibold mt-1">
                 {scannerError ? "Lỗi truy cập thiết bị" : "Đặt mã vạch hoặc mã QR của bệnh nhân vào giữa khung hình"}
@@ -1930,7 +2015,7 @@ export default function App() {
             <button
               type="button"
               onClick={stopScanner}
-              className="px-4 py-1.5 border border-slate-200 text-slate-550 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition w-full"
+              className="px-4 py-1.5 border border-slate-200 text-slate-555 hover:bg-slate-55 text-[11px] font-bold rounded-xl transition w-full"
             >
               Hủy bỏ quét
             </button>
@@ -2044,7 +2129,7 @@ export default function App() {
 
             <div className="flex items-center gap-3 relative" ref={notificationCenterRef}>
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold">
-                <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
+                <span className={`w-2 h-2 rounded-full ${isFirebaseConnected ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
                 {isFirebaseConnected ? 'Live' : 'Offline'}
               </div>
 
@@ -2115,7 +2200,7 @@ export default function App() {
                           key={n.id}
                           onClick={() => { handleNotificationClick(n.patientId); setShowNotificationCenter(false); }}
                           className={`p-3 rounded-2xl border text-xs transition flex gap-2 items-start cursor-pointer hover:bg-slate-50 ${
-                            n.read ? 'border-slate-200 bg-slate-50/50' : 'border-indigo-100 bg-indigo-50/30'
+                            n.read ? 'border-slate-200 bg-slate-50/50' : 'border-indigo-101 bg-indigo-50/30'
                           }`}
                         >
                           <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
@@ -2286,7 +2371,7 @@ export default function App() {
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                    <div className="flex bg-slate-101 p-0.5 rounded-lg border border-slate-200">
                       <button
                         type="button"
                         onClick={() => { setDashFilterMode('today'); }}
@@ -2335,7 +2420,7 @@ export default function App() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+                    <div className="p-3.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-101">
                       <Users className="w-6 h-6" />
                     </div>
                     <div>
@@ -2348,7 +2433,7 @@ export default function App() {
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-indigo-50 text-indigo-600 border-indigo-100">
+                    <div className="p-3.5 rounded-xl bg-indigo-50 text-indigo-600 border-indigo-101">
                       <Activity className="w-6 h-6" />
                     </div>
                     <div>
@@ -2361,7 +2446,7 @@ export default function App() {
                   </div>
 
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:border-slate-300 transition duration-200">
-                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-100">
+                    <div className="p-3.5 rounded-xl bg-rose-50 text-rose-600 border-rose-101">
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
@@ -2426,14 +2511,14 @@ export default function App() {
                     return (
                       <div 
                         key={col.id} 
-                        className="w-12 bg-slate-100/40 rounded-2xl py-3 px-1 border border-slate-200 flex flex-col items-center justify-start transition-all duration-300 ease-in-out shrink-0 select-none cursor-pointer"
+                        className="w-12 bg-slate-101/40 rounded-2xl py-3 px-1 border border-slate-200 flex flex-col items-center justify-start transition-all duration-300 ease-in-out shrink-0 select-none cursor-pointer"
                         title={`Trống: ${col.label}`}
                       >
                         <span className={`w-2 h-2 rounded-full ${col.dot} mb-2`}></span>
                         <span className="text-[10px] font-black bg-white px-1 py-0.5 rounded-md border border-slate-200 text-slate-555 mb-2 font-mono">
                           0
                         </span>
-                        <span className="text-[9px] font-extrabold text-slate-400 whitespace-nowrap [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
+                        <span className="text-[9px] font-extrabold text-slate-404 [writing-mode:vertical-lr] tracking-wider select-none mt-2 rotate-180">
                           {col.label}
                         </span>
                       </div>
@@ -2474,13 +2559,13 @@ export default function App() {
                                 </span>
                                 <div className="flex gap-1">
                                   <span className={`px-1 py-0.5 rounded-xs text-[7px] font-bold uppercase ${
-                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-100 text-indigo-800' : 
-                                    p.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'bg-rose-100 text-rose-800' : 'bg-teal-100 text-teal-800'
+                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-105 text-indigo-800' : 
+                                    p.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'bg-rose-101 text-rose-800' : 'bg-teal-101 text-teal-800'
                                   }`}>
                                     {p.examinationArea === 'Khu VIP' ? 'VIP' : p.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'NT/CC/ICU' : 'TC'}
                                   </span>
                                   <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
-                                    p.tier === 'VVIP' ? 'bg-amber-100 text-amber-808' : 'bg-indigo-50 text-indigo-707'
+                                    p.tier === 'VVIP' ? 'bg-amber-101 text-amber-808' : 'bg-indigo-50 text-indigo-707'
                                   }`}>
                                     {p.tier}
                                   </span>
@@ -2717,7 +2802,7 @@ export default function App() {
                               disabled={!isAssigned || isReadOnly}
                               onClick={() => { handleInputChange('site', s.label); }}
                               className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center disabled:opacity-80 ${
-                                formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-555 hover:bg-slate-55/50'
+                                formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
                               }`}
                             >
                               {s.label} {!isAssigned && '🔒'}
@@ -2882,7 +2967,7 @@ export default function App() {
                   <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5 animate-fadeIn">
                     <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                       <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                        <span className="w-1.5 h-4 bg-emerald-600 rounded-sm inline-block"></span>
+                        <span className="w-1.5 h-4 bg-emerald-605 rounded-sm inline-block"></span>
                         Nhật Ký Thăm Hỏi & Chăm Sóc Sức Khỏe Realtime
                       </h3>
                       <span className="bg-indigo-50 text-indigo-707 font-extrabold text-[10px] px-2.5 py-0.5 rounded-md border border-indigo-100 font-mono">
@@ -2895,6 +2980,25 @@ export default function App() {
                         ℹ️ Khách hàng đang ở chế độ điều trị nội trú trọng điểm. Đề xuất nhân sự CSKH và Quản lý thực hiện đi buồng thăm hỏi định kỳ 2 lần/ngày.
                       </div>
                     ) : null}
+
+                    {linkedVisits.length > 0 && (
+                      <div className="p-4 bg-indigo-50 border border-indigo-101 rounded-2xl flex flex-col gap-2">
+                        <span className="text-[10px] font-black text-indigo-755 uppercase tracking-wider block">Các nhánh đón tiếp liên đới:</span>
+                        <div className="flex flex-wrap gap-2">
+                          {linkedVisits.map(v => (
+                            <button
+                              key={v.id}
+                              type="button"
+                              onClick={() => { initiateView(v); }}
+                              className="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-707 hover:bg-indigo-50 rounded-lg text-[10px] font-black transition flex items-center gap-1"
+                            >
+                              <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-500" />
+                              {v.tier} - Chuyên khoa: {v.specialties?.join(', ')}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {!isReadOnly && (
                       <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
@@ -2976,7 +3080,7 @@ export default function App() {
                               <button
                                 type="button"
                                 onClick={() => { handleDeleteRoundingLog(log.id); }}
-                                className="p-1 text-slate-400 hover:text-rose-500 rounded-lg transition"
+                                className="p-1 text-slate-404 hover:text-rose-500 rounded-lg transition"
                                 title="Xóa"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -3180,23 +3284,43 @@ export default function App() {
                   )}
                   {formData.specialties.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
-                      {formData.specialties.map((spec) => (
-                        <span
-                          key={spec}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold"
-                        >
-                          {spec}
-                          {!isReadOnly && (
-                            <button
-                              type="button"
-                              onClick={() => { toggleSpecialtySelection(spec); }}
-                              className="p-0.5 hover:bg-slate-850 rounded-full transition"
-                            >
-                              <X className="w-3 h-3 text-slate-405 hover:text-white" />
-                            </button>
-                          )}
-                        </span>
-                      ))}
+                      {formData.specialties.map((spec) => {
+                        const config = formData.specialtyConfigs?.[spec] || 'vvip_discount';
+                        return (
+                          <div key={spec} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold">
+                            <span>{spec}</span>
+                            {formData.tier === 'VVIP' && !isReadOnly && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newConfig = config === 'vvip_discount' ? 'vip_takecare' : 'vvip_discount';
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    specialtyConfigs: {
+                                      ...(prev.specialtyConfigs || {}),
+                                      [spec]: newConfig
+                                    }
+                                  }));
+                                }}
+                                className={`px-1.5 py-0.5 rounded-md text-[9px] font-black transition ${
+                                  config === 'vvip_discount' ? 'bg-amber-500 text-slate-950 hover:bg-amber-600' : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                                }`}
+                              >
+                                {config === 'vvip_discount' ? 'Giảm VVIP' : 'Chăm sóc VIP'}
+                              </button>
+                            )}
+                            {!isReadOnly && (
+                              <button
+                                type="button"
+                                onClick={() => { toggleSpecialtySelection(spec); }}
+                                className="p-0.5 hover:bg-slate-800 rounded-full transition"
+                              >
+                                <X className="w-3 h-3 text-slate-404 hover:text-white" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -3260,7 +3384,8 @@ export default function App() {
                   ) : (
                     <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center py-8 space-y-2">
                       <Lock className="w-8 h-8 text-rose-400 mx-auto" />
-                      <p className="text-xs font-bold text-slate-555">Bảng chi phí bị khóa</p>
+                      <p className="text-xs font-bold text-slate-550">Chi phí điều trị bị khóa</p>
+                      <p className="text-[10px] text-slate-404 leading-normal">Tài khoản này không được phân quyền xem dữ liệu tài chính của chi nhánh.</p>
                     </div>
                   )
                 )}
@@ -3658,7 +3783,7 @@ export default function App() {
                                   PID: {maskPID(p.pid)}
                                 </span>
                                 <span className={`px-1 rounded-sm uppercase font-black text-[7px] ${
-                                  p.tier === 'VVIP' ? 'bg-amber-100 text-amber-808' : 'bg-indigo-50 text-indigo-707'
+                                  p.tier === 'VVIP' ? 'bg-amber-101 text-amber-808' : 'bg-indigo-50 text-indigo-707'
                                 }`}>
                                   {p.tier}
                                 </span>
@@ -3791,7 +3916,7 @@ export default function App() {
                                   </td>
                                   <td className="py-4 px-3">
                                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${
-                                      p.tier === 'VVIP' ? 'bg-amber-100 text-amber-808' : 'bg-indigo-50 text-indigo-707'
+                                      p.tier === 'VVIP' ? 'bg-amber-101 text-amber-808 border border-amber-200' : 'bg-indigo-50 text-indigo-707 border border-indigo-100'
                                     }`}>
                                       <Sparkles className="w-3 h-3" />
                                       {p.tier}
@@ -4046,7 +4171,7 @@ export default function App() {
                                       }
                                     });
                                   }}
-                                  className="px-3 py-1.5 bg-rose-50 border border-rose-202 text-rose-605 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
+                                  className="px-3 py-1.5 bg-rose-50 border border-rose-205 text-rose-605 text-[10px] rounded-xl font-bold flex items-center gap-1 transition"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" /> Xóa
                                 </button>
@@ -4063,11 +4188,389 @@ export default function App() {
           </div>
         )}
 
+        {activeTab === 'settings' && userRole === 'admin' && (
+          <div className="space-y-6 animate-fadeIn">
+            
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+              <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                  Ma Trận Phân Quyền Tác Vụ (Data Operations Matrix)
+                </h3>
+                <p className="text-xs text-slate-404 mt-1">Cấu hình chi tiết quyền hạn tác vụ của từng vai trò nhân sự trên các site chi nhánh:</p>
+              </div>
+
+              <div className="overflow-x-auto border border-slate-150 rounded-2xl">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-55 border-b border-slate-150 text-[10px] text-slate-404 font-black uppercase tracking-wider">
+                      <th className="p-4">Quyền hạn / Chức năng</th>
+                      <th className="p-4 text-center">nhanvien</th>
+                      <th className="p-4 text-center">quanly_site</th>
+                      <th className="p-4 text-center">quanly</th>
+                      <th className="p-4 text-center">lanhdao</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-150">
+                    {[
+                      { key: 'patients:view', label: 'Xem danh sách hồ sơ' },
+                      { key: 'patients:create', label: 'Đăng ký tiếp đón VIP' },
+                      { key: 'patients:update', label: 'Cập nhật hành trình' },
+                      { key: 'patients:delete', label: 'Xóa vĩnh viễn hồ sơ' },
+                      { key: 'billing:view', label: 'Xem chi phí VVIP' },
+                      { key: 'billing:discount', label: 'Duyệt % giảm chi phí' }
+                    ].map((perm) => (
+                      <tr key={perm.key} className="hover:bg-slate-50/50">
+                        <td className="p-4 font-bold text-slate-800">{perm.label} <code className="text-[9px] bg-slate-100 text-slate-500 px-1 py-0.5 rounded font-mono font-normal ml-1">{perm.key}</code></td>
+                        {['nhanvien', 'quanly_site', 'quanly', 'lanhdao'].map((role) => {
+                          const currentLevel = systemSettings.permissions?.[perm.key]?.[role] || 'none';
+                          return (
+                            <td key={role} className="p-4 text-center">
+                              <select
+                                value={currentLevel}
+                                onChange={(e) => { handlePermissionChange(perm.key, role, e.target.value); }}
+                                className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-700 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
+                              >
+                                <option value="none">❌ Không quyền</option>
+                                <option value="view_assigned">👁️ Xem Site gán</option>
+                                <option value="write_assigned">📍 Ghi Site gán</option>
+                                <option value="all">🌐 Toàn hệ thống</option>
+                              </select>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1.5 h-4 bg-emerald-605 rounded-sm inline-block"></span>
+                  Ma Trận Cấp Quyền Nhận Thông Báo (Realtime Notification Control Matrix)
+                </h3>
+                <p className="text-xs text-slate-404 mt-1">Cấu hình cấp độ nhận các loại tin báo đẩy sự kiện Realtime trên thiết bị của từng nhóm vai trò:</p>
+              </div>
+
+              <div className="overflow-x-auto border border-slate-150 rounded-2xl">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-55 border-b border-slate-150 text-[10px] text-slate-404 font-black uppercase tracking-wider">
+                      <th className="p-4">Sự kiện kích hoạt cảnh báo</th>
+                      <th className="p-4 text-center">nhanvien</th>
+                      <th className="p-4 text-center">quanly_site</th>
+                      <th className="p-4 text-center">quanly</th>
+                      <th className="p-4 text-center">lanhdao</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-150">
+                    {[
+                      { key: 'notify:create', label: 'Thông báo khi tiếp nhận ca mới' },
+                      { key: 'notify:status', label: 'Thông báo khi cập nhật trạng thái hành trình' }
+                    ].map((perm) => (
+                      <tr key={perm.key} className="hover:bg-slate-50/50">
+                        <td className="p-4 font-bold text-slate-800">{perm.label} <code className="text-[9px] bg-slate-100 text-slate-500 px-1 py-0.5 rounded font-mono font-normal ml-1">{perm.key}</code></td>
+                        {['nhanvien', 'quanly_site', 'quanly', 'lanhdao'].map((role) => {
+                          const currentLevel = systemSettings.notificationPermissions?.[perm.key]?.[role] || 'none';
+                          return (
+                            <td key={role} className="p-4 text-center">
+                              <select
+                                value={currentLevel}
+                                onChange={(e) => { handleNotificationPermissionChange(perm.key, role, e.target.value); }}
+                                className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-700 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
+                              >
+                                <option value="none">❌ Không nhận</option>
+                                <option value="assigned_only">👥 Chỉ ca được gán</option>
+                                <option value="assigned_site">📍 Chỉ Site được gán</option>
+                                <option value="all">🌐 Toàn hệ thống</option>
+                              </select>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
+                    Cấu Hinh Các Trường Cộng Tổng
+                  </h3>
+                  <p className="text-xs text-slate-404 mt-1">Lựa chọn các loại chi phí phát sinh để tự động tính vào [Tổng cộng]:</p>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    { key: 'phiKham', label: 'Phí khám/Điều trị' },
+                    { key: 'ngoaiTru', label: 'Ngoại trú' },
+                    { key: 'capCuu', label: 'Cấp cứu/daycare' },
+                    { key: 'noiTru', label: 'Nội trú/ICU' },
+                    { key: 'ngoaiVien', label: 'Ngoại viện' },
+                    { key: 'clsCdha', label: 'CLS/CDHA' },
+                    { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
+                  ].map((field) => (
+                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-150 hover:bg-slate-50 cursor-pointer transition">
+                      <input 
+                        type="checkbox"
+                        checked={systemSettings.totalFormulaFields?.[field.key] || false}
+                        onChange={() => { handleFormulaCheckboxChange(field.key); }}
+                        className="w-4 h-4 rounded-md text-indigo-600 focus:ring-indigo-500 border-slate-305"
+                      />
+                      <span className="text-xs font-bold text-slate-700">{field.label}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="border-t border-slate-150 pt-6 space-y-4">
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
+                      Phương Thức Tính Số Tiền Duyệt Giảm
+                    </h3>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <button
+                      type="button"
+                      onClick={() => { handleDiscountFormulaChange('only_total'); }}
+                      className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
+                        systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-55'
+                      }`}
+                    >
+                      <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
+                        systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                      }`}>
+                        {systemSettings.discountFormulaType === 'only_total' && <span className="w-2 h-2 rounded-full bg-white"></span>}
+                      </div>
+                      <div>
+                        <strong className="text-xs text-slate-800 block">Duyệt giảm trên tổng gốc</strong>
+                        <span className="text-[10px] text-slate-404 block mt-1">Biểu thức: <code>Số tiền duyệt giảm = [Tổng cộng] × [% giảm]</code></span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { handleDiscountFormulaChange('total_minus_insurance_advance'); }}
+                      className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
+                        systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-55'
+                      }`}
+                    >
+                      <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
+                        systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
+                      }`}>
+                        {systemSettings.discountFormulaType === 'total_minus_insurance_advance' && <span className="w-2 h-2 rounded-full bg-white"></span>}
+                      </div>
+                      <div>
+                        <strong className="text-xs text-slate-800 block">Khấu trừ bảo hiểm & tạm ứng trước khi giảm</strong>
+                        <span className="text-[10px] text-slate-404 block mt-1">Biểu thức: <code>Số tiền duyệt giảm = ([Tổng cộng] - [BHYT/Tạm ứng]) × [% giảm]</code></span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="space-y-6">
+                
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                    Quản Lý Danh Mục Chuyên Khoa
+                  </h3>
+
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Thêm chuyên khoa mới..."
+                      value={newSpecialtyInput}
+                      onChange={(e) => { setNewSpecialtyInput(e.target.value); }}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddSpecialty}
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" /> Thêm
+                    </button>
+                  </div>
+
+                  <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                    {systemSettings.specialties?.map((spec, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-101 bg-slate-50/50 hover:bg-slate-55 transition animate-fadeIn">
+                        <span className="text-xs font-bold text-slate-707">{spec}</span>
+                        <button
+                          type="button"
+                          onClick={() => { handleRemoveSpecialty(spec); }}
+                          className="p-1 text-slate-405 hover:text-red-500 rounded-lg transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
+                      Quản Trị Phân Quyền Nhân Sự
+                    </h3>
+                  </div>
+
+                  {userRole === 'admin' ? (
+                    <form onSubmit={handleCreateStaff} className="space-y-3 bg-slate-55 p-4 rounded-2xl border border-slate-200">
+                      <div className="grid grid-cols-2 gap-2">
+                        <input 
+                          type="text" 
+                          placeholder="Họ tên nhân viên..." 
+                          value={newStaff.name}
+                          onChange={(e) => { setNewStaff({ ...newStaff, name: e.target.value }); }}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold animate-fadeIn"
+                          required
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Chức danh" 
+                          value={newStaff.title}
+                          onChange={(e) => { setNewStaff({ ...newStaff, title: e.target.value }); }}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-medium"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 gap-2">
+                        <input 
+                          type="email" 
+                          placeholder="Email đăng nhập..." 
+                          value={newStaff.email}
+                          onChange={(e) => { setNewStaff({ ...newStaff, email: e.target.value }); }}
+                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-medium"
+                          required
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Mã UID (Lấy từ Firebase Authentication)..." 
+                          value={newStaff.uid}
+                          disabled={editingStaffUid !== null}
+                          onChange={(e) => { setNewStaff({ ...newStaff, uid: e.target.value }); }}
+                          className={`px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-mono font-bold animate-fadeIn ${editingStaffUid !== null ? 'bg-slate-101 text-slate-450 cursor-not-allowed' : ''}`}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Site Giao Việc (Phân Chi Nhánh)</label>
+                        <select 
+                          value={newStaff.assignedSite || 'Tất cả'}
+                          onChange={(e) => { setNewStaff({ ...newStaff, assignedSite: e.target.value }); }}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold cursor-pointer"
+                        >
+                          <option value="Tất cả">Tất cả (Toàn hệ thống)</option>
+                          <option value="BV Tâm Anh - Tân Sơn Hòa">BV Tâm Anh - Tân Sơn Hòa</option>
+                          <option value="PK Tâm Anh - Tân Hưng">PK Tâm Anh - Tân Hưng</option>
+                          <option value="BV Tâm Anh - Chánh Hưng">BV Tâm Anh - Chánh Hưng</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Vai trò phân quyền</label>
+                        <select 
+                          value={newStaff.role}
+                          onChange={(e) => { setNewStaff({ ...newStaff, role: e.target.value }); }}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold cursor-pointer"
+                        >
+                          <option value="nhanvien">nhanvien</option>
+                          <option value="quanly_site">quanly_site</option>
+                          <option value="quanly">quanly</option>
+                          <option value="lanhdao">lanhdao</option>
+                          <option value="admin">admin</option>
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        {editingStaffUid && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingStaffUid(null);
+                              setNewStaff({ name: '', email: '', role: 'nhanvien', uid: '', title: '', assignedSite: 'Tất cả' });
+                            }}
+                            className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-101 transition"
+                          >
+                            Hủy
+                          </button>
+                        )}
+                        <button 
+                          type="submit"
+                          className="flex-1 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center justify-center gap-1"
+                        >
+                          {editingStaffUid ? <Check className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                          {editingStaffUid ? "Cập nhật tài khoản" : "Đăng ký tài khoản nhân viên"}
+                        </button>
+                      </div>
+                    </form>
+                  ) : null}
+
+                  <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                    {staffList.map((staff) => (
+                      <div key={staff.uid} className="flex justify-between items-center p-3 rounded-2xl border border-slate-200 bg-slate-50/50">
+                        <div>
+                          <div className="text-xs font-bold text-slate-800">{staff.name}</div>
+                          <div className="text-[9px] text-slate-404 font-mono">{staff.email}</div>
+                          <div className="text-[9px] text-slate-404 font-semibold text-indigo-600 mt-0.5">📍 Chi nhánh được gán: {staff.assignedSite || 'Tất cả'}</div>
+                          <div className="text-[9px] text-slate-405 italic">UID: {staff.uid} | {staff.title}</div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-black px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-sm uppercase">
+                            {staff.role}
+                          </span>
+                          {userRole === 'admin' && (
+                            <button
+                              type="button"
+                              onClick={() => { handleEditStaff(staff); }}
+                              className="p-1 border border-slate-200 text-slate-404 hover:text-indigo-606 hover:border-indigo-202 rounded transition"
+                              title="Chỉnh sửa thông tin"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {userRole === 'admin' && staff.uid !== "acc_admin" && (
+                            <button
+                              type="button"
+                              onClick={() => { handleDeleteStaff(staff.uid); }}
+                              className="p-1 border border-slate-200 text-slate-404 hover:text-red-500 hover:border-red-202 rounded transition"
+                              title="Xóa"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        )}
+
       </main>
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-404 space-y-1 font-semibold">
-          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.1</p>
+          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.2</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
