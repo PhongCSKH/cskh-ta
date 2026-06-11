@@ -293,7 +293,7 @@ export default function App() {
     date: new Date().toISOString().split('T')[0],
     specialties: [],
     site: 'BV Tâm Anh - Tân Sơn Hòa',
-    examinationArea: 'Khu VIP',
+    examinationArea: '',
     ngoaiTru: true,
     capCuu: false,
     noiTru: false,
@@ -484,8 +484,9 @@ export default function App() {
     e.preventDefault();
     e.stopPropagation();
     if (!text) return;
+    const textStr = String(text);
     const textArea = document.createElement("textarea");
-    textArea.value = text;
+    textArea.value = textStr;
     document.body.appendChild(textArea);
     textArea.select();
     try {
@@ -532,7 +533,7 @@ export default function App() {
       date: new Date().toISOString().split('T')[0],
       specialties: [],
       site: defaultSite,
-      examinationArea: 'Khu VIP',
+      examinationArea: '',
       ngoaiTru: true,
       capCuu: false,
       noiTru: false,
@@ -1250,6 +1251,10 @@ export default function App() {
       showNotification("Mã PID là bắt buộc!", "error");
       return;
     }
+    if (!formData?.examinationArea) {
+      showNotification("Vui lòng lựa chọn Khu Vực Khám!", "error");
+      return;
+    }
 
     const action = currentId ? 'patients:update' : 'patients:create';
     const isAllowed = hasAccessToPatient(formData, action);
@@ -1372,7 +1377,7 @@ export default function App() {
       date: patient?.date || new Date().toISOString().split('T')[0],
       specialties: patient?.specialties || [],
       site: patient?.site || 'BV Tâm Anh - Tân Sơn Hòa',
-      examinationArea: patient?.examinationArea || 'Khu VIP',
+      examinationArea: patient?.examinationArea || '',
       ngoaiTru: patient?.ngoaiTru !== undefined ? patient?.ngoaiTru : (initTreatmentType === 'Ngoại trú'),
       capCuu: patient?.capCuu !== undefined ? patient?.capCuu : (initTreatmentType === 'Cấp cứu/Daycare'),
       noiTru: patient?.noiTru !== undefined ? patient?.noiTru : (initTreatmentType === 'Nội trú/ICU'),
@@ -1470,7 +1475,7 @@ export default function App() {
       ...prev,
       specialties: visit?.specialties || [],
       site: finalSite,
-      examinationArea: visit?.examinationArea || 'Khu VIP',
+      examinationArea: visit?.examinationArea || '',
       boardApproval: visit?.boardApproval || '',
       notes: visit?.notes || '',
       treatmentType: visit?.treatmentType || 'Ngoại trú',
@@ -1745,7 +1750,7 @@ export default function App() {
 
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-550 uppercase tracking-wider block">Email </label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Email </label>
               <input 
                 type="email" 
                 placeholder="nhập email tại đây"
@@ -1925,7 +1930,7 @@ export default function App() {
             <button
               type="button"
               onClick={stopScanner}
-              className="px-4 py-1.5 border border-slate-200 text-slate-550 hover:bg-slate-55 text-[11px] font-bold rounded-xl transition w-full"
+              className="px-4 py-1.5 border border-slate-200 text-slate-550 hover:bg-slate-50 text-[11px] font-bold rounded-xl transition w-full"
             >
               Hủy bỏ quét
             </button>
@@ -1937,7 +1942,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center gap-2.5 text-rose-600">
-              <ShieldAlert className="w-5 h-5 flex-shrink-0 text-rose-505" />
+              <ShieldAlert className="w-5 h-5 flex-shrink-0 text-rose-555" />
               <h3 className="text-base font-extrabold text-slate-955">{confirmModal.title || "Xác nhận tác vụ"}</h3>
             </div>
             <p className="text-sm text-slate-555 leading-relaxed font-medium">{confirmModal.message}</p>
@@ -2087,7 +2092,7 @@ export default function App() {
 
                   <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                     {iosNotificationStatus !== 'granted' && (
-                      <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-2xl text-xs text-indigo-800 space-y-1.5">
+                      <div className="p-3 bg-indigo-50 border border-indigo-101 rounded-2xl text-xs text-indigo-800 space-y-1.5">
                         <p className="font-extrabold text-[11px]">Bật nhận tin ngầm khi đóng ứng dụng (FCM)</p>
                         <button
                           type="button"
@@ -2137,7 +2142,7 @@ export default function App() {
               </div>
               <button 
                 onClick={handleLogout}
-                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl border border-slate-200 transition-all"
+                className="p-2 text-slate-404 hover:text-red-500 hover:bg-red-50 rounded-xl border border-slate-200 transition-all"
                 title="Đăng xuất"
               >
                 <LogOut className="w-5 h-5" />
@@ -2152,7 +2157,7 @@ export default function App() {
         {canShowTab('dashboard') && (
           <button 
             onClick={() => { resetForm(); setActiveTab('dashboard'); }}
-            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-404'}`}
           >
             <LayoutDashboard className="w-5 h-5" />
             <span>Bảng điều khiển</span>
@@ -2161,7 +2166,7 @@ export default function App() {
         {canShowTab('register') && (
           <button 
             onClick={() => { resetForm(); setActiveTab('register'); }}
-            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'register' ? 'text-indigo-600' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'register' ? 'text-indigo-600' : 'text-slate-404'}`}
           >
             <Plus className="w-5 h-5" />
             <span>Tiếp nhận VIP</span>
@@ -2170,7 +2175,7 @@ export default function App() {
         {canShowTab('monitoring') && (
           <button 
             onClick={() => { resetForm(); setActiveTab('monitoring'); }}
-            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'monitoring' ? 'text-indigo-600' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'monitoring' ? 'text-indigo-600' : 'text-slate-404'}`}
           >
             <ClipboardList className="w-5 h-5" />
             <span>Theo dõi hồ sơ</span>
@@ -2179,7 +2184,7 @@ export default function App() {
         {userRole === 'admin' && (
           <button 
             onClick={() => { setActiveTab('settings'); }}
-            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-404'}`}
           >
             <Settings className="w-5 h-5" />
             <span>Cấu hình</span>
@@ -2286,7 +2291,7 @@ export default function App() {
                         type="button"
                         onClick={() => { setDashFilterMode('today'); }}
                         className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold transition ${
-                          dashFilterMode === 'today' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-505 hover:text-slate-855'
+                          dashFilterMode === 'today' ? 'bg-white text-slate-900 shadow-2xs font-black' : 'text-slate-505 hover:text-slate-850'
                         }`}
                       >
                         Hôm nay
@@ -2469,9 +2474,10 @@ export default function App() {
                                 </span>
                                 <div className="flex gap-1">
                                   <span className={`px-1 py-0.5 rounded-xs text-[7px] font-bold uppercase ${
-                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-100 text-indigo-800' : 'bg-teal-100 text-teal-800'
+                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-100 text-indigo-800' : 
+                                    p.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'bg-rose-100 text-rose-800' : 'bg-teal-100 text-teal-800'
                                   }`}>
-                                    {p.examinationArea === 'Khu VIP' ? 'VIP' : 'TC'}
+                                    {p.examinationArea === 'Khu VIP' ? 'VIP' : p.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'NT/CC/ICU' : 'TC'}
                                   </span>
                                   <span className={`px-1.5 py-0.5 rounded-sm text-[8px] font-black uppercase ${
                                     p.tier === 'VVIP' ? 'bg-amber-100 text-amber-808' : 'bg-indigo-50 text-indigo-707'
@@ -2711,7 +2717,7 @@ export default function App() {
                               disabled={!isAssigned || isReadOnly}
                               onClick={() => { handleInputChange('site', s.label); }}
                               className={`py-2 px-3 rounded-xl text-xs font-bold border transition text-center disabled:opacity-80 ${
-                                formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
+                                formData.site === s.label ? `${s.bg} border-slate-450 font-black` : 'bg-white border-slate-200 text-slate-555 hover:bg-slate-55/50'
                               }`}
                             >
                               {s.label} {!isAssigned && '🔒'}
@@ -2722,8 +2728,8 @@ export default function App() {
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2 animate-fadeIn">
-                      <label className="text-xs font-bold text-slate-605 block">Khu Vực Khám</label>
-                      <div className="grid grid-cols-2 gap-3">
+                      <label className="text-xs font-bold text-slate-605 block">Khu Vực Khám *</label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <button
                           type="button"
                           disabled={isReadOnly}
@@ -2743,6 +2749,16 @@ export default function App() {
                           }`}
                         >
                           Khu VIP
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isReadOnly}
+                          onClick={() => { handleInputChange('examinationArea', 'Nội Trú/Cấp cứu/ICU'); }}
+                          className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition duration-150 text-center disabled:opacity-80 ${
+                            formData.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'bg-rose-50 border-rose-500 text-rose-755 font-black shadow-2xs' : 'bg-white border-slate-200 text-slate-550 hover:bg-slate-55/50'
+                          }`}
+                        >
+                          Nội Trú/Cấp cứu/ICU
                         </button>
                       </div>
                     </div>
@@ -2869,13 +2885,13 @@ export default function App() {
                         <span className="w-1.5 h-4 bg-emerald-600 rounded-sm inline-block"></span>
                         Nhật Ký Thăm Hỏi & Chăm Sóc Sức Khỏe Realtime
                       </h3>
-                      <span className="bg-indigo-50 text-indigo-700 font-extrabold text-[10px] px-2.5 py-0.5 rounded-md border border-indigo-100 font-mono">
+                      <span className="bg-indigo-50 text-indigo-707 font-extrabold text-[10px] px-2.5 py-0.5 rounded-md border border-indigo-100 font-mono">
                         {(formData.roundingLogs || []).length} lượt thăm
                       </span>
                     </div>
 
                     {['Nội trú/ICU', 'Cấp cứu/Daycare'].includes(formData.treatmentType) ? (
-                      <div className="p-3 bg-emerald-50/50 border border-emerald-100 text-[11px] text-emerald-800 rounded-2xl font-bold">
+                      <div className="p-3 bg-emerald-50/50 border border-emerald-101 text-[11px] text-emerald-800 rounded-2xl font-bold">
                         ℹ️ Khách hàng đang ở chế độ điều trị nội trú trọng điểm. Đề xuất nhân sự CSKH và Quản lý thực hiện đi buồng thăm hỏi định kỳ 2 lần/ngày.
                       </div>
                     ) : null}
@@ -3244,8 +3260,7 @@ export default function App() {
                   ) : (
                     <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center py-8 space-y-2">
                       <Lock className="w-8 h-8 text-rose-400 mx-auto" />
-                      <p className="text-xs font-bold text-slate-550">Chi phí điều trị bị khóa</p>
-                      <p className="text-[10px] text-slate-404 leading-normal">Tài khoản này không được phân quyền xem dữ liệu tài chính của chi nhánh.</p>
+                      <p className="text-xs font-bold text-slate-555">Bảng chi phí bị khóa</p>
                     </div>
                   )
                 )}
@@ -3776,7 +3791,7 @@ export default function App() {
                                   </td>
                                   <td className="py-4 px-3">
                                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wide ${
-                                      p.tier === 'VVIP' ? 'bg-amber-100 text-amber-808 border border-amber-200' : 'bg-indigo-50 text-indigo-707 border border-indigo-100'
+                                      p.tier === 'VVIP' ? 'bg-amber-100 text-amber-808' : 'bg-indigo-50 text-indigo-707'
                                     }`}>
                                       <Sparkles className="w-3 h-3" />
                                       {p.tier}
@@ -3789,9 +3804,11 @@ export default function App() {
                                         {pSite.label}
                                       </div>
                                       <div className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
-                                        p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-202 text-indigo-707' : 'bg-teal-50 border-teal-202 text-teal-707'
+                                        p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-202 text-indigo-707' : 
+                                        p.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'bg-rose-50 border-rose-200 text-rose-707' :
+                                        'bg-teal-50 border-teal-202 text-teal-707'
                                       }`}>
-                                        {p.examinationArea || 'Khu VIP'}
+                                        {p.examinationArea || '---'}
                                       </div>
                                     </div>
                                   </td>
@@ -3934,9 +3951,11 @@ export default function App() {
                                     {pSite.label}
                                   </span>
                                   <span className={`inline-block px-1.5 py-0.5 rounded-sm text-[8px] font-bold border ${
-                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-202 text-indigo-707' : 'bg-teal-50 border-teal-202 text-teal-707'
+                                    p.examinationArea === 'Khu VIP' ? 'bg-indigo-50 border-indigo-202 text-indigo-707' : 
+                                    p.examinationArea === 'Nội Trú/Cấp cứu/ICU' ? 'bg-rose-50 border-rose-200 text-rose-707' :
+                                    'bg-teal-50 border-teal-202 text-teal-707'
                                   }`}>
-                                    {p.examinationArea || 'Khu VIP'}
+                                    {p.examinationArea || '---'}
                                   </span>
                                 </div>
                               </div>
@@ -4044,389 +4063,11 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'settings' && userRole === 'admin' && (
-          <div className="space-y-6 animate-fadeIn">
-            
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-              <h2 className="text-lg font-black text-slate-900">Cấu Hì̀nh Tham Số & Phân Quyền</h2>
-            </div>
-
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-              <div>
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                  Ma Trận Phân Quyền Tác Vụ (Data Operations Matrix)
-                </h3>
-                <p className="text-xs text-slate-404 mt-1">Cấu hình chi tiết quyền hạn tác vụ của từng vai trò nhân sự trên các site chi nhánh:</p>
-              </div>
-
-              <div className="overflow-x-auto border border-slate-150 rounded-2xl">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-slate-55 border-b border-slate-150 text-[10px] text-slate-404 font-black uppercase tracking-wider">
-                      <th className="p-4">Quyền hạn / Chức năng</th>
-                      <th className="p-4 text-center">nhanvien</th>
-                      <th className="p-4 text-center">quanly_site</th>
-                      <th className="p-4 text-center">quanly</th>
-                      <th className="p-4 text-center">lanhdao</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-150">
-                    {[
-                      { key: 'patients:view', label: 'Xem danh sách hồ sơ' },
-                      { key: 'patients:create', label: 'Đăng ký tiếp đón VIP' },
-                      { key: 'patients:update', label: 'Cập nhật hành trình' },
-                      { key: 'patients:delete', label: 'Xóa vĩnh viễn hồ sơ' },
-                      { key: 'billing:view', label: 'Xem chi phí VVIP' },
-                      { key: 'billing:discount', label: 'Duyệt % giảm chi phí' }
-                    ].map((perm) => (
-                      <tr key={perm.key} className="hover:bg-slate-50/50">
-                        <td className="p-4 font-bold text-slate-800">{perm.label} <code className="text-[9px] bg-slate-100 text-slate-500 px-1 py-0.5 rounded font-mono font-normal ml-1">{perm.key}</code></td>
-                        {['nhanvien', 'quanly_site', 'quanly', 'lanhdao'].map((role) => {
-                          const currentLevel = systemSettings.permissions?.[perm.key]?.[role] || 'none';
-                          return (
-                            <td key={role} className="p-4 text-center">
-                              <select
-                                value={currentLevel}
-                                onChange={(e) => { handlePermissionChange(perm.key, role, e.target.value); }}
-                                className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-700 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
-                              >
-                                <option value="none">❌ Không quyền</option>
-                                <option value="view_assigned">👁️ Xem Site gán</option>
-                                <option value="write_assigned">📍 Ghi Site gán</option>
-                                <option value="all">🌐 Toàn hệ thống</option>
-                              </select>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-              <div>
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-1.5 h-4 bg-emerald-605 rounded-sm inline-block"></span>
-                  Ma Trận Cấp Quyền Nhận Thông Báo (Realtime Notification Control Matrix)
-                </h3>
-                <p className="text-xs text-slate-404 mt-1">Cấu hình cấp độ nhận các loại tin báo đẩy sự kiện Realtime trên thiết bị của từng nhóm vai trò:</p>
-              </div>
-
-              <div className="overflow-x-auto border border-slate-150 rounded-2xl">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-slate-55 border-b border-slate-150 text-[10px] text-slate-404 font-black uppercase tracking-wider">
-                      <th className="p-4">Sự kiện kích hoạt cảnh báo</th>
-                      <th className="p-4 text-center">nhanvien</th>
-                      <th className="p-4 text-center">quanly_site</th>
-                      <th className="p-4 text-center">quanly</th>
-                      <th className="p-4 text-center">lanhdao</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-150">
-                    {[
-                      { key: 'notify:create', label: 'Thông báo khi tiếp nhận ca mới' },
-                      { key: 'notify:status', label: 'Thông báo khi cập nhật trạng thái hành trình' }
-                    ].map((perm) => (
-                      <tr key={perm.key} className="hover:bg-slate-50/50">
-                        <td className="p-4 font-bold text-slate-800">{perm.label} <code className="text-[9px] bg-slate-100 text-slate-500 px-1 py-0.5 rounded font-mono font-normal ml-1">{perm.key}</code></td>
-                        {['nhanvien', 'quanly_site', 'quanly', 'lanhdao'].map((role) => {
-                          const currentLevel = systemSettings.notificationPermissions?.[perm.key]?.[role] || 'none';
-                          return (
-                            <td key={role} className="p-4 text-center">
-                              <select
-                                value={currentLevel}
-                                onChange={(e) => { handleNotificationPermissionChange(perm.key, role, e.target.value); }}
-                                className="px-2 py-1.5 border border-slate-200 rounded-xl text-[11px] font-bold bg-white text-slate-700 cursor-pointer focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
-                              >
-                                <option value="none">❌ Không nhận</option>
-                                <option value="assigned_only">👥 Chỉ ca được gán</option>
-                                <option value="assigned_site">📍 Chỉ Site được gán</option>
-                                <option value="all">🌐 Toàn hệ thống</option>
-                              </select>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-                <div>
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
-                    Cấu Hinh Các Trường Cộng Tổng
-                  </h3>
-                  <p className="text-xs text-slate-404 mt-1">Lựa chọn các loại chi phí phát sinh để tự động tính vào [Tổng cộng]:</p>
-                </div>
-
-                <div className="space-y-3">
-                  {[
-                    { key: 'phiKham', label: 'Phí khám/Điều trị' },
-                    { key: 'ngoaiTru', label: 'Ngoại trú' },
-                    { key: 'capCuu', label: 'Cấp cứu/daycare' },
-                    { key: 'noiTru', label: 'Nội trú/ICU' },
-                    { key: 'ngoaiVien', label: 'Ngoại viện' },
-                    { key: 'clsCdha', label: 'CLS/CDHA' },
-                    { key: 'thuocVacxin', label: 'Thuốc/vacxin' }
-                  ].map((field) => (
-                    <label key={field.key} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-150 hover:bg-slate-50 cursor-pointer transition">
-                      <input 
-                        type="checkbox"
-                        checked={systemSettings.totalFormulaFields?.[field.key] || false}
-                        onChange={() => { handleFormulaCheckboxChange(field.key); }}
-                        className="w-4 h-4 rounded-md text-indigo-600 focus:ring-indigo-500 border-slate-305"
-                      />
-                      <span className="text-xs font-bold text-slate-700">{field.label}</span>
-                    </label>
-                  ))}
-                </div>
-
-                <div className="border-t border-slate-150 pt-6 space-y-4">
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-1.5 h-4 bg-amber-500 rounded-sm inline-block"></span>
-                      Phương Thức Tính Số Tiền Duyệt Giảm
-                    </h3>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <button
-                      type="button"
-                      onClick={() => { handleDiscountFormulaChange('only_total'); }}
-                      className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
-                        systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-55'
-                      }`}
-                    >
-                      <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
-                        systemSettings.discountFormulaType === 'only_total' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
-                      }`}>
-                        {systemSettings.discountFormulaType === 'only_total' && <span className="w-2 h-2 rounded-full bg-white"></span>}
-                      </div>
-                      <div>
-                        <strong className="text-xs text-slate-800 block">Duyệt giảm trên tổng gốc</strong>
-                        <span className="text-[10px] text-slate-404 block mt-1">Biểu thức: <code>Số tiền duyệt giảm = [Tổng cộng] × [% giảm]</code></span>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => { handleDiscountFormulaChange('total_minus_insurance_advance'); }}
-                      className={`w-full p-4 rounded-2xl border text-left transition flex items-start gap-3 ${
-                        systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-55'
-                      }`}
-                    >
-                      <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center mt-0.5 ${
-                        systemSettings.discountFormulaType === 'total_minus_insurance_advance' ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
-                      }`}>
-                        {systemSettings.discountFormulaType === 'total_minus_insurance_advance' && <span className="w-2 h-2 rounded-full bg-white"></span>}
-                      </div>
-                      <div>
-                        <strong className="text-xs text-slate-800 block">Khấu trừ bảo hiểm & tạm ứng trước khi giảm</strong>
-                        <span className="text-[10px] text-slate-404 block mt-1">Biểu thức: <code>Số tiền duyệt giảm = ([Tổng cộng] - [BHYT/Tạm ứng]) × [% giảm]</code></span>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-
-              <div className="space-y-6">
-                
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                    Quản Lý Danh Mục Chuyên Khoa
-                  </h3>
-
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      placeholder="Thêm chuyên khoa mới..."
-                      value={newSpecialtyInput}
-                      onChange={(e) => { setNewSpecialtyInput(e.target.value); }}
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-1 focus:ring-indigo-505"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddSpecialty}
-                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center gap-1"
-                    >
-                      <Plus className="w-4 h-4" /> Thêm
-                    </button>
-                  </div>
-
-                  <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                    {systemSettings.specialties?.map((spec, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-3 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-55 transition animate-fadeIn">
-                        <span className="text-xs font-bold text-slate-700">{spec}</span>
-                        <button
-                          type="button"
-                          onClick={() => { handleRemoveSpecialty(spec); }}
-                          className="p-1 text-slate-405 hover:text-red-500 rounded-lg transition"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-1.5 h-4 bg-indigo-600 rounded-sm inline-block"></span>
-                      Quản Trị Phân Quyền Nhân Sự
-                    </h3>
-                  </div>
-
-                  {userRole === 'admin' ? (
-                    <form onSubmit={handleCreateStaff} className="space-y-3 bg-slate-55 p-4 rounded-2xl border border-slate-200">
-                      <div className="grid grid-cols-2 gap-2">
-                        <input 
-                          type="text" 
-                          placeholder="Họ tên nhân viên..." 
-                          value={newStaff.name}
-                          onChange={(e) => { setNewStaff({ ...newStaff, name: e.target.value }); }}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold animate-fadeIn"
-                          required
-                        />
-                        <input 
-                          type="text" 
-                          placeholder="Chức danh" 
-                          value={newStaff.title}
-                          onChange={(e) => { setNewStaff({ ...newStaff, title: e.target.value }); }}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-medium"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 gap-2">
-                        <input 
-                          type="email" 
-                          placeholder="Email đăng nhập..." 
-                          value={newStaff.email}
-                          onChange={(e) => { setNewStaff({ ...newStaff, email: e.target.value }); }}
-                          className="px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-medium"
-                          required
-                        />
-                        <input 
-                          type="text" 
-                          placeholder="Mã UID (Lấy từ Firebase Authentication)..." 
-                          value={newStaff.uid}
-                          disabled={editingStaffUid !== null}
-                          onChange={(e) => { setNewStaff({ ...newStaff, uid: e.target.value }); }}
-                          className={`px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-mono font-bold animate-fadeIn ${editingStaffUid !== null ? 'bg-slate-101 text-slate-450 cursor-not-allowed' : ''}`}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Site Giao Việc (Phân Chi Nhánh)</label>
-                        <select 
-                          value={newStaff.assignedSite || 'Tất cả'}
-                          onChange={(e) => { setNewStaff({ ...newStaff, assignedSite: e.target.value }); }}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold cursor-pointer"
-                        >
-                          <option value="Tất cả">Tất cả (Toàn hệ thống)</option>
-                          <option value="BV Tâm Anh - Tân Sơn Hòa">BV Tâm Anh - Tân Sơn Hòa</option>
-                          <option value="PK Tâm Anh - Tân Hưng">PK Tâm Anh - Tân Hưng</option>
-                          <option value="BV Tâm Anh - Chánh Hưng">BV Tâm Anh - Chánh Hưng</option>
-                        </select>
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-555 block uppercase tracking-wider">Vai trò phân quyền</label>
-                        <select 
-                          value={newStaff.role}
-                          onChange={(e) => { setNewStaff({ ...newStaff, role: e.target.value }); }}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-505 font-bold cursor-pointer"
-                        >
-                          <option value="nhanvien">nhanvien</option>
-                          <option value="quanly_site">quanly_site</option>
-                          <option value="quanly">quanly</option>
-                          <option value="lanhdao">lanhdao</option>
-                          <option value="admin">admin</option>
-                        </select>
-                      </div>
-                      <div className="flex gap-2">
-                        {editingStaffUid && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingStaffUid(null);
-                              setNewStaff({ name: '', email: '', role: 'nhanvien', uid: '', title: '', assignedSite: 'Tất cả' });
-                            }}
-                            className="flex-1 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-101 transition"
-                          >
-                            Hủy
-                          </button>
-                        )}
-                        <button 
-                          type="submit"
-                          className="flex-1 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-850 border border-slate-900 transition flex items-center justify-center gap-1"
-                        >
-                          {editingStaffUid ? <Check className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-                          {editingStaffUid ? "Cập nhật tài khoản" : "Đăng ký tài khoản nhân viên"}
-                        </button>
-                      </div>
-                    </form>
-                  ) : null}
-
-                  <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
-                    {staffList.map((staff) => (
-                      <div key={staff.uid} className="flex justify-between items-center p-3 rounded-2xl border border-slate-200 bg-slate-50/50">
-                        <div>
-                          <div className="text-xs font-bold text-slate-800">{staff.name}</div>
-                          <div className="text-[9px] text-slate-404 font-mono">{staff.email}</div>
-                          <div className="text-[9px] text-slate-404 font-semibold text-indigo-600 mt-0.5">📍 Chi nhánh được gán: {staff.assignedSite || 'Tất cả'}</div>
-                          <div className="text-[9px] text-slate-405 italic">UID: {staff.uid} | {staff.title}</div>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[9px] font-black px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-sm uppercase">
-                            {staff.role}
-                          </span>
-                          {userRole === 'admin' && (
-                            <button
-                              type="button"
-                              onClick={() => { handleEditStaff(staff); }}
-                              className="p-1 border border-slate-200 text-slate-404 hover:text-indigo-606 hover:border-indigo-200 rounded transition"
-                              title="Chỉnh sửa thông tin"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                          {userRole === 'admin' && staff.uid !== "acc_admin" && (
-                            <button
-                              type="button"
-                              onClick={() => { handleDeleteStaff(staff.uid); }}
-                              className="p-1 border border-slate-200 text-slate-404 hover:text-red-500 hover:border-red-200 rounded transition"
-                              title="Xóa"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
-          </div>
-        )}
-
       </main>
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-404 space-y-1 font-semibold">
-          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.0</p>
+          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.1</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
