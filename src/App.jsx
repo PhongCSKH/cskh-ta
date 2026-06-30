@@ -2100,6 +2100,11 @@ export default function App() {
       const row = worksheet.getRow(r);
       row.values = rowValues;
 
+      // Tính chiều cao hàng động theo số lượng chuyên khoa (tối thiểu 24)
+      const p = reportFilteredPatients[idx];
+      const numSpecs = (p && p.specialties && p.specialties.length > 0) ? p.specialties.length : 1;
+      row.height = numSpecs * 24;
+
       const cellBorder = { style: 'thin', color: { argb: 'FFCCCCCC' } };
       for (let c = 1; c <= 17; c++) {
         const cell = row.getCell(c);
