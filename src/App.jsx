@@ -245,6 +245,47 @@ const sites = [
   { id: 'ch', label: 'BV Tâm Anh - Chánh Hưng', bg: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500', cardBg: 'bg-[#f0fdf4] border-[#bbf7d0] hover:border-[#86efac]' }
 ];
 
+const getFormattedBoardApproval = (val) => {
+  if (!val) return '';
+  const v = val.trim();
+  if (v === 'Sếp Dũng') return 'Anh Dũng - CT HĐQT';
+  if (v === 'Sếp Hoa') return 'Chị Hoa - TGĐ';
+  if (v === 'Sếp Nga') return 'Chị Nga - P.CT HĐQT';
+  if (v === 'Sếp Thông') return 'Anh Thông - P.CT HĐQT';
+  return v;
+};
+
+const getPidGroupSpans = (filteredPatients) => {
+  const spans = [];
+  let i = 0;
+  while (i < filteredPatients.length) {
+    const currentPid = filteredPatients[i].pid || '';
+    let count = 1;
+    let j = i + 1;
+    while (j < filteredPatients.length && (filteredPatients[j].pid || '') === currentPid) {
+      count++;
+      j++;
+    }
+    spans[i] = { rowSpan: count, isFirst: true };
+    for (let k = i + 1; k < j; k++) {
+      spans[k] = { rowSpan: 0, isFirst: false };
+    }
+    i = j;
+  }
+  return spans;
+};
+
+const getNumLinesForText = (text, charLimit = 30) => {
+  if (!text) return 1;
+  const segments = String(text).split('\n');
+  let totalLines = 0;
+  segments.forEach(seg => {
+    const len = seg.length;
+    totalLines += Math.max(1, Math.ceil(len / charLimit));
+  });
+  return totalLines;
+};
+
 const getFormattedSiteName = (site) => {
   if (!site) return '';
   const s = site.trim();
@@ -1930,12 +1971,12 @@ export default function App() {
 
     // Thiết lập chiều rộng cột
     worksheet.columns = [
-      { width: 25 }, // Họ tên khách VIP-VVIP (Đã mở rộng vừa phải)
-      { width: 18 }, // HĐQT phê duyệt
-      { width: 30 }, // Ghi chú (Đã kéo rộng vừa phải)
-      { width: 10 }, // PID
-      { width: 15 }, // Ngày khám/điều trị
-      { width: 20 }, // Chuyên khoa (Đã kéo rộng vừa phải)
+      { width: 32 }, // Họ tên khách VIP-VVIP (Tăng rộng để chứa full chữ)
+      { width: 25 }, // HĐQT phê duyệt (Tăng rộng để chứa full chức danh)
+      { width: 40 }, // Ghi chú (Tăng rộng để chứa ghi chú dài)
+      { width: 12 }, // PID
+      { width: 18 }, // Ngày khám/điều trị
+      { width: 28 }, // Chuyên khoa (Tăng rộng để chứa chuyên khoa không bị xuống hàng)
       { width: 9 },  // Ngoại trú
       { width: 9 },  // Cấp cứu
       { width: 11 }, // Nội trú/ICU
@@ -2092,7 +2133,7 @@ export default function App() {
 
       return [
         p.name ? p.name.toUpperCase() : '',
-        p.boardApproval || '',
+        p.boardApproval ? getFormattedBoardApproval(p.boardApproval) : '',
         p.notes || '',
         p.pid || '',
         p.date ? formatDateVN(p.date) : '---',
@@ -2116,10 +2157,12 @@ export default function App() {
       const row = worksheet.getRow(r);
       row.values = rowValues;
 
-      // Tính chiều cao hàng động theo số lượng chuyên khoa (tối thiểu 24)
+      // Tính chiều cao hàng động theo số lượng chuyên khoa và ghi chú (tối thiểu 24)
       const p = reportFilteredPatients[idx];
       const numSpecs = (p && p.specialties && p.specialties.length > 0) ? p.specialties.length : 1;
-      row.height = numSpecs * 24;
+      const numNotes = getNumLinesForText(p && p.notes, 38); // chiều rộng cột ghi chú là 40, lấy 38 trừ lề
+      const maxLines = Math.max(numSpecs, numNotes);
+      row.height = maxLines * 24;
 
       const cellBorder = { style: 'thin', color: { argb: 'FFCCCCCC' } };
       for (let c = 1; c <= 17; c++) {
@@ -2169,6 +2212,25 @@ export default function App() {
         cell.alignment = { vertical: 'middle', horizontal: horizontalAlign, wrapText };
       }
     });
+
+    // Gộp ô các dòng cùng mã PID (Họ tên ở cột A, PID ở cột D)
+    let mergeIdx = 0;
+    while (mergeIdx < rowData.length) {
+      const currentPid = rowData[mergeIdx][3]; // PID nằm ở cột thứ 4 (chỉ số 3)
+      let count = 1;
+      let nextMergeIdx = mergeIdx + 1;
+      while (nextMergeIdx < rowData.length && rowData[nextMergeIdx][3] === currentPid) {
+        count++;
+        nextMergeIdx++;
+      }
+      if (count > 1) {
+        const startRow = 9 + mergeIdx;
+        const endRow = 9 + mergeIdx + count - 1;
+        worksheet.mergeCells(`A${startRow}:A${endRow}`);
+        worksheet.mergeCells(`D${startRow}:D${endRow}`);
+      }
+      mergeIdx = nextMergeIdx;
+    }
 
     // 6. Thêm dòng Tổng cộng
     const sumPhiKham = reportFilteredPatients.reduce((sum, p) => sum + (p.phiKham || 0), 0);
@@ -2230,25 +2292,14 @@ export default function App() {
 
     // 7. Thêm phần chữ ký
     const sigTitleRowIndex = totalRowIndex + 3;
-    const sigSubRowIndex = totalRowIndex + 4;
     const sigTitleRow = worksheet.getRow(sigTitleRowIndex);
-    const sigSubRow = worksheet.getRow(sigSubRowIndex);
 
     sigTitleRow.values = [
-      'Ban Giám Đốc',
+      'BAN GIÁM ĐỐC',
       '', '', '',
-      'Phòng kế toán',
+      'PHÒNG KẾ TOÁN',
       '', '', '',
-      'Phòng Chăm Sóc Khách Hàng',
-      '', '', '', '', '', '', '', ''
-    ];
-
-    sigSubRow.values = [
-      '(Ký tên, đóng dấu)',
-      '', '', '',
-      '(Ký tên)',
-      '', '', '',
-      '(Ký tên)',
+      'PHÒNG CHĂM SÓC KHÁCH HÀNG',
       '', '', '', '', '', '', '', ''
     ];
 
@@ -2256,18 +2307,10 @@ export default function App() {
     worksheet.mergeCells(`E${sigTitleRowIndex}:H${sigTitleRowIndex}`);
     worksheet.mergeCells(`I${sigTitleRowIndex}:Q${sigTitleRowIndex}`);
 
-    worksheet.mergeCells(`A${sigSubRowIndex}:D${sigSubRowIndex}`);
-    worksheet.mergeCells(`E${sigSubRowIndex}:H${sigSubRowIndex}`);
-    worksheet.mergeCells(`I${sigSubRowIndex}:Q${sigSubRowIndex}`);
-
     for (let c = 1; c <= 17; c++) {
       const cellTitle = sigTitleRow.getCell(c);
       cellTitle.font = { name: 'Times New Roman', size: 12, bold: true, color: { argb: 'FF000000' } };
       cellTitle.alignment = { horizontal: 'center', vertical: 'middle' };
-
-      const cellSub = sigSubRow.getCell(c);
-      cellSub.font = { name: 'Times New Roman', size: 12, italic: true, color: { argb: 'FF000000' } };
-      cellSub.alignment = { horizontal: 'center', vertical: 'middle' };
     }
 
     // 8. Tiến hành tải file
@@ -2293,6 +2336,7 @@ export default function App() {
     const sumInsurance = reportFilteredPatients.reduce((sum, p) => sum + (p.insuranceAdvance || 0), 0);
     const sumDiscount = reportFilteredPatients.reduce((sum, p) => sum + (p.approvedDiscountAmount || 0), 0);
 
+    const spans = getPidGroupSpans(reportFilteredPatients);
     const siteName = reportSite === 'Tất cả' ? 'HỆ THỐNG PHÒNG KHÁM TÂM ANH' : reportSite;
     
     const startParts = reportStartDate.split('-');
@@ -2590,17 +2634,30 @@ export default function App() {
                     if (p.discountRate !== undefined && p.discountRate !== null) {
                       discountStr = p.discountType === 'percent' ? `${p.discountRate}%` : p.discountRate.toLocaleString('vi-VN');
                     }
+                    const spanInfo = spans[idx] || { rowSpan: 1, isFirst: true };
 
                     return (
                       <tr key={p.id || idx} className="hover:bg-slate-50 transition font-medium text-slate-800">
-                        <td className="border border-slate-300 px-1.5 py-1 font-bold whitespace-nowrap">{p.name ? p.name.toUpperCase() : '---'}</td>
-                        <td className="border border-slate-300 px-1.5 py-1 text-center text-slate-600">{p.boardApproval || '---'}</td>
-                        <td className="border border-slate-300 px-1.5 py-1 text-slate-500 italic max-w-xs break-words whitespace-pre-wrap">{p.notes || ''}</td>
-                        <td className="border border-slate-300 px-1.5 py-1 text-center font-mono font-bold text-slate-900">{p.pid || '---'}</td>
-                        <td className="border border-slate-300 px-1.5 py-1 text-center">
+                        {spanInfo.isFirst && (
+                          <td className="border border-slate-300 px-1.5 py-1 font-bold whitespace-nowrap align-middle text-left" rowSpan={spanInfo.rowSpan}>
+                            {p.name ? p.name.toUpperCase() : '---'}
+                          </td>
+                        )}
+                        <td className="border border-slate-300 px-1.5 py-1 text-center text-slate-600 align-middle">
+                          {p.boardApproval ? getFormattedBoardApproval(p.boardApproval) : '---'}
+                        </td>
+                        <td className="border border-slate-300 px-1.5 py-1 text-slate-500 italic max-w-xs break-words whitespace-pre-wrap align-middle text-left">
+                          {p.notes || ''}
+                        </td>
+                        {spanInfo.isFirst && (
+                          <td className="border border-slate-300 px-1.5 py-1 text-center font-mono font-bold text-slate-900 align-middle" rowSpan={spanInfo.rowSpan}>
+                            {p.pid || '---'}
+                          </td>
+                        )}
+                        <td className="border border-slate-300 px-1.5 py-1 text-center align-middle">
                           {p.date ? formatDateVN(p.date) : '---'}
                         </td>
-                        <td className="border border-slate-300 px-1.5 py-1 text-left font-semibold text-slate-700">
+                        <td className="border border-slate-300 px-1.5 py-1 text-left font-semibold text-slate-700 align-middle">
                           {Array.isArray(p.specialties) && p.specialties.length > 0 ? (
                             p.specialties.map((spec, sIdx) => (
                               <div key={sIdx} className="block whitespace-nowrap">{spec}</div>
@@ -2609,27 +2666,27 @@ export default function App() {
                             '---'
                           )}
                         </td>
-                        <td className="border border-slate-300 px-0.5 py-1 text-center font-bold text-slate-800">{p.ngoaiTru ? 'x' : ''}</td>
-                        <td className="border border-slate-300 px-0.5 py-1 text-center font-bold text-slate-800">{p.capCuu ? 'x' : ''}</td>
-                        <td className="border border-slate-300 px-0.5 py-1 text-center font-bold text-slate-800">{p.noiTru ? 'x' : ''}</td>
-                        <td className="border border-slate-300 px-0.5 py-1 text-center font-bold text-slate-800">{p.ngoaiVien ? 'x' : ''}</td>
-                        <td className="border border-slate-300 px-0.5 py-1 text-right font-mono">
+                        <td className="border border-slate-300 px-0.5 py-1 text-center font-bold text-slate-800 align-middle">{p.ngoaiTru ? 'x' : ''}</td>
+                        <td className="border border-slate-300 px-0.5 py-1 text-center font-bold text-slate-800 align-middle">{p.capCuu ? 'x' : ''}</td>
+                        <td className="border border-slate-300 px-0.5 py-1 text-center font-bold text-slate-800 align-middle">{p.noiTru ? 'x' : ''}</td>
+                        <td className="border border-slate-300 px-0.5 py-1 text-center font-bold text-slate-800 align-middle">{p.ngoaiVien ? 'x' : ''}</td>
+                        <td className="border border-slate-300 px-0.5 py-1 text-right font-mono align-middle">
                           {p.phiKham > 0 ? p.phiKham.toLocaleString('vi-VN') : ''}
                         </td>
-                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono font-semibold">
+                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono font-semibold align-middle">
                           {p.clsCdha ? p.clsCdha.toLocaleString('vi-VN') : ''}
                         </td>
-                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono font-semibold">
+                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono font-semibold align-middle">
                           {p.thuocVacxin ? p.thuocVacxin.toLocaleString('vi-VN') : ''}
                         </td>
-                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono font-bold text-slate-900">
+                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono font-bold text-slate-900 align-middle">
                           {p.totalAmount ? p.totalAmount.toLocaleString('vi-VN') : ''}
                         </td>
-                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono text-slate-600">
+                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono text-slate-600 align-middle">
                           {p.insuranceAdvance ? p.insuranceAdvance.toLocaleString('vi-VN') : ''}
                         </td>
-                        <td className="border border-slate-300 px-1.5 py-1 text-center font-bold text-slate-700">{discountStr}</td>
-                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono font-bold text-indigo-700">
+                        <td className="border border-slate-300 px-1.5 py-1 text-center font-bold text-slate-700 align-middle">{discountStr}</td>
+                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono font-bold text-indigo-700 align-middle">
                           {p.approvedDiscountAmount ? p.approvedDiscountAmount.toLocaleString('vi-VN') : ''}
                         </td>
                       </tr>
@@ -2650,27 +2707,24 @@ export default function App() {
               </tbody>
             </table>
 
-            <div className="grid grid-cols-3 gap-4 pt-10 text-center text-xs font-bold text-slate-800">
+            <div className="grid grid-cols-3 gap-4 pt-10 text-center text-xs font-extrabold text-slate-900">
               <div className="space-y-16">
                 <div>
-                  <p className="uppercase tracking-wide">Ban Giám Đốc</p>
-                  <p className="text-[10px] text-slate-400 font-medium italic mt-0.5">(Ký tên, đóng dấu)</p>
+                  <p className="uppercase tracking-wide">BAN GIÁM ĐỐC</p>
                 </div>
                 <div className="h-12"></div>
               </div>
               
               <div className="space-y-16">
                 <div>
-                  <p className="uppercase tracking-wide">Phòng kế toán</p>
-                  <p className="text-[10px] text-slate-400 font-medium italic mt-0.5">(Ký tên)</p>
+                  <p className="uppercase tracking-wide">PHÒNG KẾ TOÁN</p>
                 </div>
                 <div className="h-12"></div>
               </div>
               
               <div className="space-y-16">
                 <div>
-                  <p className="uppercase tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
-                  <p className="text-[10px] text-slate-400 font-medium italic mt-0.5">(Ký tên)</p>
+                  <p className="uppercase tracking-wide">PHÒNG CHĂM SÓC KHÁCH HÀNG</p>
                 </div>
                 <div className="h-12"></div>
               </div>
