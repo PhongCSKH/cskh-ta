@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { initializeApp } from 'firebase/app';
 import {
   getFirestore,
@@ -38,6 +39,7 @@ import {
   Activity,
   CreditCard,
   FileSpreadsheet,
+  Printer,
   Edit3,
   ChevronRight,
   Info,
@@ -284,6 +286,25 @@ export default function App() {
   const [dashStartDate, setDashStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [dashEndDate, setDashEndDate] = useState(new Date().toISOString().split('T')[0]);
 
+  // States cho tab Báo cáo
+  const [reportStartDate, setReportStartDate] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+  });
+  const [reportEndDate, setReportEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [reportSite, setReportSite] = useState('Tất cả');
+  const [reportTier, setReportTier] = useState('Tất cả');
+  const [reportApprovedBy, setReportApprovedBy] = useState('Tất cả');
+  const [reportSpecialty, setReportSpecialty] = useState('Tất cả');
+  const [reportSearchTerm, setReportSearchTerm] = useState('');
+  const [reportTreatmentFilter, setReportTreatmentFilter] = useState({
+    ngoaiTru: false,
+    capCuu: false,
+    noiTru: false,
+    ngoaiVien: false,
+    phiKham: false
+  });
+
   const [formData, setFormData] = useState({
     name: '',
     tier: 'VIP',
@@ -346,9 +367,9 @@ export default function App() {
     const role = currentUser.role || 'nhanvien';
     if (role === 'admin') return true;
     if (role === 'lanhdao') {
-      return ['dashboard', 'monitoring'].includes(tabName);
+      return ['dashboard', 'monitoring', 'reports'].includes(tabName);
     }
-    return ['dashboard', 'register', 'monitoring'].includes(tabName);
+    return ['dashboard', 'register', 'monitoring', 'reports'].includes(tabName);
   };
 
   const hasAccessToPatient = (patient, action) => {
@@ -1180,6 +1201,74 @@ export default function App() {
     return notifications.filter(n => !n.read).length;
   }, [notifications]);
 
+  // Lọc dữ liệu báo cáo
+  const uniqueBoardApprovals = useMemo(() => {
+    const approvals = new Set();
+    visiblePatients.forEach(p => {
+      if (p.boardApproval && p.boardApproval.trim()) {
+        approvals.add(p.boardApproval.trim());
+      }
+    });
+    return Array.from(approvals).sort();
+  }, [visiblePatients]);
+
+  const uniqueSpecialties = useMemo(() => {
+    const specs = new Set();
+    visiblePatients.forEach(p => {
+      if (Array.isArray(p.specialties)) {
+        p.specialties.forEach(s => {
+          if (s && s.trim()) specs.add(s.trim());
+        });
+      }
+    });
+    return Array.from(specs).sort();
+  }, [visiblePatients]);
+
+  const reportFilteredPatients = useMemo(() => {
+    return visiblePatients.filter(p => {
+      if (!p) return false;
+      
+      // Lọc ngày
+      const matchDate = (!reportStartDate || p.date >= reportStartDate) && 
+                        (!reportEndDate || p.date <= reportEndDate);
+      if (!matchDate) return false;
+
+      // Lọc Site
+      const matchSite = reportSite === 'Tất cả' || p.site === reportSite;
+      if (!matchSite) return false;
+
+      // Lọc Tier
+      const matchTier = reportTier === 'Tất cả' || p.tier === reportTier;
+      if (!matchTier) return false;
+
+      // Lọc người duyệt
+      const matchApproved = reportApprovedBy === 'Tất cả' || p.boardApproval === reportApprovedBy;
+      if (!matchApproved) return false;
+
+      // Lọc chuyên khoa
+      const matchSpec = reportSpecialty === 'Tất cả' || (p.specialties && p.specialties.includes(reportSpecialty));
+      if (!matchSpec) return false;
+
+      // Lọc tìm kiếm
+      const searchLower = reportSearchTerm.trim().toLowerCase();
+      const matchSearch = !searchLower || 
+        (p.name && p.name.toLowerCase().includes(searchLower)) ||
+        (p.pid && p.pid.toLowerCase().includes(searchLower)) ||
+        (p.boardApproval && p.boardApproval.toLowerCase().includes(searchLower)) ||
+        (p.notes && p.notes.toLowerCase().includes(searchLower));
+      if (!matchSearch) return false;
+
+      // Lọc loại hình điều trị
+      const matchNgoaiTru = !reportTreatmentFilter.ngoaiTru || p.ngoaiTru === true;
+      const matchCapCuu = !reportTreatmentFilter.capCuu || p.capCuu === true;
+      const matchNoiTru = !reportTreatmentFilter.noiTru || p.noiTru === true;
+      const matchNgoaiVien = !reportTreatmentFilter.ngoaiVien || p.ngoaiVien === true;
+      const matchPhiKham = !reportTreatmentFilter.phiKham || (p.phiKham && p.phiKham > 0);
+
+      return matchNgoaiTru && matchCapCuu && matchNoiTru && matchNgoaiVien && matchPhiKham;
+    });
+  }, [visiblePatients, reportStartDate, reportEndDate, reportSite, reportTier, reportApprovedBy, reportSpecialty, reportSearchTerm, reportTreatmentFilter]);
+
   const markAllAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
@@ -1793,6 +1882,555 @@ export default function App() {
     );
   }
 
+  const handleExportToExcel = () => {
+    const dateRangeStr = `Từ ngày ${formatDateVN(reportStartDate)} đến ngày ${formatDateVN(reportEndDate)}`;
+    const siteName = reportSite === 'Tất cả' ? 'HỆ THỐNG PHÒNG KHÁM TÂM ANH' : reportSite;
+
+    const headerData = [
+      [siteName.toUpperCase()],
+      ['BÁO CÁO CHI PHÍ KHÁCH HÀNG VIP.VVIP'],
+      [dateRangeStr],
+      [],
+      [
+        'Họ tên khách VIP.VVIP',
+        'HĐQT phê duyệt',
+        'Ghi chú',
+        'PID',
+        'Ngày khám/điều trị',
+        'Chuyên khoa',
+        'Loại hình điều trị', '', '', '', '', // G, H, I, J, K
+        'CLS/CĐHA',
+        'Thuốc/vacxin',
+        'Tổng cộng',
+        'BHYT/BHTN chi trả',
+        'Duyệt giảm',
+        'Số tiền duyệt giảm'
+      ],
+      [
+        '', '', '', '', '', '',
+        'Ngoại trú', 'Cấp cứu', 'Nội trú/ICU', 'Ngoại viện', 'Phí khám/Điều trị',
+        '', '', '', '', '', ''
+      ]
+    ];
+
+    const rowData = reportFilteredPatients.map(p => {
+      let discountRateStr = '0%';
+      if (p.discountRate !== undefined && p.discountRate !== null) {
+        discountRateStr = p.discountType === 'fixed' 
+          ? formatCurrency(p.discountRate) 
+          : `${p.discountRate}%`;
+      }
+
+      return [
+        p.name || '',
+        p.boardApproval || '',
+        p.notes || '',
+        p.pid || '',
+        p.date ? formatDateVN(p.date).replace(/\//g, '.') : '---',
+        (p.specialties || []).join(' + '),
+        p.ngoaiTru ? 'x' : '',
+        p.capCuu ? 'x' : '',
+        p.noiTru ? 'x' : '',
+        p.ngoaiVien ? 'x' : '',
+        p.phiKham > 0 ? p.phiKham : '',
+        p.clsCdha || 0,
+        p.thuocVacxin || 0,
+        p.totalAmount || 0,
+        p.insuranceAdvance || 0,
+        discountRateStr,
+        p.approvedDiscountAmount || 0
+      ];
+    });
+
+    const sumCls = reportFilteredPatients.reduce((sum, p) => sum + (p.clsCdha || 0), 0);
+    const sumThuoc = reportFilteredPatients.reduce((sum, p) => sum + (p.thuocVacxin || 0), 0);
+    const sumTotal = reportFilteredPatients.reduce((sum, p) => sum + (p.totalAmount || 0), 0);
+    const sumInsurance = reportFilteredPatients.reduce((sum, p) => sum + (p.insuranceAdvance || 0), 0);
+    const sumDiscount = reportFilteredPatients.reduce((sum, p) => sum + (p.approvedDiscountAmount || 0), 0);
+
+    const totalRow = [
+      'Tổng cộng',
+      '', '', '', '', '', '', '', '', '', '',
+      sumCls,
+      sumThuoc,
+      sumTotal,
+      sumInsurance,
+      '',
+      sumDiscount
+    ];
+
+    const worksheetData = [...headerData, ...rowData, totalRow];
+
+    worksheetData.push([]);
+    worksheetData.push([]);
+    
+    worksheetData.push([
+      'Ban Giám Đốc',
+      '', '', '', 
+      'Phòng kế toán',
+      '', '', '', 
+      'Phụ trách khách hàng ngoại giao/đối tác',
+      '', '', '', '', '', '', '', ''
+    ]);
+    
+    worksheetData.push([
+      '(Ký tên, đóng dấu)',
+      '', '', '',
+      '(Ký tên)',
+      '', '', '',
+      'Đỗ Hoàng Mỹ',
+      '', '', '', '', '', '', '', ''
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 16 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 16 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 16 } },
+      
+      { s: { r: 4, c: 0 }, e: { r: 5, c: 0 } }, 
+      { s: { r: 4, c: 1 }, e: { r: 5, c: 1 } }, 
+      { s: { r: 4, c: 2 }, e: { r: 5, c: 2 } }, 
+      { s: { r: 4, c: 3 }, e: { r: 5, c: 3 } }, 
+      { s: { r: 4, c: 4 }, e: { r: 5, c: 4 } }, 
+      { s: { r: 4, c: 5 }, e: { r: 5, c: 5 } }, 
+      { s: { r: 4, c: 6 }, e: { r: 4, c: 10 } }, 
+      { s: { r: 4, c: 11 }, e: { r: 5, c: 11 } }, 
+      { s: { r: 4, c: 12 }, e: { r: 5, c: 12 } }, 
+      { s: { r: 4, c: 13 }, e: { r: 5, c: 13 } }, 
+      { s: { r: 4, c: 14 }, e: { r: 5, c: 14 } }, 
+      { s: { r: 4, c: 15 }, e: { r: 5, c: 15 } }, 
+      { s: { r: 4, c: 16 }, e: { r: 5, c: 16 } }, 
+
+      { s: { r: 4 + 2 + rowData.length, c: 0 }, e: { r: 4 + 2 + rowData.length, c: 10 } },
+      
+      { s: { r: 4 + 2 + rowData.length + 3, c: 0 }, e: { r: 4 + 2 + rowData.length + 3, c: 3 } }, 
+      { s: { r: 4 + 2 + rowData.length + 3, c: 4 }, e: { r: 4 + 2 + rowData.length + 3, c: 7 } }, 
+      { s: { r: 4 + 2 + rowData.length + 3, c: 8 }, e: { r: 4 + 2 + rowData.length + 3, c: 16 } }, 
+      
+      { s: { r: 4 + 2 + rowData.length + 4, c: 0 }, e: { r: 4 + 2 + rowData.length + 4, c: 3 } }, 
+      { s: { r: 4 + 2 + rowData.length + 4, c: 4 }, e: { r: 4 + 2 + rowData.length + 4, c: 7 } }, 
+      { s: { r: 4 + 2 + rowData.length + 4, c: 8 }, e: { r: 4 + 2 + rowData.length + 4, c: 16 } }
+    ];
+
+    ws['!cols'] = [
+      { wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 15 }, { wch: 18 },
+      { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 15 },
+      { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 18 }
+    ];
+
+    const currencyCols = [10, 11, 12, 13, 14, 16]; 
+    const startRow = 6;
+    const endRow = 6 + rowData.length; 
+    
+    for (let r = startRow; r <= endRow; r++) {
+      currencyCols.forEach(c => {
+        const cellRef = XLSX.utils.encode_cell({ r, c });
+        const cell = ws[cellRef];
+        if (cell && cell.v !== undefined && cell.v !== '') {
+          const numValue = Number(cell.v);
+          if (!isNaN(numValue)) {
+            cell.t = 'n';
+            cell.v = numValue;
+            cell.z = '#,##0';
+          }
+        }
+      });
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Bao_Cao_Chi_Phi');
+
+    const dateFileStr = `${reportStartDate.replace(/-/g, '')}_${reportEndDate.replace(/-/g, '')}`;
+    const filename = `Bao_Cao_Chi_Phi_VIP_${dateFileStr}.xlsx`;
+
+    XLSX.writeFile(wb, filename);
+    showNotification("Đã xuất file Excel thành công!");
+  };
+
+  const renderReportsTab = () => {
+    const sumCls = reportFilteredPatients.reduce((sum, p) => sum + (p.clsCdha || 0), 0);
+    const sumThuoc = reportFilteredPatients.reduce((sum, p) => sum + (p.thuocVacxin || 0), 0);
+    const sumTotal = reportFilteredPatients.reduce((sum, p) => sum + (p.totalAmount || 0), 0);
+    const sumInsurance = reportFilteredPatients.reduce((sum, p) => sum + (p.insuranceAdvance || 0), 0);
+    const sumDiscount = reportFilteredPatients.reduce((sum, p) => sum + (p.approvedDiscountAmount || 0), 0);
+
+    const siteName = reportSite === 'Tất cả' ? 'HỆ THỐNG PHÒNG KHÁM TÂM ANH' : reportSite;
+    
+    const startParts = reportStartDate.split('-');
+    const monthYearStr = startParts.length === 3 ? `${startParts[1]}.${startParts[0]}` : '';
+
+    return (
+      <div className="space-y-6">
+        <style dangerouslySetInnerHTML={{__html: `
+          @media print {
+            body {
+              background: white !important;
+              color: black !important;
+            }
+            header, footer, nav, button, .print\\:hidden {
+              display: none !important;
+            }
+            main {
+              padding: 0 !important;
+              margin: 0 !important;
+              max-width: 100% !important;
+            }
+            .print\\:shadow-none {
+              box-shadow: none !important;
+            }
+            .print\\:border-none {
+              border: none !important;
+            }
+            .print\\:p-0 {
+              padding: 0 !important;
+            }
+            table {
+              page-break-inside: auto;
+            }
+            tr {
+              page-break-inside: avoid;
+              page-break-after: auto;
+            }
+          }
+        `}} />
+
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4 print:hidden">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+            <Filter className="w-5 h-5 text-indigo-650" />
+            <h3 className="text-sm font-black text-slate-900">Bộ lọc báo cáo chi phí</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500">Chi nhánh / Site</label>
+              <select
+                value={reportSite}
+                onChange={(e) => setReportSite(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:ring-1 focus:ring-slate-950 focus:outline-hidden"
+              >
+                <option value="Tất cả">Tất cả chi nhánh</option>
+                {sites.map(s => (
+                  <option key={s.id} value={s.label}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500">Hạng khách hàng</label>
+              <select
+                value={reportTier}
+                onChange={(e) => setReportTier(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:ring-1 focus:ring-slate-950 focus:outline-hidden"
+              >
+                <option value="Tất cả">Tất cả (VIP/VVIP)</option>
+                <option value="VIP">VIP</option>
+                <option value="VVIP">VVIP</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500">HĐQT phê duyệt</label>
+              <select
+                value={reportApprovedBy}
+                onChange={(e) => setReportApprovedBy(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:ring-1 focus:ring-slate-950 focus:outline-hidden"
+              >
+                <option value="Tất cả">Tất cả người duyệt</option>
+                {uniqueBoardApprovals.map((name, idx) => (
+                  <option key={idx} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500">Chuyên khoa</label>
+              <select
+                value={reportSpecialty}
+                onChange={(e) => setReportSpecialty(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:ring-1 focus:ring-slate-950 focus:outline-hidden"
+              >
+                <option value="Tất cả">Tất cả chuyên khoa</option>
+                {uniqueSpecialties.map((spec, idx) => (
+                  <option key={idx} value={spec}>{spec}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500">Từ ngày</label>
+              <input
+                type="date"
+                value={reportStartDate}
+                onChange={(e) => setReportStartDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:ring-1 focus:ring-slate-950 focus:outline-hidden"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500">Đến ngày</label>
+              <input
+                type="date"
+                value={reportEndDate}
+                onChange={(e) => setReportEndDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:ring-1 focus:ring-slate-950 focus:outline-hidden"
+              />
+            </div>
+
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="text-xs font-bold text-slate-500">Tìm kiếm nhanh</label>
+              <input
+                type="text"
+                value={reportSearchTerm}
+                onChange={(e) => setReportSearchTerm(e.target.value)}
+                placeholder="Tìm họ tên, PID, ghi chú..."
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:ring-1 focus:ring-slate-950 focus:outline-hidden"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-2 border-t border-slate-100">
+            <label className="text-xs font-bold text-slate-500 block">Loại hình điều trị (Lọc các hồ sơ có chứa)</label>
+            <div className="flex flex-wrap gap-4 text-xs font-bold text-slate-700">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={reportTreatmentFilter.ngoaiTru}
+                  onChange={(e) => setReportTreatmentFilter(prev => ({ ...prev, ngoaiTru: e.target.checked }))}
+                  className="rounded text-indigo-650 focus:ring-indigo-500"
+                />
+                Ngoại trú
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={reportTreatmentFilter.capCuu}
+                  onChange={(e) => setReportTreatmentFilter(prev => ({ ...prev, capCuu: e.target.checked }))}
+                  className="rounded text-indigo-650 focus:ring-indigo-500"
+                />
+                Cấp cứu
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={reportTreatmentFilter.noiTru}
+                  onChange={(e) => setReportTreatmentFilter(prev => ({ ...prev, noiTru: e.target.checked }))}
+                  className="rounded text-indigo-650 focus:ring-indigo-500"
+                />
+                Nội trú/ICU
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={reportTreatmentFilter.ngoaiVien}
+                  onChange={(e) => setReportTreatmentFilter(prev => ({ ...prev, ngoaiVien: e.target.checked }))}
+                  className="rounded text-indigo-650 focus:ring-indigo-500"
+                />
+                Ngoại viện
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={reportTreatmentFilter.phiKham}
+                  onChange={(e) => setReportTreatmentFilter(prev => ({ ...prev, phiKham: e.target.checked }))}
+                  className="rounded text-indigo-650 focus:ring-indigo-500"
+                />
+                Có phí khám/điều trị
+              </label>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              onClick={() => {
+                const d = new Date();
+                setReportStartDate(new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]);
+                setReportEndDate(new Date().toISOString().split('T')[0]);
+                setReportSite('Tất cả');
+                setReportTier('Tất cả');
+                setReportApprovedBy('Tất cả');
+                setReportSpecialty('Tất cả');
+                setReportSearchTerm('');
+                setReportTreatmentFilter({
+                  ngoaiTru: false,
+                  capCuu: false,
+                  noiTru: false,
+                  ngoaiVien: false,
+                  phiKham: false
+                });
+              }}
+              className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-600 rounded-xl transition"
+            >
+              Reset bộ lọc
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md shadow-indigo-900/10"
+            >
+              <Printer className="w-4 h-4" /> In báo cáo (PDF)
+            </button>
+            <button
+              onClick={handleExportToExcel}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md shadow-emerald-900/10"
+            >
+              <FileSpreadsheet className="w-4 h-4" /> Xuất file Excel (.xlsx)
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white p-8 sm:p-12 border border-slate-200 shadow-md rounded-3xl max-w-full overflow-x-auto print:shadow-none print:border-none print:p-0 print:m-0">
+          <div className="min-w-[1050px] space-y-6">
+            
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-2">
+                <span className="text-4xl font-black text-slate-800 tracking-tighter font-serif">ta</span>
+                <div className="leading-tight">
+                  <div className="text-base font-black text-slate-900 tracking-wide uppercase">Tâm Anh</div>
+                  <div className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Hospital</div>
+                </div>
+              </div>
+              
+              <div className="text-right">
+                <h2 className="text-xs font-black text-slate-900 tracking-wide uppercase">{siteName}</h2>
+                <p className="text-[10px] font-bold text-slate-500">Hệ thống chăm sóc khách hàng VIP</p>
+              </div>
+            </div>
+
+            <div className="text-center space-y-1">
+              <h1 className="text-lg font-black text-slate-900 tracking-wide uppercase">
+                BÁO CÁO CHI PHÍ KHÁCH HÀNG VIP.VVIP {monthYearStr ? `- THÁNG ${monthYearStr}` : ''}
+              </h1>
+              <p className="text-xs font-bold text-slate-500 italic">
+                Từ ngày {reportStartDate ? formatDateVN(reportStartDate).replace(/\//g, '.') : '...'} đến ngày {reportEndDate ? formatDateVN(reportEndDate).replace(/\//g, '.') : '...'}
+              </p>
+            </div>
+
+            <table className="w-full border-collapse border border-slate-300 text-[10px] text-slate-800">
+              <thead>
+                <tr className="bg-slate-100 text-slate-800 font-extrabold text-center">
+                  <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>Họ tên khách VIP.VVIP</th>
+                  <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>HĐQT phê duyệt</th>
+                  <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>Ghi chú</th>
+                  <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>PID</th>
+                  <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>Ngày khám/điều trị</th>
+                  <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>Chuyên khoa</th>
+                  <th className="border border-slate-300 p-1 text-center" colSpan={5}>Loại hình điều trị</th>
+                  <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>CLS/CĐHA</th>
+                  <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>Thuốc/vacxin</th>
+                  <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>Tổng cộng</th>
+                  <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>BHYT/BHTN chi trả</th>
+                  <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>Duyệt giảm</th>
+                  <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>Số tiền duyệt giảm</th>
+                </tr>
+                <tr className="bg-slate-100 text-slate-700 font-bold text-center">
+                  <th className="border border-slate-300 px-0.5 py-1 text-center font-bold text-[9px] w-10">Ngoại trú</th>
+                  <th className="border border-slate-300 px-0.5 py-1 text-center font-bold text-[9px] w-10">Cấp cứu</th>
+                  <th className="border border-slate-300 px-0.5 py-1 text-center font-bold text-[9px] w-10">Nội trú/ICU</th>
+                  <th className="border border-slate-300 px-0.5 py-1 text-center font-bold text-[9px] w-10">Ngoại viện</th>
+                  <th className="border border-slate-300 px-0.5 py-1 text-center font-bold text-[9px] w-14">Phí khám/Điều trị</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportFilteredPatients.length === 0 ? (
+                  <tr>
+                    <td colSpan={17} className="border border-slate-300 p-8 text-center text-slate-400 font-bold">
+                      Không tìm thấy dữ liệu phù hợp với bộ lọc hiện tại.
+                    </td>
+                  </tr>
+                ) : (
+                  reportFilteredPatients.map((p, idx) => {
+                    let discountStr = '0%';
+                    if (p.discountRate !== undefined && p.discountRate !== null) {
+                      discountStr = p.discountType === 'percent' ? `${p.discountRate}%` : p.discountRate.toLocaleString('vi-VN');
+                    }
+
+                    return (
+                      <tr key={p.id || idx} className="hover:bg-slate-50 transition font-medium text-slate-800">
+                        <td className="border border-slate-300 px-1.5 py-1 font-bold">{p.name || '---'}</td>
+                        <td className="border border-slate-300 px-1.5 py-1 text-center text-slate-600">{p.boardApproval || '---'}</td>
+                        <td className="border border-slate-300 px-1.5 py-1 text-slate-500 italic max-w-xs truncate">{p.notes || ''}</td>
+                        <td className="border border-slate-300 px-1.5 py-1 text-center font-mono font-bold text-slate-900">{p.pid || '---'}</td>
+                        <td className="border border-slate-300 px-1.5 py-1 text-center">
+                          {p.date ? formatDateVN(p.date).replace(/\//g, '.') : '---'}
+                        </td>
+                        <td className="border border-slate-300 px-1.5 py-1 text-center font-semibold text-slate-700">
+                          {(p.specialties || []).join(' + ')}
+                        </td>
+                        <td className="border border-slate-300 px-0.5 py-1 text-center font-bold text-slate-800">{p.ngoaiTru ? 'x' : ''}</td>
+                        <td className="border border-slate-300 px-0.5 py-1 text-center font-bold text-slate-800">{p.capCuu ? 'x' : ''}</td>
+                        <td className="border border-slate-300 px-0.5 py-1 text-center font-bold text-slate-800">{p.noiTru ? 'x' : ''}</td>
+                        <td className="border border-slate-300 px-0.5 py-1 text-center font-bold text-slate-800">{p.ngoaiVien ? 'x' : ''}</td>
+                        <td className="border border-slate-300 px-0.5 py-1 text-right font-mono">
+                          {p.phiKham > 0 ? p.phiKham.toLocaleString('vi-VN') : ''}
+                        </td>
+                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono font-semibold">
+                          {p.clsCdha ? p.clsCdha.toLocaleString('vi-VN') : ''}
+                        </td>
+                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono font-semibold">
+                          {p.thuocVacxin ? p.thuocVacxin.toLocaleString('vi-VN') : ''}
+                        </td>
+                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono font-bold text-slate-900">
+                          {p.totalAmount ? p.totalAmount.toLocaleString('vi-VN') : ''}
+                        </td>
+                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono text-slate-600">
+                          {p.insuranceAdvance ? p.insuranceAdvance.toLocaleString('vi-VN') : ''}
+                        </td>
+                        <td className="border border-slate-300 px-1.5 py-1 text-center font-bold text-slate-700">{discountStr}</td>
+                        <td className="border border-slate-300 px-1.5 py-1 text-right font-mono font-bold text-indigo-700">
+                          {p.approvedDiscountAmount ? p.approvedDiscountAmount.toLocaleString('vi-VN') : ''}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+
+                <tr className="bg-slate-100 font-extrabold text-slate-900">
+                  <td className="border border-slate-300 px-2 py-1.5 font-black uppercase text-center" colSpan={11}>Tổng cộng</td>
+                  <td className="border border-slate-300 px-1.5 py-1.5 text-right font-mono font-black">{sumCls ? sumCls.toLocaleString('vi-VN') : '0'}</td>
+                  <td className="border border-slate-300 px-1.5 py-1.5 text-right font-mono font-black">{sumThuoc ? sumThuoc.toLocaleString('vi-VN') : '0'}</td>
+                  <td className="border border-slate-300 px-1.5 py-1.5 text-right font-mono font-black">{sumTotal ? sumTotal.toLocaleString('vi-VN') : '0'}</td>
+                  <td className="border border-slate-300 px-1.5 py-1.5 text-right font-mono font-bold">{sumInsurance ? sumInsurance.toLocaleString('vi-VN') : ''}</td>
+                  <td className="border border-slate-300 px-1.5 py-1.5 text-center"></td>
+                  <td className="border border-slate-300 px-1.5 py-1.5 text-right font-mono font-black text-indigo-700">{sumDiscount ? sumDiscount.toLocaleString('vi-VN') : '0'}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div className="grid grid-cols-3 gap-4 pt-10 text-center text-xs font-bold text-slate-800">
+              <div className="space-y-16">
+                <div>
+                  <p className="uppercase tracking-wide">Ban Giám Đốc</p>
+                  <p className="text-[10px] text-slate-400 font-medium italic mt-0.5">(Ký tên, đóng dấu)</p>
+                </div>
+                <div className="h-12"></div>
+              </div>
+              
+              <div className="space-y-16">
+                <div>
+                  <p className="uppercase tracking-wide">Phòng kế toán</p>
+                  <p className="text-[10px] text-slate-404 font-medium italic mt-0.5">(Ký tên)</p>
+                </div>
+                <div className="h-12"></div>
+              </div>
+              
+              <div className="space-y-16">
+                <div>
+                  <p className="uppercase tracking-wide">Phụ trách khách hàng ngoại giao/đối tác</p>
+                  <p className="text-[10px] text-slate-404 font-medium italic mt-0.5">(Ký tên)</p>
+                </div>
+                <div>
+                  <p className="font-black text-slate-900 text-sm font-serif">Đỗ Hoàng Mỹ</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
       
@@ -2030,6 +2668,17 @@ export default function App() {
                 </button>
               )}
 
+              {canShowTab('reports') && (
+                <button 
+                  onClick={() => { setActiveTab('reports'); }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'reports' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <FileSpreadsheet className="w-4 h-4" /> Báo cáo & Excel
+                </button>
+              )}
+
               {userRole === 'admin' && (
                 <button 
                   onClick={() => { setActiveTab('settings'); }}
@@ -2179,6 +2828,15 @@ export default function App() {
           >
             <ClipboardList className="w-5 h-5" />
             <span>Theo dõi hồ sơ</span>
+          </button>
+        )}
+        {canShowTab('reports') && (
+          <button 
+            onClick={() => { setActiveTab('reports'); }}
+            className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'reports' ? 'text-indigo-600' : 'text-slate-404'}`}
+          >
+            <FileSpreadsheet className="w-5 h-5" />
+            <span>Báo cáo</span>
           </button>
         )}
         {userRole === 'admin' && (
@@ -4061,6 +4719,10 @@ export default function App() {
               </>
             )}
           </div>
+        )}
+
+        {activeTab === 'reports' && canShowTab('reports') && (
+          renderReportsTab()
         )}
 
       </main>
