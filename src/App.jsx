@@ -2516,7 +2516,7 @@ export default function App() {
           <div className="text-center space-y-2">
             <h2 className="text-lg font-black text-slate-900">Xác thực quyền xem Báo cáo</h2>
             <p className="text-xs text-slate-550 leading-relaxed font-semibold">
-              Báo cáo chi phí VIP-VVIP chứa thông tin bảo mật. Vui lòng yêu cầu cấp Lãnh đạo cung cấp mã OTP 5 phút để mở khóa xem dữ liệu và tải file.
+              Hồ sơ chi phí VIP-VVIP là thông tin bảo mật. Vui lòng báo PGĐ CSKH để nhận OTP xem & tải báo cáo.
             </p>
           </div>
           <div className="w-full space-y-2">
