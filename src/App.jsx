@@ -245,6 +245,21 @@ const sites = [
   { id: 'ch', label: 'BV Tâm Anh - Chánh Hưng', bg: 'bg-teal-50 text-teal-700 border-teal-200/80', dot: 'bg-teal-500', cardBg: 'bg-[#f0fdf4] border-[#bbf7d0] hover:border-[#86efac]' }
 ];
 
+const getFormattedSiteName = (site) => {
+  if (!site) return '';
+  const s = site.trim();
+  if (s === 'BV Tâm Anh - Tân Sơn Hòa') {
+    return 'BỆNH VIỆN ĐA KHOA TÂM ANH - P. TÂN SƠN HÒA';
+  }
+  if (s === 'PK Tâm Anh - Tân Hưng') {
+    return 'PHÒNG KHÁM ĐA KHOA TÂM ANH - P. TÂN HƯNG';
+  }
+  if (s === 'BV Tâm Anh - Chánh Hưng') {
+    return 'BỆNH VIỆN ĐA KHOA TÂM ANH - P. CHÁNH HƯNG';
+  }
+  return s.toUpperCase();
+};
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState('nhanvien');
@@ -1960,13 +1975,13 @@ export default function App() {
     // 2. Chèn thông tin đơn vị hành chính bên phải (Cột E đến Q)
     worksheet.mergeCells('E1:Q1');
     const cellE1 = worksheet.getCell('E1');
-    cellE1.value = 'HỆ THỐNG BỆNH VIỆN ĐA KHOA TÂM ANH TP. HCM';
+    cellE1.value = 'HỆ THỐNG BỆNH VIỆN ĐA KHOA TÂM ANH';
     cellE1.font = { name: 'Times New Roman', size: 12, bold: true, color: { argb: 'FF000000' } };
     cellE1.alignment = { horizontal: 'right', vertical: 'middle' };
 
     worksheet.mergeCells('E2:Q2');
     const cellE2 = worksheet.getCell('E2');
-    cellE2.value = reportSite === 'Tất cả' ? 'PHÒNG CHĂM SÓC KHÁCH HÀNG' : reportSite.toUpperCase();
+    cellE2.value = reportSite === 'Tất cả' ? 'PHÒNG CHĂM SÓC KHÁCH HÀNG' : getFormattedSiteName(reportSite);
     cellE2.font = { name: 'Times New Roman', size: 12, bold: true, color: { argb: 'FF000000' } };
     cellE2.alignment = { horizontal: 'right', vertical: 'middle' };
 
@@ -2514,11 +2529,11 @@ export default function App() {
               
               <div className="text-right space-y-0.5">
                 <h2 className="text-xs font-black text-slate-900 tracking-wide uppercase">
-                  HỆ THỐNG BỆNH VIỆN ĐA KHOA TÂM ANH TP. HCM
+                  HỆ THỐNG BỆNH VIỆN ĐA KHOA TÂM ANH
                 </h2>
                 {reportSite !== 'Tất cả' && (
                   <p className="text-[10px] font-black text-slate-700 uppercase">
-                    {reportSite.toUpperCase()}
+                    {getFormattedSiteName(reportSite)}
                   </p>
                 )}
                 <p className="text-[10px] font-bold text-slate-500 uppercase">
