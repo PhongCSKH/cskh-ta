@@ -1228,7 +1228,7 @@ export default function App() {
   }, [visiblePatients]);
 
   const reportFilteredPatients = useMemo(() => {
-    return visiblePatients.filter(p => {
+    const filtered = visiblePatients.filter(p => {
       if (!p) return false;
       
       // Lọc ngày
@@ -1269,6 +1269,18 @@ export default function App() {
       const matchPhiKham = !reportTreatmentFilter.phiKham || (p.phiKham && p.phiKham > 0);
 
       return matchNgoaiTru && matchCapCuu && matchNoiTru && matchNgoaiVien && matchPhiKham;
+    });
+
+    // Sắp xếp mặc định theo thứ tự: cùng PID và sắp xếp theo ngày từ nhỏ đến lớn
+    return [...filtered].sort((a, b) => {
+      const pidA = a.pid || '';
+      const pidB = b.pid || '';
+      if (pidA !== pidB) {
+        return pidA.localeCompare(pidB, undefined, { numeric: true, sensitivity: 'base' });
+      }
+      const dateA = a.date || '';
+      const dateB = b.date || '';
+      return dateA.localeCompare(dateB);
     });
   }, [visiblePatients, reportStartDate, reportEndDate, reportSite, reportTier, reportApprovedBy, reportSpecialty, reportSearchTerm, reportTreatmentFilter]);
 
@@ -1888,12 +1900,21 @@ export default function App() {
   const handleExportToExcel = async () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Bao_Cao_Chi_Phi', {
-      views: [{ showGridLines: true }]
+      views: [{ showGridLines: false }]
     });
+
+    // Cấu hình trang in ngang và fitToWidth
+    worksheet.pageSetup = {
+      orientation: 'landscape',
+      paperSize: 9, // A4
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0
+    };
 
     // Thiết lập chiều rộng cột
     worksheet.columns = [
-      { width: 25 }, // Họ tên khách VIP.VVIP (Đã mở rộng vừa phải)
+      { width: 25 }, // Họ tên khách VIP-VVIP (Đã mở rộng vừa phải)
       { width: 18 }, // HĐQT phê duyệt
       { width: 30 }, // Ghi chú (Đã kéo rộng vừa phải)
       { width: 10 }, // PID
@@ -1940,33 +1961,33 @@ export default function App() {
     worksheet.mergeCells('E1:Q1');
     const cellE1 = worksheet.getCell('E1');
     cellE1.value = 'HỆ THỐNG BỆNH VIỆN ĐA KHOA TÂM ANH TP. HCM';
-    cellE1.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF555555' } };
+    cellE1.font = { name: 'Times New Roman', size: 12, bold: true, color: { argb: 'FF000000' } };
     cellE1.alignment = { horizontal: 'right', vertical: 'middle' };
 
     worksheet.mergeCells('E2:Q2');
     const cellE2 = worksheet.getCell('E2');
     cellE2.value = reportSite === 'Tất cả' ? 'PHÒNG CHĂM SÓC KHÁCH HÀNG' : reportSite.toUpperCase();
-    cellE2.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF555555' } };
+    cellE2.font = { name: 'Times New Roman', size: 12, bold: true, color: { argb: 'FF000000' } };
     cellE2.alignment = { horizontal: 'right', vertical: 'middle' };
 
     worksheet.mergeCells('E3:Q3');
     const cellE3 = worksheet.getCell('E3');
     cellE3.value = reportSite === 'Tất cả' ? '' : 'PHÒNG CHĂM SÓC KHÁCH HÀNG';
-    cellE3.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF555555' } };
+    cellE3.font = { name: 'Times New Roman', size: 12, bold: true, color: { argb: 'FF000000' } };
     cellE3.alignment = { horizontal: 'right', vertical: 'middle' };
 
     // 3. Tiêu đề báo cáo và ngày tháng
     worksheet.mergeCells('A4:Q4');
     const cellA4 = worksheet.getCell('A4');
     cellA4.value = 'BÁO CÁO CHI PHÍ KHÁCH HÀNG VIP-VVIP';
-    cellA4.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FF000000' } };
+    cellA4.font = { name: 'Times New Roman', size: 12, bold: true, color: { argb: 'FF000000' } };
     cellA4.alignment = { horizontal: 'center', vertical: 'middle' };
 
     const dateRangeStr = `Từ ngày ${formatDateVN(reportStartDate)} đến ngày ${formatDateVN(reportEndDate)}`;
     worksheet.mergeCells('A5:Q5');
     const cellA5 = worksheet.getCell('A5');
     cellA5.value = dateRangeStr;
-    cellA5.font = { name: 'Arial', size: 9, italic: true, color: { argb: 'FF555555' } };
+    cellA5.font = { name: 'Times New Roman', size: 12, italic: true, color: { argb: 'FF000000' } };
     cellA5.alignment = { horizontal: 'center', vertical: 'middle' };
 
     // Row 6 để trống
@@ -1974,7 +1995,7 @@ export default function App() {
     // 4. Header của bảng (Row 7 và Row 8)
     const headers = [
       [
-        'Họ tên khách VIP.VVIP',
+        'Họ tên khách VIP-VVIP',
         'HĐQT phê duyệt',
         'Ghi chú',
         'PID',
@@ -2018,7 +2039,7 @@ export default function App() {
     // Định dạng Header bảng
     const borderThin = { style: 'thin', color: { argb: 'FF888888' } };
     const headerStyle = {
-      font: { name: 'Arial', size: 9, bold: true, color: { argb: 'FF000000' } },
+      font: { name: 'Times New Roman', size: 12, bold: true, color: { argb: 'FF000000' } },
       alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
       fill: {
         type: 'pattern',
@@ -2054,7 +2075,7 @@ export default function App() {
       }
 
       return [
-        p.name || '',
+        p.name ? p.name.toUpperCase() : '',
         p.boardApproval || '',
         p.notes || '',
         p.pid || '',
@@ -2091,27 +2112,28 @@ export default function App() {
 
         let horizontalAlign = 'left'; // Căn lề mặc định
         let wrapText = false;
+        const fontDefault = { name: 'Times New Roman', size: 12, color: { argb: 'FF000000' } };
 
         if (c === 1) { // Họ tên
-          cell.font = { name: 'Arial', size: 9, bold: true };
+          cell.font = { ...fontDefault, bold: true };
           horizontalAlign = 'left';
         }
         else if (c === 3) { // Ghi chú
-          cell.font = { name: 'Arial', size: 9, italic: true, color: { argb: 'FF666666' } };
+          cell.font = { ...fontDefault, italic: true };
           horizontalAlign = 'left';
           wrapText = true;
         }
         else if (c === 6) { // Chuyên khoa
-          cell.font = { name: 'Arial', size: 9 };
+          cell.font = fontDefault;
           horizontalAlign = 'left';
           wrapText = true;
         }
         else if ([2, 4, 5, 7, 8, 9, 10, 16].includes(c)) { // HĐQT, PID, Ngày, Checkbox, Tỷ lệ giảm
-          cell.font = { name: 'Arial', size: 9, bold: (c === 4) }; // PID đậm
+          cell.font = { ...fontDefault, bold: (c === 4) }; // PID đậm
           horizontalAlign = 'center';
         }
         else { // Cột tiền: Phí khám, CLS, Thuốc, Tổng cộng, BHYT, Tiền giảm
-          cell.font = { name: 'Arial', size: 9, bold: (c === 14 || c === 17) }; // Tổng và Tiền giảm đậm
+          cell.font = { ...fontDefault, bold: (c === 14 || c === 17) }; // Tổng và Tiền giảm đậm
           horizontalAlign = 'right';
 
           if (cell.value !== undefined && cell.value !== '') {
@@ -2155,7 +2177,7 @@ export default function App() {
     for (let c = 1; c <= 17; c++) {
       const cell = totalRow.getCell(c);
       const val = cell.value;
-      cell.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FF000000' } };
+      cell.font = { name: 'Times New Roman', size: 12, bold: true, color: { argb: 'FF000000' } };
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
@@ -2219,11 +2241,11 @@ export default function App() {
 
     for (let c = 1; c <= 17; c++) {
       const cellTitle = sigTitleRow.getCell(c);
-      cellTitle.font = { name: 'Arial', size: 9.5, bold: true };
+      cellTitle.font = { name: 'Times New Roman', size: 12, bold: true, color: { argb: 'FF000000' } };
       cellTitle.alignment = { horizontal: 'center', vertical: 'middle' };
 
       const cellSub = sigSubRow.getCell(c);
-      cellSub.font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF666666' } };
+      cellSub.font = { name: 'Times New Roman', size: 12, italic: true, color: { argb: 'FF000000' } };
       cellSub.alignment = { horizontal: 'center', vertical: 'middle' };
     }
 
@@ -2512,7 +2534,7 @@ export default function App() {
             <table className="w-full border-collapse border border-slate-300 text-[10px] text-slate-800">
               <thead>
                 <tr className="bg-slate-100 text-slate-800 font-extrabold text-center">
-                  <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>Họ tên khách VIP.VVIP</th>
+                  <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>Họ tên khách VIP-VVIP</th>
                   <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>HĐQT phê duyệt</th>
                   <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>Ghi chú</th>
                   <th className="border border-slate-300 px-1 py-2 text-center" rowSpan={2}>PID</th>
@@ -2550,7 +2572,7 @@ export default function App() {
 
                     return (
                       <tr key={p.id || idx} className="hover:bg-slate-50 transition font-medium text-slate-800">
-                        <td className="border border-slate-300 px-1.5 py-1 font-bold whitespace-nowrap">{p.name || '---'}</td>
+                        <td className="border border-slate-300 px-1.5 py-1 font-bold whitespace-nowrap">{p.name ? p.name.toUpperCase() : '---'}</td>
                         <td className="border border-slate-300 px-1.5 py-1 text-center text-slate-600">{p.boardApproval || '---'}</td>
                         <td className="border border-slate-300 px-1.5 py-1 text-slate-500 italic max-w-xs break-words whitespace-pre-wrap">{p.notes || ''}</td>
                         <td className="border border-slate-300 px-1.5 py-1 text-center font-mono font-bold text-slate-900">{p.pid || '---'}</td>
