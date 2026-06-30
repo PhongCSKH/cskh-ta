@@ -1888,7 +1888,7 @@ export default function App() {
 
     const headerData = [
       [siteName.toUpperCase()],
-      ['BÁO CÁO CHI PHÍ KHÁCH HÀNG VIP.VVIP'],
+      ['BÁO CÁO CHI PHÍ KHÁCH HÀNG VIP-VVIP'],
       [dateRangeStr],
       [],
       [
@@ -1926,8 +1926,8 @@ export default function App() {
         p.boardApproval || '',
         p.notes || '',
         p.pid || '',
-        p.date ? formatDateVN(p.date).replace(/\//g, '.') : '---',
-        (p.specialties || []).join(' + '),
+        p.date ? formatDateVN(p.date) : '---',
+        (p.specialties || []).join('\n'),
         p.ngoaiTru ? 'x' : '',
         p.capCuu ? 'x' : '',
         p.noiTru ? 'x' : '',
@@ -1969,7 +1969,7 @@ export default function App() {
       '', '', '', 
       'Phòng kế toán',
       '', '', '', 
-      'Phụ trách khách hàng ngoại giao/đối tác',
+      'Phòng Chăm Sóc Khách Hàng',
       '', '', '', '', '', '', '', ''
     ]);
     
@@ -1978,7 +1978,7 @@ export default function App() {
       '', '', '',
       '(Ký tên)',
       '', '', '',
-      'Đỗ Hoàng Mỹ',
+      '(Ký tên)',
       '', '', '', '', '', '', '', ''
     ]);
 
@@ -2017,12 +2017,12 @@ export default function App() {
 
     // Chiều rộng cột
     ws['!cols'] = [
-      { wch: 22 }, // Họ tên khách VIP.VVIP
+      { wch: 25 }, // Họ tên khách VIP.VVIP (Đã mở rộng vừa phải)
       { wch: 18 }, // HĐQT phê duyệt
-      { wch: 18 }, // Ghi chú
+      { wch: 30 }, // Ghi chú (Đã kéo rộng vừa phải)
       { wch: 10 }, // PID
       { wch: 15 }, // Ngày khám/điều trị
-      { wch: 15 }, // Chuyên khoa
+      { wch: 20 }, // Chuyên khoa (Đã kéo rộng vừa phải)
       { wch: 9 },  // Ngoại trú
       { wch: 9 },  // Cấp cứu
       { wch: 11 }, // Nội trú/ICU
@@ -2114,8 +2114,13 @@ export default function App() {
             cell.s.font.italic = true;
             cell.s.font.color = { rgb: '666666' };
             cell.s.alignment.horizontal = 'left';
+            cell.s.alignment.wrapText = true;
           } 
-          else if ([1, 3, 4, 5, 6, 7, 8, 9, 15].includes(c)) { // HĐQT, PID, Ngày, Chuyên khoa, Checkbox, Tỷ lệ giảm
+          else if (c === 5) { // Chuyên khoa
+            cell.s.alignment.horizontal = 'left';
+            cell.s.alignment.wrapText = true;
+          }
+          else if ([1, 3, 4, 6, 7, 8, 9, 15].includes(c)) { // HĐQT, PID, Ngày, Checkbox, Tỷ lệ giảm
             cell.s.alignment.horizontal = 'center';
             if (c === 3) cell.s.font.bold = true; // PID đậm
           } 
@@ -2451,10 +2456,10 @@ export default function App() {
 
             <div className="text-center space-y-1">
               <h1 className="text-lg font-black text-slate-900 tracking-wide uppercase">
-                BÁO CÁO CHI PHÍ KHÁCH HÀNG VIP.VVIP {monthYearStr ? `- THÁNG ${monthYearStr}` : ''}
+                BÁO CÁO CHI PHÍ KHÁCH HÀNG VIP-VVIP
               </h1>
               <p className="text-xs font-bold text-slate-500 italic">
-                Từ ngày {reportStartDate ? formatDateVN(reportStartDate).replace(/\//g, '.') : '...'} đến ngày {reportEndDate ? formatDateVN(reportEndDate).replace(/\//g, '.') : '...'}
+                Từ ngày {reportStartDate ? formatDateVN(reportStartDate) : '...'} đến ngày {reportEndDate ? formatDateVN(reportEndDate) : '...'}
               </p>
             </div>
 
@@ -2499,15 +2504,21 @@ export default function App() {
 
                     return (
                       <tr key={p.id || idx} className="hover:bg-slate-50 transition font-medium text-slate-800">
-                        <td className="border border-slate-300 px-1.5 py-1 font-bold">{p.name || '---'}</td>
+                        <td className="border border-slate-300 px-1.5 py-1 font-bold whitespace-nowrap">{p.name || '---'}</td>
                         <td className="border border-slate-300 px-1.5 py-1 text-center text-slate-600">{p.boardApproval || '---'}</td>
-                        <td className="border border-slate-300 px-1.5 py-1 text-slate-500 italic max-w-xs truncate">{p.notes || ''}</td>
+                        <td className="border border-slate-300 px-1.5 py-1 text-slate-500 italic max-w-xs break-words whitespace-pre-wrap">{p.notes || ''}</td>
                         <td className="border border-slate-300 px-1.5 py-1 text-center font-mono font-bold text-slate-900">{p.pid || '---'}</td>
                         <td className="border border-slate-300 px-1.5 py-1 text-center">
-                          {p.date ? formatDateVN(p.date).replace(/\//g, '.') : '---'}
+                          {p.date ? formatDateVN(p.date) : '---'}
                         </td>
-                        <td className="border border-slate-300 px-1.5 py-1 text-center font-semibold text-slate-700">
-                          {(p.specialties || []).join(' + ')}
+                        <td className="border border-slate-300 px-1.5 py-1 text-left font-semibold text-slate-700">
+                          {Array.isArray(p.specialties) && p.specialties.length > 0 ? (
+                            p.specialties.map((spec, sIdx) => (
+                              <div key={sIdx} className="block whitespace-nowrap">{spec}</div>
+                            ))
+                          ) : (
+                            '---'
+                          )}
                         </td>
                         <td className="border border-slate-300 px-0.5 py-1 text-center font-bold text-slate-800">{p.ngoaiTru ? 'x' : ''}</td>
                         <td className="border border-slate-300 px-0.5 py-1 text-center font-bold text-slate-800">{p.capCuu ? 'x' : ''}</td>
@@ -2561,19 +2572,17 @@ export default function App() {
               <div className="space-y-16">
                 <div>
                   <p className="uppercase tracking-wide">Phòng kế toán</p>
-                  <p className="text-[10px] text-slate-404 font-medium italic mt-0.5">(Ký tên)</p>
+                  <p className="text-[10px] text-slate-400 font-medium italic mt-0.5">(Ký tên)</p>
                 </div>
                 <div className="h-12"></div>
               </div>
               
               <div className="space-y-16">
                 <div>
-                  <p className="uppercase tracking-wide">Phụ trách khách hàng ngoại giao/đối tác</p>
-                  <p className="text-[10px] text-slate-404 font-medium italic mt-0.5">(Ký tên)</p>
+                  <p className="uppercase tracking-wide">Phòng Chăm Sóc Khách Hàng</p>
+                  <p className="text-[10px] text-slate-400 font-medium italic mt-0.5">(Ký tên)</p>
                 </div>
-                <div>
-                  <p className="font-black text-slate-900 text-sm font-serif">Đỗ Hoàng Mỹ</p>
-                </div>
+                <div className="h-12"></div>
               </div>
             </div>
 
@@ -2827,7 +2836,7 @@ export default function App() {
                     activeTab === 'reports' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  <FileSpreadsheet className="w-4 h-4" /> Báo cáo & Excel
+                  <FileSpreadsheet className="w-4 h-4" /> Báo Cáo
                 </button>
               )}
 
@@ -2988,7 +2997,7 @@ export default function App() {
             className={`flex flex-col items-center gap-1 text-[10px] font-bold transition ${activeTab === 'reports' ? 'text-indigo-600' : 'text-slate-404'}`}
           >
             <FileSpreadsheet className="w-5 h-5" />
-            <span>Báo cáo</span>
+            <span>Báo Cáo</span>
           </button>
         )}
         {userRole === 'admin' && (
