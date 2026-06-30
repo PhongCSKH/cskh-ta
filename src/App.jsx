@@ -4063,7 +4063,7 @@ export default function App() {
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-1.5 text-indigo-700">
                           <Lock className="w-3.5 h-3.5 text-indigo-500" />
-                          <span className="text-[10px] font-black uppercase tracking-wider">OTP Phê duyệt Báo cáo</span>
+                          <span className="text-[10px] font-black uppercase tracking-wider">Mã OTP cấp quyền báo cáo</span>
                         </div>
                         <span className="text-[9.5px] font-black text-indigo-550 bg-indigo-100 px-1.5 py-0.5 rounded-sm font-mono">
                           {otpCountdownText}
@@ -4087,7 +4087,7 @@ export default function App() {
                         </button>
                       </div>
                       <p className="text-[9px] text-slate-500 font-semibold leading-normal">
-                        Cung cấp mã 6 số này cho Quản lý hệ thống để cấp quyền tải file Excel báo cáo. Mã hết hạn sau 5 phút.
+                        Mã hết hạn sau 5 phút.
                       </p>
                     </div>
                   )}
