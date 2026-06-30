@@ -1928,8 +1928,8 @@ export default function App() {
       // Gộp ô A1:D3 cho Logo
       worksheet.mergeCells('A1:D3');
       worksheet.addImage(imageId, {
-        tl: { col: 0.1, row: 0.1 },
-        br: { col: 3.9, row: 2.9 },
+        tl: { col: 0.15, row: 0.15 },
+        ext: { width: 138, height: 48 },
         editAs: 'oneCell'
       });
     } catch (err) {
