@@ -222,7 +222,8 @@ const defaultSystemSettings = {
   notificationPermissions: {
     'notify:create': { nhanvien: 'assigned_only', quanly_site: 'assigned_site', quanly: 'all', lanhdao: 'all', admin: 'all' },
     'notify:status': { nhanvien: 'assigned_only', quanly_site: 'assigned_site', quanly: 'all', lanhdao: 'all', admin: 'all' }
-  }
+  },
+  defaultDiscounts: []
 };
 
 const workflowStatuses = [
@@ -391,7 +392,8 @@ export default function App() {
     status: 'Waiting',
     recipients: [],
     history: [],
-    roundingLogs: []
+    roundingLogs: [],
+    includeThuoc: true
   });
 
   const [newRoundingLog, setNewRoundingLog] = useState({
@@ -401,6 +403,14 @@ export default function App() {
 
   const [newSpecialtyInput, setNewSpecialtyInput] = useState('');
   const [settingsSubTab, setSettingsSubTab] = useState('specialties');
+  const [newPolicyPid, setNewPolicyPid] = useState('');
+  const [newPolicyName, setNewPolicyName] = useState('');
+  const [newPolicyType, setNewPolicyType] = useState('percent');
+  const [newPolicyRate, setNewPolicyRate] = useState(0);
+  const [newPolicyIncludeThuoc, setNewPolicyIncludeThuoc] = useState(true);
+  const [newPolicyNotes, setNewPolicyNotes] = useState('');
+  const [newPolicyStartDate, setNewPolicyStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newPolicyEndDate, setNewPolicyEndDate] = useState('');
   const [notification, setNotification] = useState(null);
   const [iosNotificationStatus, setIosNotificationStatus] = useState('unknown');
 
@@ -632,7 +642,8 @@ export default function App() {
       status: 'Waiting',
       recipients: [],
       history: [],
-      roundingLogs: []
+      roundingLogs: [],
+      includeThuoc: true
     });
   };
 
@@ -1048,8 +1059,12 @@ export default function App() {
     if (formulas.thuocVacxin) total += Number(formData?.thuocVacxin || 0);
 
     let discountBase = total;
+    if (formData?.includeThuoc === false) {
+      discountBase = Math.max(0, total - Number(formData?.thuocVacxin || 0));
+    }
+
     if (systemSettings?.discountFormulaType === 'total_minus_insurance_advance') {
-      discountBase = Math.max(0, total - Number(formData?.insuranceAdvance || 0));
+      discountBase = Math.max(0, discountBase - Number(formData?.insuranceAdvance || 0));
     }
 
     let discountAmount = 0;
@@ -1074,6 +1089,53 @@ export default function App() {
       }));
     }
   }, [calculatedSums.totalAmount, calculatedSums.approvedDiscountAmount]);
+
+  useEffect(() => {
+    if (matchedPatientProfile && !currentId) {
+      setFormData(prev => {
+        if (!prev.name) {
+          return { ...prev, name: matchedPatientProfile?.name || '' };
+        }
+        return prev;
+      });
+    }
+  }, [matchedPatientProfile, currentId]);
+
+  useEffect(() => {
+    const pidVal = formData?.pid?.trim();
+    if (!pidVal) return;
+
+    const discounts = systemSettings?.defaultDiscounts || [];
+    const policy = discounts.find(d => d?.pid?.trim() === pidVal);
+
+    if (policy) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const startValid = !policy.startDate || todayStr >= policy.startDate;
+      const endValid = !policy.endDate || todayStr <= policy.endDate;
+
+      if (startValid && endValid) {
+        setFormData(prev => {
+          if (
+            prev.notes === policy.notes &&
+            prev.discountType === policy.discountType &&
+            prev.discountRate === policy.discountRate &&
+            prev.includeThuoc === policy.includeThuoc
+          ) {
+            return prev;
+          }
+          return {
+            ...prev,
+            name: prev.name || policy.name || '',
+            notes: policy.notes || prev.notes || '',
+            discountType: policy.discountType || 'percent',
+            discountRate: policy.discountRate !== undefined ? policy.discountRate : prev.discountRate,
+            includeThuoc: policy.includeThuoc !== undefined ? policy.includeThuoc : true
+          };
+        });
+        showNotification(`Đã tự động áp dụng chính sách duyệt giảm mặc định cho PID: ${pidVal}!`);
+      }
+    }
+  }, [formData?.pid, systemSettings?.defaultDiscounts]);
 
   const matchedPatientProfile = useMemo(() => {
     if (!formData?.pid?.trim()) return null;
@@ -1556,7 +1618,8 @@ export default function App() {
       status: patient?.status || 'Waiting',
       recipients: patient?.recipients || [],
       history: patient?.history || [],
-      roundingLogs: patient?.roundingLogs || []
+      roundingLogs: patient?.roundingLogs || [],
+      includeThuoc: patient?.includeThuoc !== false
     });
     setActiveTab('register');
   };
@@ -1825,6 +1888,30 @@ export default function App() {
   const handleDiscountFormulaChange = (type) => {
     saveSettingsOnDb({ ...systemSettings, discountFormulaType: type });
     showNotification("Phương thức tính miễn giảm đã thay đổi!");
+  };
+
+  const handleAddDefaultDiscount = (newPolicy) => {
+    const updatedDiscounts = [...(systemSettings?.defaultDiscounts || [])];
+    const existIndex = updatedDiscounts.findIndex(d => d.pid === newPolicy.pid);
+    if (existIndex >= 0) {
+      updatedDiscounts[existIndex] = newPolicy;
+    } else {
+      updatedDiscounts.push(newPolicy);
+    }
+    saveSettingsOnDb({
+      ...systemSettings,
+      defaultDiscounts: updatedDiscounts
+    });
+    showNotification("Đã lưu chính sách duyệt giảm mặc định!");
+  };
+
+  const handleRemoveDefaultDiscount = (policyId) => {
+    const updatedDiscounts = (systemSettings?.defaultDiscounts || []).filter(d => d.id !== policyId);
+    saveSettingsOnDb({
+      ...systemSettings,
+      defaultDiscounts: updatedDiscounts
+    });
+    showNotification("Đã gỡ bỏ chính sách duyệt giảm mặc định.");
   };
 
   const handleToggleRecipient = (uid) => {
@@ -2788,6 +2875,16 @@ export default function App() {
           >
             Quyền nhận thông báo
           </button>
+          <button
+            onClick={() => setSettingsSubTab('defaultDiscounts')}
+            className={`px-4 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition ${
+              settingsSubTab === 'defaultDiscounts'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Duyệt giảm mặc định
+          </button>
         </div>
 
         {/* Tab Contents */}
@@ -3021,6 +3118,231 @@ export default function App() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+        {settingsSubTab === 'defaultDiscounts' && (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Thêm chính sách duyệt giảm mặc định</h2>
+                <p className="text-xs text-slate-500">Cấu hình chính sách giảm giá tự động điền khi tiếp nhận bệnh nhân có mã PID tương ứng.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-600 block">Mã bệnh nhân (PID) *</label>
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: 12345678"
+                    value={newPolicyPid}
+                    onChange={(e) => setNewPolicyPid(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-600 block">Họ và tên bệnh nhân *</label>
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: Nguyễn Văn A"
+                    value={newPolicyName}
+                    onChange={(e) => setNewPolicyName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-600 block">Ghi chú mặc định</label>
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: Chính sách 01 - bao gồm thuốc"
+                    value={newPolicyNotes}
+                    onChange={(e) => setNewPolicyNotes(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-600 block">Loại hình giảm giá</label>
+                  <select
+                    value={newPolicyType}
+                    onChange={(e) => setNewPolicyType(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+                  >
+                    <option value="percent">Giảm theo phần trăm (%)</option>
+                    <option value="fixed">Số tiền cố định (VNĐ)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-600 block">Giá trị giảm giá *</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={newPolicyRate || ''}
+                      onChange={(e) => setNewPolicyRate(parseInt(e.target.value) || 0)}
+                      className="w-full pl-3 pr-10 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+                    />
+                    <span className="absolute right-3 top-2 text-[11px] font-bold text-slate-400 font-mono">
+                      {newPolicyType === 'percent' ? '%' : 'đ'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 flex flex-col justify-end">
+                  <label className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-150 rounded-xl cursor-pointer hover:bg-slate-100/50 select-none">
+                    <input
+                      type="checkbox"
+                      checked={newPolicyIncludeThuoc}
+                      onChange={(e) => setNewPolicyIncludeThuoc(e.target.checked)}
+                      className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-slate-700">Duyệt giảm gồm thuốc/vacxin</span>
+                  </label>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-600 block">Hiệu lực từ ngày *</label>
+                  <input
+                    type="date"
+                    value={newPolicyStartDate}
+                    onChange={(e) => setNewPolicyStartDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-600 block">Đến ngày (để trống nếu vô hạn)</label>
+                  <input
+                    type="date"
+                    value={newPolicyEndDate}
+                    onChange={(e) => setNewPolicyEndDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+                  />
+                </div>
+
+                <div className="flex items-end justify-start">
+                  <button
+                    onClick={() => {
+                      if (!newPolicyPid.trim()) {
+                        showNotification("Vui lòng nhập PID!", "error");
+                        return;
+                      }
+                      if (!newPolicyName.trim()) {
+                        showNotification("Vui lòng nhập Họ tên!", "error");
+                        return;
+                      }
+                      const policy = {
+                        id: Date.now().toString(),
+                        pid: newPolicyPid.trim(),
+                        name: newPolicyName.trim(),
+                        discountType: newPolicyType,
+                        discountRate: newPolicyRate,
+                        includeThuoc: newPolicyIncludeThuoc,
+                        notes: newPolicyNotes.trim(),
+                        startDate: newPolicyStartDate,
+                        endDate: newPolicyEndDate || ''
+                      };
+                      handleAddDefaultDiscount(policy);
+                      setNewPolicyPid('');
+                      setNewPolicyName('');
+                      setNewPolicyNotes('');
+                      setNewPolicyRate(0);
+                      setNewPolicyEndDate('');
+                    }}
+                    className="w-full md:w-auto px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-md shadow-indigo-900/10 flex items-center justify-center gap-1"
+                  >
+                    Lưu chính sách
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 overflow-x-auto">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Danh sách duyệt giảm mặc định</h2>
+                <p className="text-xs text-slate-500">Danh sách các chính sách đang hoạt động trong hệ thống.</p>
+              </div>
+
+              <table className="w-full border-collapse border border-slate-250 text-xs text-slate-700 min-w-[800px]">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-955 font-bold text-center">
+                    <th className="border border-slate-250 p-2.5 w-12">STT</th>
+                    <th className="border border-slate-250 p-2.5 w-24">PID</th>
+                    <th className="border border-slate-250 p-2.5 text-left w-48">Họ và tên KH</th>
+                    <th className="border border-slate-250 p-2.5 w-40">Chính sách giảm</th>
+                    <th className="border border-slate-250 p-2.5 w-32">Bao gồm thuốc</th>
+                    <th className="border border-slate-250 p-2.5 text-left w-64">Ghi chú mặc định</th>
+                    <th className="border border-slate-250 p-2.5 w-48">Thời gian hiệu lực</th>
+                    <th className="border border-slate-250 p-2.5 w-32">Trạng thái</th>
+                    <th className="border border-slate-250 p-2.5 w-20">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(systemSettings?.defaultDiscounts || []).length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="p-8 text-center text-slate-400 font-bold">Chưa có chính sách duyệt giảm mặc định nào.</td>
+                    </tr>
+                  ) : (
+                    (systemSettings?.defaultDiscounts || []).map((policy, idx) => {
+                      const todayStr = new Date().toISOString().split('T')[0];
+                      const isExpired = policy.endDate && todayStr > policy.endDate;
+                      const isNotStarted = policy.startDate && todayStr < policy.startDate;
+                      const isActive = !isExpired && !isNotStarted;
+
+                      return (
+                        <tr key={policy.id || idx} className="hover:bg-slate-50/50 transition">
+                          <td className="border border-slate-250 p-2 text-center font-bold">{idx + 1}</td>
+                          <td className="border border-slate-250 p-2 text-center font-mono font-bold text-slate-900">{policy.pid}</td>
+                          <td className="border border-slate-250 p-2 text-left font-bold text-slate-800">{policy.name}</td>
+                          <td className="border border-slate-250 p-2 text-center font-bold text-indigo-650">
+                            {policy.discountType === 'percent' 
+                              ? `Giảm ${policy.discountRate}%` 
+                              : `Giảm ${policy.discountRate.toLocaleString('vi-VN')} đ`}
+                          </td>
+                          <td className="border border-slate-250 p-2 text-center">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              policy.includeThuoc 
+                                ? 'bg-emerald-55 text-emerald-700 border border-emerald-200' 
+                                : 'bg-slate-100 text-slate-500 border border-slate-200'
+                            }`}>
+                              {policy.includeThuoc ? 'Có' : 'Không'}
+                            </span>
+                          </td>
+                          <td className="border border-slate-250 p-2 text-left text-slate-500 italic">{policy.notes || '---'}</td>
+                          <td className="border border-slate-250 p-2 text-center font-mono">
+                            {policy.startDate ? formatDateVN(policy.startDate) : 'Từ trước'} 
+                            {' - '} 
+                            {policy.endDate ? formatDateVN(policy.endDate) : 'Vô hạn'}
+                          </td>
+                          <td className="border border-slate-250 p-2 text-center">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              isActive 
+                                ? 'bg-emerald-500 text-white' 
+                                : isExpired 
+                                  ? 'bg-rose-500 text-white' 
+                                  : 'bg-amber-500 text-white'
+                            }`}>
+                              {isActive ? 'Còn hiệu lực' : isExpired ? 'Hết hiệu lực' : 'Chưa áp dụng'}
+                            </span>
+                          </td>
+                          <td className="border border-slate-250 p-2 text-center">
+                            <button
+                              onClick={() => handleRemoveDefaultDiscount(policy.id)}
+                              className="p-1 hover:bg-rose-100 rounded-lg transition text-rose-505"
+                              title="Xóa chính sách"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -4631,6 +4953,17 @@ export default function App() {
                             </div>
                           )}
                         </div>
+
+                        <label className="flex items-center gap-2 py-2.5 px-3 bg-slate-800/50 rounded-xl cursor-pointer border border-slate-750 hover:bg-slate-800 transition select-none relative z-10">
+                          <input
+                            type="checkbox"
+                            checked={!!formData.includeThuoc}
+                            disabled={!hasAccessToPatient(formData, 'billing:discount') || isReadOnly}
+                            onChange={(e) => setFormData(prev => ({ ...prev, includeThuoc: e.target.checked }))}
+                            className="w-4 h-4 text-indigo-505 rounded border-slate-650 bg-slate-800 focus:ring-indigo-505 cursor-pointer"
+                          />
+                          <span className="text-[10px] font-bold text-slate-300">Duyệt giảm bao gồm thuốc/vacxin</span>
+                        </label>
 
                         <div className="border-t border-slate-800/80 pt-4 space-y-3 relative z-10">
                           
