@@ -448,6 +448,28 @@ export default function App() {
   const [showExportPinModal, setShowExportPinModal] = useState(false);
   const [enteredExportPin, setEnteredExportPin] = useState('');
   const [pinModalError, setPinModalError] = useState('');
+  const [otpCountdownText, setOtpCountdownText] = useState('');
+  const [isReportsUnlocked, setIsReportsUnlocked] = useState(false);
+
+  useEffect(() => {
+    setIsReportsUnlocked(false);
+  }, [currentUser]);
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = Date.now();
+      const nextEpochMs = (Math.floor(now / 300000) + 1) * 300000;
+      const diffMs = nextEpochMs - now;
+      const diffSec = Math.floor(diffMs / 1000);
+      const minutes = Math.floor(diffSec / 60);
+      const seconds = diffSec % 60;
+      setOtpCountdownText(`Còn ${minutes}p ${seconds < 10 ? '0' : ''}${seconds}s`);
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const [notifications, setNotifications] = useState([]);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
@@ -2098,7 +2120,7 @@ export default function App() {
 
   const handleExportToExcel = async () => {
     const role = currentUser?.role || 'nhanvien';
-    if (role === 'admin' || role === 'lanhdao') {
+    if (role === 'admin' || role === 'lanhdao' || isReportsUnlocked) {
       await executeExportToExcel();
     } else {
       setShowExportPinModal(true);
@@ -2482,6 +2504,50 @@ export default function App() {
   };
 
   const renderReportsTab = () => {
+    const role = currentUser?.role || 'nhanvien';
+    const isLeadership = role === 'admin' || role === 'lanhdao';
+    
+    if (!isLeadership && !isReportsUnlocked) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 px-4 max-w-md mx-auto space-y-6">
+          <div className="w-16 h-16 rounded-full bg-indigo-50 border border-indigo-150 flex items-center justify-center text-indigo-600 shadow-2xs">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div className="text-center space-y-2">
+            <h2 className="text-lg font-black text-slate-900">Xác thực quyền xem Báo cáo</h2>
+            <p className="text-xs text-slate-550 leading-relaxed font-semibold">
+              Báo cáo chi phí VIP-VVIP chứa thông tin bảo mật. Vui lòng yêu cầu cấp Lãnh đạo cung cấp mã OTP 5 phút để mở khóa xem dữ liệu và tải file.
+            </p>
+          </div>
+          <div className="w-full space-y-2">
+            <label className="text-[10px] font-bold text-slate-600 uppercase block">Mã OTP phê duyệt *</label>
+            <input
+              type="password"
+              maxLength={10}
+              placeholder="Nhập mã OTP 6 chữ số..."
+              id="reportsUnlockOtpInput"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono font-bold text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+            />
+          </div>
+          <button
+            onClick={() => {
+              const el = document.getElementById('reportsUnlockOtpInput');
+              const enteredOtp = el ? el.value.trim() : '';
+              if (verifyReportApprovalOtp(enteredOtp, appId)) {
+                setIsReportsUnlocked(true);
+                showNotification("Xác thực OTP thành công! Đã mở khóa Phân hệ Báo cáo.", "success");
+              } else {
+                showNotification("Mã OTP không chính xác hoặc đã hết hạn!", "error");
+              }
+            }}
+            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-md shadow-indigo-900/10 active:scale-95"
+          >
+            Xác nhận & Mở khóa
+          </button>
+        </div>
+      );
+    }
+
     const sumPhiKham = reportFilteredPatients.reduce((sum, p) => sum + (p.phiKham || 0), 0);
     const sumCls = reportFilteredPatients.reduce((sum, p) => sum + (p.clsCdha || 0), 0);
     const sumThuoc = reportFilteredPatients.reduce((sum, p) => sum + (p.thuocVacxin || 0), 0);
@@ -3880,11 +3946,6 @@ export default function App() {
                   <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-wider">
                     {userRole}
                   </span>
-                  {['admin', 'lanhdao'].includes(userRole) && (
-                    <span className="bg-indigo-50 text-indigo-700 border border-indigo-150 text-[9.5px] font-black px-1.5 py-0.5 rounded-sm font-mono shadow-3xs animate-pulse" title="Mã OTP phê duyệt xuất báo cáo (Tự động đổi mỗi 5 phút)">
-                      OTP BC: {getReportApprovalOtp(appId)}
-                    </span>
-                  )}
                 </h1>
                 <p className="text-[10px] text-slate-404 font-semibold">
                   {currentUser?.assignedSite && currentUser.assignedSite !== 'Tất cả' ? `📍 Chi nhánh: ${currentUser.assignedSite}` : '🌐 Toàn hệ thống'}
@@ -3996,6 +4057,40 @@ export default function App() {
                       </button>
                     </div>
                   </div>
+
+                  {['admin', 'lanhdao'].includes(userRole) && (
+                    <div className="p-3 bg-indigo-50/50 border border-indigo-150 rounded-2xl space-y-2 relative overflow-hidden">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-1.5 text-indigo-700">
+                          <Lock className="w-3.5 h-3.5 text-indigo-500" />
+                          <span className="text-[10px] font-black uppercase tracking-wider">OTP Phê duyệt Báo cáo</span>
+                        </div>
+                        <span className="text-[9.5px] font-black text-indigo-550 bg-indigo-100 px-1.5 py-0.5 rounded-sm font-mono">
+                          {otpCountdownText}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl font-black font-mono tracking-widest text-indigo-900 bg-white border border-indigo-100 rounded-xl px-4 py-1 shadow-2xs select-all">
+                          {getReportApprovalOtp(appId)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(getReportApprovalOtp(appId));
+                            showNotification("Đã copy mã OTP!");
+                          }}
+                          className="px-3 py-1.5 bg-indigo-650 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg transition shadow-3xs active:scale-95"
+                        >
+                          Copy OTP
+                        </button>
+                      </div>
+                      <p className="text-[9px] text-slate-500 font-semibold leading-normal">
+                        Cung cấp mã 6 số này cho Quản lý hệ thống để cấp quyền tải file Excel báo cáo. Mã hết hạn sau 5 phút.
+                      </p>
+                    </div>
+                  )}
 
                   <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                     {iosNotificationStatus !== 'granted' && (
