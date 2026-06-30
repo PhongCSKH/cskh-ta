@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 import { initializeApp } from 'firebase/app';
 import {
   getFirestore,
@@ -1984,6 +1984,7 @@ export default function App() {
 
     const ws = XLSX.utils.aoa_to_sheet(worksheetData);
 
+    // Gộp ô (merges)
     ws['!merges'] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: 16 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: 16 } },
@@ -2014,29 +2015,180 @@ export default function App() {
       { s: { r: 4 + 2 + rowData.length + 4, c: 8 }, e: { r: 4 + 2 + rowData.length + 4, c: 16 } }
     ];
 
+    // Chiều rộng cột
     ws['!cols'] = [
-      { wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 15 }, { wch: 18 },
-      { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 15 },
-      { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 18 }
+      { wch: 22 }, // Họ tên khách VIP.VVIP
+      { wch: 18 }, // HĐQT phê duyệt
+      { wch: 18 }, // Ghi chú
+      { wch: 10 }, // PID
+      { wch: 15 }, // Ngày khám/điều trị
+      { wch: 15 }, // Chuyên khoa
+      { wch: 9 },  // Ngoại trú
+      { wch: 9 },  // Cấp cứu
+      { wch: 11 }, // Nội trú/ICU
+      { wch: 9 },  // Ngoại viện
+      { wch: 14 }, // Phí khám/Điều trị
+      { wch: 14 }, // CLS/CĐHA
+      { wch: 14 }, // Thuốc/vacxin
+      { wch: 14 }, // Tổng cộng
+      { wch: 16 }, // BHYT/BHTN chi trả
+      { wch: 11 }, // Duyệt giảm
+      { wch: 16 }  // Số tiền duyệt giảm
     ];
 
-    const currencyCols = [10, 11, 12, 13, 14, 16]; 
-    const startRow = 6;
-    const endRow = 6 + rowData.length; 
-    
-    for (let r = startRow; r <= endRow; r++) {
-      currencyCols.forEach(c => {
+    // Áp dụng định dạng và style cho toàn bộ các ô trong Excel
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:Q30');
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
         const cellRef = XLSX.utils.encode_cell({ r, c });
-        const cell = ws[cellRef];
-        if (cell && cell.v !== undefined && cell.v !== '') {
-          const numValue = Number(cell.v);
-          if (!isNaN(numValue)) {
-            cell.t = 'n';
-            cell.v = numValue;
-            cell.z = '#,##0';
+        let cell = ws[cellRef];
+        
+        // Nếu ô trống nhưng nằm trong vùng bảng, khởi tạo đối tượng ô để áp dụng border/style
+        if (!cell) {
+          ws[cellRef] = { v: '', t: 's' };
+          cell = ws[cellRef];
+        }
+
+        // Định dạng mặc định cho ô trong bảng dữ liệu
+        cell.s = {
+          font: { name: 'Arial', sz: 9 },
+          alignment: { vertical: 'center' },
+          border: {
+            top: { style: 'thin', color: { rgb: 'CCCCCC' } },
+            bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
+            left: { style: 'thin', color: { rgb: 'CCCCCC' } },
+            right: { style: 'thin', color: { rgb: 'CCCCCC' } }
+          }
+        };
+
+        // 1. Tiêu đề đầu trang (Dòng 0, 1, 2)
+        if (r >= 0 && r <= 2) {
+          cell.s.font.bold = true;
+          cell.s.alignment.horizontal = 'center';
+          cell.s.border = {}; // Không có viền
+          
+          if (r === 0) {
+            cell.s.font.sz = 10;
+            cell.s.font.color = { rgb: '555555' };
+          } else if (r === 1) {
+            cell.s.font.sz = 14;
+            cell.s.font.color = { rgb: '000000' };
+          } else if (r === 2) {
+            cell.s.font.sz = 9;
+            cell.s.font.italic = true;
+            cell.s.font.color = { rgb: '555555' };
           }
         }
-      });
+
+        // 2. Dòng trống ngăn cách (Dòng 3)
+        else if (r === 3) {
+          cell.s.border = {};
+        }
+
+        // 3. Header bảng (Dòng 4, 5)
+        else if (r === 4 || r === 5) {
+          cell.s.font.bold = true;
+          cell.s.font.sz = 9;
+          cell.s.font.color = { rgb: '000000' };
+          cell.s.alignment.horizontal = 'center';
+          cell.s.alignment.wrapText = true;
+          cell.s.fill = { fgColor: { rgb: 'EAEAEA' } }; // Màu nền xám nhạt giống mẫu ảnh
+          cell.s.border = {
+            top: { style: 'thin', color: { rgb: '888888' } },
+            bottom: { style: 'thin', color: { rgb: '888888' } },
+            left: { style: 'thin', color: { rgb: '888888' } },
+            right: { style: 'thin', color: { rgb: '888888' } }
+          };
+        }
+
+        // 4. Các dòng dữ liệu bệnh nhân (Dòng 6 -> trước dòng tổng cộng)
+        else if (r >= 6 && r < 6 + rowData.length) {
+          cell.s.font.sz = 9;
+
+          // Thiết lập căn lề & in đậm cho các cột khác nhau
+          if (c === 0) { // Họ tên
+            cell.s.font.bold = true;
+            cell.s.alignment.horizontal = 'left';
+          } 
+          else if (c === 2) { // Ghi chú
+            cell.s.font.italic = true;
+            cell.s.font.color = { rgb: '666666' };
+            cell.s.alignment.horizontal = 'left';
+          } 
+          else if ([1, 3, 4, 5, 6, 7, 8, 9, 15].includes(c)) { // HĐQT, PID, Ngày, Chuyên khoa, Checkbox, Tỷ lệ giảm
+            cell.s.alignment.horizontal = 'center';
+            if (c === 3) cell.s.font.bold = true; // PID đậm
+          } 
+          else { // Cột tiền: Phí khám, CLS, Thuốc, Tổng cộng, BHYT, Tiền giảm
+            cell.s.alignment.horizontal = 'right';
+            if (c === 13 || c === 16) cell.s.font.bold = true; // Tổng tiền và Tiền giảm đậm
+
+            // Định dạng hiển thị kiểu số trong Excel
+            if (cell.v !== undefined && cell.v !== '') {
+              const numVal = Number(cell.v);
+              if (!isNaN(numVal)) {
+                cell.t = 'n';
+                cell.v = numVal;
+                cell.z = '#,##0'; // Dấu phân cách hàng nghìn
+              }
+            }
+          }
+        }
+
+        // 5. Dòng Tổng cộng (Dòng 6 + rowData.length)
+        else if (r === 6 + rowData.length) {
+          cell.s.font.bold = true;
+          cell.s.font.sz = 9.5;
+          cell.s.fill = { fgColor: { rgb: 'F5F5F5' } };
+          cell.s.border = {
+            top: { style: 'thin', color: { rgb: '888888' } },
+            bottom: { style: 'double', color: { rgb: '000000' } }, // Viền đôi dưới cùng tổng cộng giống kế toán
+            left: { style: 'thin', color: { rgb: '888888' } },
+            right: { style: 'thin', color: { rgb: '888888' } }
+          };
+
+          if (c === 0) {
+            cell.s.alignment.horizontal = 'center';
+          } 
+          else if ([11, 12, 13, 14, 16].includes(c)) { // Các cột tổng tiền
+            cell.s.alignment.horizontal = 'right';
+            
+            // Định dạng kiểu số trong Excel
+            if (cell.v !== undefined && cell.v !== '') {
+              const numVal = Number(cell.v);
+              if (!isNaN(numVal)) {
+                cell.t = 'n';
+                cell.v = numVal;
+                cell.z = '#,##0';
+              }
+            }
+          }
+        }
+
+        // 6. Phần chân trang ký tên (Ban Giám Đốc, Kế toán, Đỗ Hoàng Mỹ)
+        else if (r >= 6 + rowData.length + 1) {
+          cell.s.border = {}; // Không vẽ viền
+          cell.s.alignment.horizontal = 'center';
+
+          // Hàng chức danh
+          if (r === 6 + rowData.length + 3) {
+            cell.s.font.bold = true;
+            cell.s.font.sz = 9.5;
+          }
+          // Hàng hướng dẫn (Ký tên...)
+          else if (r === 6 + rowData.length + 4) {
+            cell.s.font.italic = true;
+            cell.s.font.sz = 8.5;
+            cell.s.font.color = { rgb: '666666' };
+          }
+          // Hàng Tên người ký (Đỗ Hoàng Mỹ)
+          else if (r === 6 + rowData.length + 5) {
+            cell.s.font.bold = true;
+            cell.s.font.sz = 10.5;
+            cell.s.font.name = 'Georgia'; // Serif font giống mẫu ký tên
+          }
+        }
+      }
     }
 
     const wb = XLSX.utils.book_new();
@@ -2284,11 +2436,11 @@ export default function App() {
             
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-2">
-                <span className="text-4xl font-black text-slate-800 tracking-tighter font-serif">ta</span>
-                <div className="leading-tight">
-                  <div className="text-base font-black text-slate-900 tracking-wide uppercase">Tâm Anh</div>
-                  <div className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Hospital</div>
-                </div>
+                <img 
+                  src="https://sv2.anhsieuviet.com/2026/06/30/Logo-Tam-Anh_RGB_ngang_duong-ban.png" 
+                  alt="Tâm Anh Hospital Logo" 
+                  className="h-12 object-contain"
+                />
               </div>
               
               <div className="text-right">
