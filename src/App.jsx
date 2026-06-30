@@ -436,10 +436,16 @@ export default function App() {
     if (!currentUser) return false;
     const role = currentUser.role || 'nhanvien';
     if (role === 'admin') return true;
-    if (role === 'lanhdao') {
-      return ['dashboard', 'monitoring', 'reports'].includes(tabName);
+    
+    if (tabName === 'settings') return role === 'admin';
+    
+    if (tabName === 'register') {
+      const canCreate = systemSettings?.permissions?.['patients:create']?.[role] || 'none';
+      const canUpdate = systemSettings?.permissions?.['patients:update']?.[role] || 'none';
+      return canCreate !== 'none' || canUpdate !== 'none';
     }
-    return ['dashboard', 'register', 'monitoring', 'reports'].includes(tabName);
+    
+    return ['dashboard', 'monitoring', 'reports'].includes(tabName);
   };
 
   const hasAccessToPatient = (patient, action) => {
@@ -5665,11 +5671,17 @@ export default function App() {
                                           <ImageIcon className="w-4 h-4" />
                                         </button>
                                       )}
-                                      <button onClick={() => { initiateView(p); }} className="p-1.5 bg-slate-50 border border-slate-202 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
-                                        <Edit3 className="w-4 h-4" />
-                                      </button>
+                                      {hasAccessToPatient(p, 'patients:update') ? (
+                                        <button onClick={() => { initiateEdit(p, false); }} className="p-1.5 bg-slate-50 border border-slate-202 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Sửa">
+                                          <Edit3 className="w-4 h-4" />
+                                        </button>
+                                      ) : (
+                                        <button onClick={() => { initiateView(p); }} className="p-1.5 bg-slate-50 border border-slate-202 text-slate-600 hover:bg-slate-955 hover:text-white rounded-xl transition" title="Chi tiết">
+                                          <Eye className="w-4 h-4" />
+                                        </button>
+                                      )}
                                       
-                                      {userRole !== 'nhanvien' ? (
+                                      {hasAccessToPatient(p, 'patients:delete') ? (
                                         <button 
                                           onClick={() => {
                                             setConfirmModal({
@@ -5811,11 +5823,17 @@ export default function App() {
                                   <ImageIcon className="w-3.5 h-3.5" /> Ảnh duyệt
                                 </button>
                               )}
-                              <button onClick={() => { initiateView(p); }} className="px-3 py-1.5 bg-slate-50 border border-slate-202 text-slate-707 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
-                                <Edit3 className="w-3.5 h-3.5" /> Sửa
-                              </button>
+                              {hasAccessToPatient(p, 'patients:update') ? (
+                                <button onClick={() => { initiateEdit(p, false); }} className="px-3 py-1.5 bg-slate-50 border border-slate-202 text-slate-707 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
+                                  <Edit3 className="w-3.5 h-3.5" /> Sửa
+                                </button>
+                              ) : (
+                                <button onClick={() => { initiateView(p); }} className="px-3 py-1.5 bg-slate-50 border border-slate-202 text-slate-707 text-[10px] rounded-xl font-bold flex items-center gap-1 transition">
+                                  <Eye className="w-3.5 h-3.5" /> Chi tiết
+                                </button>
+                              )}
                               
-                              {userRole !== 'nhanvien' && (
+                              {hasAccessToPatient(p, 'patients:delete') && (
                                 <button 
                                   type="button"
                                   onClick={() => {
@@ -5870,7 +5888,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-404 space-y-1 font-semibold">
-          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.2</p>
+          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.3</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
