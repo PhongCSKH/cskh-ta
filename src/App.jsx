@@ -1090,6 +1090,11 @@ export default function App() {
     }
   }, [calculatedSums.totalAmount, calculatedSums.approvedDiscountAmount]);
 
+  const matchedPatientProfile = useMemo(() => {
+    if (!formData?.pid?.trim()) return null;
+    return patients.find(p => p?.pid?.trim().toLowerCase() === formData?.pid?.trim().toLowerCase());
+  }, [formData?.pid, patients]);
+
   useEffect(() => {
     if (matchedPatientProfile && !currentId) {
       setFormData(prev => {
@@ -1137,10 +1142,7 @@ export default function App() {
     }
   }, [formData?.pid, systemSettings?.defaultDiscounts]);
 
-  const matchedPatientProfile = useMemo(() => {
-    if (!formData?.pid?.trim()) return null;
-    return patients.find(p => p?.pid?.trim().toLowerCase() === formData?.pid?.trim().toLowerCase());
-  }, [formData?.pid, patients]);
+
 
   const patientVisitHistory = useMemo(() => {
     if (!formData?.pid?.trim()) return [];
@@ -5662,7 +5664,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-404 space-y-1 font-semibold">
-          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.1</p>
+          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.2</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
