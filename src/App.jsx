@@ -2082,36 +2082,37 @@ export default function App() {
       const cellBorder = { style: 'thin', color: { argb: 'FFCCCCCC' } };
       for (let c = 1; c <= 17; c++) {
         const cell = row.getCell(c);
-        cell.font = { name: 'Arial', size: 9 };
         cell.border = {
           top: cellBorder,
           bottom: cellBorder,
           left: cellBorder,
           right: cellBorder
         };
-        cell.alignment = { vertical: 'middle' };
+
+        let horizontalAlign = 'left'; // Căn lề mặc định
+        let wrapText = false;
 
         if (c === 1) { // Họ tên
-          cell.font.bold = true;
-          cell.alignment.horizontal = 'left';
+          cell.font = { name: 'Arial', size: 9, bold: true };
+          horizontalAlign = 'left';
         }
         else if (c === 3) { // Ghi chú
-          cell.font.italic = true;
-          cell.font.color = { argb: 'FF666666' };
-          cell.alignment.horizontal = 'left';
-          cell.alignment.wrapText = true;
+          cell.font = { name: 'Arial', size: 9, italic: true, color: { argb: 'FF666666' } };
+          horizontalAlign = 'left';
+          wrapText = true;
         }
         else if (c === 6) { // Chuyên khoa
-          cell.alignment.horizontal = 'left';
-          cell.alignment.wrapText = true;
+          cell.font = { name: 'Arial', size: 9 };
+          horizontalAlign = 'left';
+          wrapText = true;
         }
         else if ([2, 4, 5, 7, 8, 9, 10, 16].includes(c)) { // HĐQT, PID, Ngày, Checkbox, Tỷ lệ giảm
-          cell.alignment.horizontal = 'center';
-          if (c === 4) cell.font.bold = true; // PID đậm
+          cell.font = { name: 'Arial', size: 9, bold: (c === 4) }; // PID đậm
+          horizontalAlign = 'center';
         }
         else { // Cột tiền: Phí khám, CLS, Thuốc, Tổng cộng, BHYT, Tiền giảm
-          cell.alignment.horizontal = 'right';
-          if (c === 14 || c === 17) cell.font.bold = true; // Tổng và Tiền giảm đậm
+          cell.font = { name: 'Arial', size: 9, bold: (c === 14 || c === 17) }; // Tổng và Tiền giảm đậm
+          horizontalAlign = 'right';
 
           if (cell.value !== undefined && cell.value !== '') {
             const numVal = Number(cell.value);
@@ -2121,6 +2122,8 @@ export default function App() {
             }
           }
         }
+
+        cell.alignment = { vertical: 'middle', horizontal: horizontalAlign, wrapText };
       }
     });
 
@@ -2169,7 +2172,7 @@ export default function App() {
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
       }
       else if ([11, 12, 13, 14, 15, 17].includes(c)) { // Các cột tổng tiền
-        cell.alignment.horizontal = 'right';
+        cell.alignment = { horizontal: 'right', vertical: 'middle' };
         if (val !== undefined && val !== '') {
           const numVal = Number(val);
           if (!isNaN(numVal)) {
@@ -2177,6 +2180,8 @@ export default function App() {
             cell.numFmt = '#,##0';
           }
         }
+      } else {
+        cell.alignment = { vertical: 'middle' };
       }
     }
 
