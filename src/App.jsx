@@ -2887,6 +2887,16 @@ export default function App() {
           >
             Duyệt giảm mặc định
           </button>
+          <button
+            onClick={() => setSettingsSubTab('users')}
+            className={`px-4 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition ${
+              settingsSubTab === 'users'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Tài khoản & Phân quyền
+          </button>
         </div>
 
         {/* Tab Contents */}
@@ -3337,6 +3347,202 @@ export default function App() {
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        {settingsSubTab === 'users' && (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">
+                  {editingStaffUid ? "Chỉnh sửa tài khoản nhân viên" : "Đăng ký tài khoản nhân viên mới"}
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Cấp tài khoản, phân vai trò và gán chi nhánh hoạt động cho nhân viên.
+                </p>
+              </div>
+
+              <form onSubmit={handleCreateStaff} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-600 block">Họ và tên nhân viên *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ví dụ: Nguyễn Văn A"
+                    value={newStaff.name || ''}
+                    onChange={(e) => setNewStaff(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-600 block">Địa chỉ Email đăng nhập *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="Ví dụ: email@tamanhhospital.vn"
+                    value={newStaff.email || ''}
+                    onChange={(e) => setNewStaff(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-600 block">
+                    Mã Firebase UID *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    disabled={!!editingStaffUid}
+                    placeholder="Nhập mã UID từ Firebase..."
+                    value={newStaff.uid || ''}
+                    onChange={(e) => setNewStaff(prev => ({ ...prev, uid: e.target.value }))}
+                    className={`w-full px-3 py-2 rounded-xl border text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 ${
+                      editingStaffUid ? 'bg-slate-100 cursor-not-allowed border-slate-200' : 'bg-white border-slate-200'
+                    }`}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-600 block">Chức danh / Vị trí *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ví dụ: Trưởng nhóm CSKH, Nhân viên lễ tân"
+                    value={newStaff.title || ''}
+                    onChange={(e) => setNewStaff(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-600 block">Vai trò hệ thống</label>
+                  <select
+                    value={newStaff.role || 'nhanvien'}
+                    onChange={(e) => setNewStaff(prev => ({ ...prev, role: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+                  >
+                    <option value="nhanvien">Nhân viên CSKH / Lễ tân</option>
+                    <option value="quanly_site">Quản lý chi nhánh (Site Manager)</option>
+                    <option value="quanly">Quản lý hệ thống (Admin)</option>
+                    <option value="lanhdao">Ban lãnh đạo (Lãnh đạo)</option>
+                    <option value="admin">Super Admin</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-600 block">Chi nhánh quản lý</label>
+                  <select
+                    value={newStaff.assignedSite || 'Tất cả'}
+                    onChange={(e) => setNewStaff(prev => ({ ...prev, assignedSite: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+                  >
+                    <option value="Tất cả">Tất cả chi nhánh</option>
+                    {sites.map(s => (
+                      <option key={s.id} value={s.label}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="col-span-1 md:col-span-3 flex justify-end gap-2 pt-2">
+                  {editingStaffUid && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewStaff({ name: '', email: '', role: 'nhanvien', uid: '', title: '', assignedSite: 'Tất cả' });
+                        setEditingStaffUid(null);
+                      }}
+                      className="px-4 py-2 bg-slate-101 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition"
+                    >
+                      Hủy chỉnh sửa
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-md shadow-indigo-900/10"
+                  >
+                    {editingStaffUid ? "Cập nhật tài khoản" : "Đăng ký nhân viên"}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* List of user accounts */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 overflow-x-auto">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Danh sách tài khoản nhân viên</h2>
+                <p className="text-xs text-slate-500">Danh sách nhân viên có quyền truy cập vào hệ thống cskh.</p>
+              </div>
+
+              <table className="w-full border-collapse border border-slate-250 text-xs text-slate-700 min-w-[800px]">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-955 font-bold text-center">
+                    <th className="border border-slate-250 p-2.5 w-12">STT</th>
+                    <th className="border border-slate-250 p-2.5 text-left w-48">Họ và tên</th>
+                    <th className="border border-slate-250 p-2.5 text-left w-56">Email đăng nhập</th>
+                    <th className="border border-slate-250 p-2.5 text-left w-48">Mã UID Firebase</th>
+                    <th className="border border-slate-250 p-2.5 text-left w-44">Chức danh</th>
+                    <th className="border border-slate-250 p-2.5 text-left w-56">Chi nhánh hoạt động</th>
+                    <th className="border border-slate-250 p-2.5 w-40">Vai trò hệ thống</th>
+                    <th className="border border-slate-250 p-2.5 w-24">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {staffList.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="p-8 text-center text-slate-400 font-bold">Chưa có tài khoản nhân viên nào được cấu hình.</td>
+                    </tr>
+                  ) : (
+                    staffList.map((staff, idx) => {
+                      const roleBadges = {
+                        nhanvien: { label: 'Nhân viên CSKH', style: 'bg-slate-100 text-slate-700 border-slate-200' },
+                        quanly_site: { label: 'Quản lý Chi nhánh', style: 'bg-sky-50 text-sky-700 border-sky-200' },
+                        quanly: { label: 'Quản lý Hệ thống', style: 'bg-violet-50 text-violet-700 border-violet-200' },
+                        lanhdao: { label: 'Ban Lãnh Đạo', style: 'bg-amber-50 text-amber-700 border-amber-200' },
+                        admin: { label: 'Super Admin', style: 'bg-rose-50 text-rose-700 border-rose-200' }
+                      };
+                      const badge = roleBadges[staff.role] || { label: staff.role, style: 'bg-slate-100 text-slate-650' };
+
+                      return (
+                        <tr key={staff.uid || idx} className="hover:bg-slate-50/50 transition">
+                          <td className="border border-slate-250 p-2 text-center font-bold">{idx + 1}</td>
+                          <td className="border border-slate-250 p-2 text-left font-bold text-slate-800">{staff.name}</td>
+                          <td className="border border-slate-250 p-2 text-left font-mono font-semibold text-slate-600">{staff.email}</td>
+                          <td className="border border-slate-250 p-2 text-left font-mono text-[10px] text-slate-500" title={staff.uid}>
+                            {staff.uid}
+                          </td>
+                          <td className="border border-slate-250 p-2 text-left text-slate-600 font-semibold">{staff.title || 'Nhân viên'}</td>
+                          <td className="border border-slate-250 p-2 text-left text-slate-600 font-medium">{staff.assignedSite || 'Tất cả'}</td>
+                          <td className="border border-slate-250 p-2 text-center">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${badge.style}`}>
+                              {badge.label}
+                            </span>
+                          </td>
+                          <td className="border border-slate-250 p-2 text-center">
+                            <div className="flex justify-center gap-1.5">
+                              <button
+                                onClick={() => handleEditStaff(staff)}
+                                className="p-1 hover:bg-slate-100 rounded-lg transition text-slate-505"
+                                title="Sửa tài khoản"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteStaff(staff.uid)}
+                                className="p-1 hover:bg-rose-100 rounded-lg transition text-rose-505"
+                                title="Xóa tài khoản"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
