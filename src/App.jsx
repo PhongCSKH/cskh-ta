@@ -223,7 +223,8 @@ const defaultSystemSettings = {
     'notify:create': { nhanvien: 'assigned_only', quanly_site: 'assigned_site', quanly: 'all', lanhdao: 'all', admin: 'all' },
     'notify:status': { nhanvien: 'assigned_only', quanly_site: 'assigned_site', quanly: 'all', lanhdao: 'all', admin: 'all' }
   },
-  defaultDiscounts: []
+  defaultDiscounts: [],
+  exportApprovalPin: '123456'
 };
 
 const workflowStatuses = [
@@ -300,6 +301,37 @@ const getFormattedSiteName = (site) => {
     return 'BỆNH VIỆN ĐA KHOA TÂM ANH - P. CHÁNH HƯNG';
   }
   return s.toUpperCase();
+};
+
+const getReportApprovalOtp = (secretAppId) => {
+  const epoch = Math.floor(Date.now() / 300000); // 5-minute window
+  let hash = 0;
+  const str = (secretAppId || 'hospital_vip') + '_' + epoch;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const otp = Math.abs(hash) % 900000 + 100000;
+  return String(otp);
+};
+
+const verifyReportApprovalOtp = (enteredPin, secretAppId) => {
+  if (!enteredPin) return false;
+  const cleanPin = String(enteredPin).trim();
+  
+  // Verify current 5-min epoch
+  const currentOtp = getReportApprovalOtp(secretAppId);
+  if (cleanPin === currentOtp) return true;
+
+  // Verify previous 5-min epoch (to prevent rollover issues)
+  const prevEpoch = Math.floor((Date.now() - 300000) / 300000);
+  let hashPrev = 0;
+  const strPrev = (secretAppId || 'hospital_vip') + '_' + prevEpoch;
+  for (let i = 0; i < strPrev.length; i++) {
+    hashPrev = strPrev.charCodeAt(i) + ((hashPrev << 5) - hashPrev);
+  }
+  const prevOtp = String(Math.abs(hashPrev) % 900000 + 100000);
+  
+  return cleanPin === prevOtp;
 };
 
 export default function App() {
@@ -413,6 +445,9 @@ export default function App() {
   const [newPolicyEndDate, setNewPolicyEndDate] = useState('');
   const [notification, setNotification] = useState(null);
   const [iosNotificationStatus, setIosNotificationStatus] = useState('unknown');
+  const [showExportPinModal, setShowExportPinModal] = useState(false);
+  const [enteredExportPin, setEnteredExportPin] = useState('');
+  const [pinModalError, setPinModalError] = useState('');
 
   const [notifications, setNotifications] = useState([]);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
@@ -445,7 +480,11 @@ export default function App() {
       return canCreate !== 'none' || canUpdate !== 'none';
     }
     
-    return ['dashboard', 'monitoring', 'reports'].includes(tabName);
+    if (tabName === 'reports') {
+      return ['quanly', 'lanhdao', 'admin'].includes(role);
+    }
+    
+    return ['dashboard', 'monitoring'].includes(tabName);
   };
 
   const hasAccessToPatient = (patient, action) => {
@@ -1854,6 +1893,14 @@ export default function App() {
     showNotification("Đã cập nhật cấu hình quyền nhận thông báo!");
   };
 
+  const handleExportApprovalPinChange = (newPin) => {
+    saveSettingsOnDb({
+      ...systemSettings,
+      exportApprovalPin: newPin
+    });
+    showNotification("Đã cập nhật mã PIN phê duyệt xuất báo cáo!");
+  };
+
   const handleAddSpecialty = () => {
     if (!newSpecialtyInput.trim()) return;
 
@@ -2050,6 +2097,17 @@ export default function App() {
   }
 
   const handleExportToExcel = async () => {
+    const role = currentUser?.role || 'nhanvien';
+    if (role === 'admin' || role === 'lanhdao') {
+      await executeExportToExcel();
+    } else {
+      setShowExportPinModal(true);
+      setEnteredExportPin('');
+      setPinModalError('');
+    }
+  };
+
+  const executeExportToExcel = async () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Bao_Cao_Chi_Phi', {
       views: [{ showGridLines: false }]
@@ -3030,6 +3088,16 @@ export default function App() {
               <p className="text-xs text-slate-500">Cấu hình các cấp độ quyền thao tác trên các tính năng cho từng vai trò người dùng.</p>
             </div>
 
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-150 space-y-2">
+              <h3 className="text-xs font-bold text-slate-805 flex items-center gap-1.5">
+                <ShieldAlert className="w-4 h-4 text-emerald-600" />
+                Hệ thống xác thực bảo mật OTP 5 phút
+              </h3>
+              <p className="text-[11px] text-slate-550 leading-relaxed">
+                Để đảm bảo an toàn thông tin tài chính, khi cấp dưới (Quản lý chi nhánh/Nhân viên) thực hiện xuất báo cáo Excel, hệ thống sẽ yêu cầu nhập <strong>mã OTP gồm 6 chữ số</strong>. Mã OTP này được tạo tự động trên màn hình của cấp Lãnh đạo hoặc Admin và thay đổi liên tục mỗi <strong>5 phút</strong>.
+              </p>
+            </div>
+
             <table className="w-full border-collapse border border-slate-250 text-xs text-slate-700 min-w-[700px]">
               <thead>
                 <tr className="bg-slate-50 text-slate-955 font-bold text-center">
@@ -3734,6 +3802,59 @@ export default function App() {
         </div>
       )}
 
+      {showExportPinModal && (
+        <div className="fixed inset-0 z-55 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-2.5 text-indigo-600">
+              <Lock className="w-5 h-5 flex-shrink-0 text-indigo-505" />
+              <h3 className="text-base font-extrabold text-slate-955">Yêu cầu xác nhận của Lãnh đạo</h3>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed font-semibold">
+              Hồ sơ chi phí VIP-VVIP chứa thông tin bảo mật. Vui lòng yêu cầu cấp Lãnh đạo/Admin nhập mã PIN phê duyệt để tải báo cáo.
+            </p>
+            <div className="space-y-1.5 pt-1">
+              <label className="text-[10px] font-bold text-slate-600 uppercase">Mã PIN xác thực *</label>
+              <input
+                type="password"
+                maxLength={10}
+                placeholder="Nhập mã PIN phê duyệt..."
+                value={enteredExportPin}
+                onChange={(e) => {
+                  setEnteredExportPin(e.target.value);
+                  setPinModalError('');
+                }}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-bold text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800"
+              />
+              {pinModalError && (
+                <span className="text-[10px] font-bold text-rose-505 block mt-1">{pinModalError}</span>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button 
+                onClick={() => setShowExportPinModal(false)}
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-600 rounded-xl transition"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                onClick={async () => {
+                  if (verifyReportApprovalOtp(enteredExportPin, appId)) {
+                    setShowExportPinModal(false);
+                    showNotification("Xác thực OTP thành công! Đang tải file...", "success");
+                    await executeExportToExcel();
+                  } else {
+                    setPinModalError("Mã OTP phê duyệt không chính xác hoặc đã hết hạn!");
+                  }
+                }}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white rounded-xl transition shadow-md shadow-indigo-900/10"
+              >
+                Xác nhận & Tải file
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {notification && (
         <div className="fixed top-4 right-4 z-55 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-xl transition-all transform duration-300 translate-y-0 bg-slate-900 text-white">
           <Check className="w-4 h-4 flex-shrink-0 text-emerald-400" />
@@ -3759,6 +3880,11 @@ export default function App() {
                   <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-wider">
                     {userRole}
                   </span>
+                  {['admin', 'lanhdao'].includes(userRole) && (
+                    <span className="bg-indigo-50 text-indigo-700 border border-indigo-150 text-[9.5px] font-black px-1.5 py-0.5 rounded-sm font-mono shadow-3xs animate-pulse" title="Mã OTP phê duyệt xuất báo cáo (Tự động đổi mỗi 5 phút)">
+                      OTP BC: {getReportApprovalOtp(appId)}
+                    </span>
+                  )}
                 </h1>
                 <p className="text-[10px] text-slate-404 font-semibold">
                   {currentUser?.assignedSite && currentUser.assignedSite !== 'Tất cả' ? `📍 Chi nhánh: ${currentUser.assignedSite}` : '🌐 Toàn hệ thống'}
