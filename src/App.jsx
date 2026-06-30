@@ -359,6 +359,7 @@ export default function App() {
   });
 
   const [newSpecialtyInput, setNewSpecialtyInput] = useState('');
+  const [settingsSubTab, setSettingsSubTab] = useState('specialties');
   const [notification, setNotification] = useState(null);
   const [iosNotificationStatus, setIosNotificationStatus] = useState('unknown');
 
@@ -2681,6 +2682,297 @@ export default function App() {
     );
   };
 
+  const renderSettingsTab = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-200">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Cấu hình hệ thống</h1>
+            <p className="text-xs text-slate-500">Quản lý chuyên khoa, cấu hình công thức tính toán và thiết lập phân quyền truy cập hệ thống.</p>
+          </div>
+        </div>
+
+        {/* Tab navigation */}
+        <div className="flex border-b border-slate-200 overflow-x-auto gap-2">
+          <button
+            onClick={() => setSettingsSubTab('specialties')}
+            className={`px-4 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition ${
+              settingsSubTab === 'specialties'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Quản lý chuyên khoa
+          </button>
+          <button
+            onClick={() => setSettingsSubTab('formula')}
+            className={`px-4 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition ${
+              settingsSubTab === 'formula'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Công thức & Miễn giảm
+          </button>
+          <button
+            onClick={() => setSettingsSubTab('permissions')}
+            className={`px-4 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition ${
+              settingsSubTab === 'permissions'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Phân quyền hệ thống
+          </button>
+          <button
+            onClick={() => setSettingsSubTab('notifications')}
+            className={`px-4 py-2 text-xs font-bold whitespace-nowrap border-b-2 transition ${
+              settingsSubTab === 'notifications'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Quyền nhận thông báo
+          </button>
+        </div>
+
+        {/* Tab Contents */}
+        {settingsSubTab === 'specialties' && (
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Danh mục chuyên khoa</h2>
+              <p className="text-xs text-slate-500">Thêm hoặc xóa các chuyên khoa dùng trong hồ sơ ca bệnh của hệ thống.</p>
+            </div>
+            
+            <div className="flex gap-2 max-w-md">
+              <input
+                type="text"
+                placeholder="Nhập tên chuyên khoa (hoặc nhiều chuyên khoa cách nhau bằng dấu phẩy)..."
+                value={newSpecialtyInput}
+                onChange={(e) => setNewSpecialtyInput(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+              />
+              <button
+                onClick={handleAddSpecialty}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-md shadow-indigo-900/10"
+              >
+                Thêm mới
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {(systemSettings?.specialties || []).map((spec, index) => (
+                <div key={index} className="flex justify-between items-center px-3 py-2 bg-slate-50 rounded-xl border border-slate-150 hover:bg-slate-100/70 transition">
+                  <span className="text-xs font-bold text-slate-700 truncate mr-2" title={spec}>{spec}</span>
+                  <button
+                    onClick={() => handleRemoveSpecialty(spec)}
+                    className="p-1 hover:bg-rose-100 rounded-lg transition text-rose-505"
+                    title="Gỡ bỏ"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {settingsSubTab === 'formula' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Cấu hình các trường cộng tổng chi phí</h2>
+                <p className="text-xs text-slate-505">Chọn các khoản phí được tính vào Tổng cộng chi phí tự động.</p>
+              </div>
+
+              <div className="space-y-3">
+                {Object.keys(systemSettings?.totalFormulaFields || {}).map((field) => {
+                  const labels = {
+                    phiKham: 'Phí khám/Điều trị',
+                    ngoaiTru: 'Chi phí Ngoại trú',
+                    capCuu: 'Chi phí Cấp cứu',
+                    noiTru: 'Chi phí Nội trú/ICU',
+                    ngoaiVien: 'Chi phí Ngoại viện',
+                    clsCdha: 'Chi phí CLS/CĐHA',
+                    thuocVacxin: 'Chi phí Thuốc/vacxin'
+                  };
+                  return (
+                    <label key={field} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-150 hover:bg-slate-100/50 cursor-pointer transition select-none">
+                      <input
+                        type="checkbox"
+                        checked={!!systemSettings?.totalFormulaFields?.[field]}
+                        onChange={() => handleFormulaCheckboxChange(field)}
+                        className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                      />
+                      <span className="text-xs font-semibold text-slate-700">{labels[field] || field}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Cách tính số tiền được duyệt giảm</h2>
+                <p className="text-xs text-slate-505">Thiết lập công thức tính số tiền giảm khi duyệt giảm phần trăm.</p>
+              </div>
+
+              <div className="space-y-4">
+                <label className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-150 hover:bg-slate-100/50 cursor-pointer transition select-none">
+                  <input
+                    type="radio"
+                    name="discountFormulaType"
+                    checked={systemSettings?.discountFormulaType === 'total_minus_insurance_advance'}
+                    onChange={() => handleDiscountFormulaChange('total_minus_insurance_advance')}
+                    className="mt-1 w-4 h-4 text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 block mb-1">Phương thức 1: Giảm trên chi phí thực thu</span>
+                    <span className="text-[10px] text-slate-500 leading-relaxed block">
+                      Tiền duyệt giảm = (Tổng chi phí - Số tiền BHYT/BHTN trả) × Phần trăm duyệt giảm
+                    </span>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-150 hover:bg-slate-100/50 cursor-pointer transition select-none">
+                  <input
+                    type="radio"
+                    name="discountFormulaType"
+                    checked={systemSettings?.discountFormulaType === 'total_amount_percent'}
+                    onChange={() => handleDiscountFormulaChange('total_amount_percent')}
+                    className="mt-1 w-4 h-4 text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 block mb-1">Phương thức 2: Giảm trên tổng chi phí ban đầu</span>
+                    <span className="text-[10px] text-slate-500 leading-relaxed block">
+                      Tiền duyệt giảm = Tổng chi phí × Phần trăm duyệt giảm
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {settingsSubTab === 'permissions' && (
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 overflow-x-auto">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Bảng phân quyền truy cập hệ thống</h2>
+              <p className="text-xs text-slate-500">Cấu hình các cấp độ quyền thao tác trên các tính năng cho từng vai trò người dùng.</p>
+            </div>
+
+            <table className="w-full border-collapse border border-slate-250 text-xs text-slate-700 min-w-[700px]">
+              <thead>
+                <tr className="bg-slate-50 text-slate-955 font-bold text-center">
+                  <th className="border border-slate-250 p-2.5 text-left w-64">Quyền hạn / Chức năng</th>
+                  <th className="border border-slate-250 p-2.5 w-40">Nhân viên</th>
+                  <th className="border border-slate-250 p-2.5 w-40">Quản lý chi nhánh</th>
+                  <th className="border border-slate-250 p-2.5 w-40">Quản lý hệ thống</th>
+                  <th className="border border-slate-250 p-2.5 w-40">Ban lãnh đạo</th>
+                  <th className="border border-slate-250 p-2.5 w-40">Super Admin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.keys(systemSettings?.permissions || {}).map((permKey) => {
+                  const permLabels = {
+                    'patients:view': 'Xem hồ sơ bệnh nhân',
+                    'patients:create': 'Tiếp nhận bệnh nhân mới',
+                    'patients:update': 'Cập nhật hồ sơ bệnh nhân',
+                    'patients:delete': 'Xóa hồ sơ ca bệnh',
+                    'billing:view': 'Xem thông tin chi phí / miễn giảm',
+                    'billing:discount': 'Phê duyệt miễn giảm chi phí'
+                  };
+                  const roles = ['nhanvien', 'quanly_site', 'quanly', 'lanhdao', 'admin'];
+
+                  return (
+                    <tr key={permKey} className="hover:bg-slate-50/50 transition">
+                      <td className="border border-slate-250 p-2 text-left font-bold text-slate-800">
+                        {permLabels[permKey] || permKey}
+                      </td>
+                      {roles.map((roleKey) => {
+                        const level = systemSettings.permissions?.[permKey]?.[roleKey] || 'none';
+                        return (
+                          <td key={roleKey} className="border border-slate-250 p-1.5 text-center">
+                            <select
+                              value={level}
+                              onChange={(e) => handlePermissionChange(permKey, roleKey, e.target.value)}
+                              className="w-full px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                            >
+                              <option value="all">Toàn quyền</option>
+                              <option value="view_assigned">Xem phân công</option>
+                              <option value="write_assigned">Sửa phân công</option>
+                              <option value="none">Không có quyền</option>
+                            </select>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {settingsSubTab === 'notifications' && (
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6 overflow-x-auto">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Cấu hình nhận thông báo hệ thống</h2>
+              <p className="text-xs text-slate-500">Cấu hình phạm vi nhận thông báo trực tuyến khi có ca bệnh được tạo hoặc cập nhật trạng thái.</p>
+            </div>
+
+            <table className="w-full border-collapse border border-slate-250 text-xs text-slate-700 min-w-[700px]">
+              <thead>
+                <tr className="bg-slate-50 text-slate-955 font-bold text-center">
+                  <th className="border border-slate-250 p-2.5 text-left w-64">Hành động kích hoạt thông báo</th>
+                  <th className="border border-slate-250 p-2.5 w-40">Nhân viên</th>
+                  <th className="border border-slate-250 p-2.5 w-40">Quản lý chi nhánh</th>
+                  <th className="border border-slate-250 p-2.5 w-40">Quản lý hệ thống</th>
+                  <th className="border border-slate-250 p-2.5 w-40">Ban lãnh đạo</th>
+                  <th className="border border-slate-250 p-2.5 w-40">Super Admin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.keys(systemSettings?.notificationPermissions || {}).map((permKey) => {
+                  const permLabels = {
+                    'notify:create': 'Thông báo khi tạo ca mới',
+                    'notify:status': 'Thông báo khi cập nhật trạng thái ca'
+                  };
+                  const roles = ['nhanvien', 'quanly_site', 'quanly', 'lanhdao', 'admin'];
+
+                  return (
+                    <tr key={permKey} className="hover:bg-slate-50/50 transition">
+                      <td className="border border-slate-250 p-2 text-left font-bold text-slate-800">
+                        {permLabels[permKey] || permKey}
+                      </td>
+                      {roles.map((roleKey) => {
+                        const level = systemSettings.notificationPermissions?.[permKey]?.[roleKey] || 'none';
+                        return (
+                          <td key={roleKey} className="border border-slate-250 p-1.5 text-center">
+                            <select
+                              value={level}
+                              onChange={(e) => handleNotificationPermissionChange(permKey, roleKey, e.target.value)}
+                              className="w-full px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                            >
+                              <option value="all">Tất cả thông báo</option>
+                              <option value="assigned_site">Nhận theo chi nhánh</option>
+                              <option value="assigned_only">Chỉ ca được giao</option>
+                              <option value="none">Tắt thông báo</option>
+                            </select>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-20 md:pb-12 relative">
       
@@ -4973,6 +5265,10 @@ export default function App() {
 
         {activeTab === 'reports' && canShowTab('reports') && (
           renderReportsTab()
+        )}
+
+        {activeTab === 'settings' && canShowTab('settings') && (
+          renderSettingsTab()
         )}
 
       </main>
