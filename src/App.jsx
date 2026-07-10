@@ -21,7 +21,7 @@ import {
   signOut,
   onAuthStateChanged
 } from 'firebase/auth';
-import { getMessaging, getToken } from 'firebase/messaging';
+import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import {
   Users,
   Plus,
@@ -526,10 +526,33 @@ export default function App() {
     return false;
   };
 
-  const showNotification = (message, type = 'success') => {
-    setNotification({ message, type });
+  const showNotification = (message, type = 'success', patientId = null) => {
+    setNotification({ message, type, patientId });
     setTimeout(() => setNotification(null), 3500);
   };
+
+  // Lắng nghe thông báo đẩy thời gian thực khi ứng dụng đang mở (Foreground)
+  useEffect(() => {
+    if (!currentUser || !messaging) return;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+
+    try {
+      const unsubscribeMessage = onMessage(messaging, (payload) => {
+        console.log("Foreground message received:", payload);
+        if (payload.notification) {
+          // Bắn thông báo nổi lên giao diện kèm ID ca bệnh (nếu có) để khi bấm vào sẽ dẫn trực tiếp tới đó
+          showNotification(
+            `${payload.notification.title}: ${payload.notification.body}`,
+            payload.data?.isUrgent === "true" ? "error" : "success",
+            payload.data?.patientId || null
+          );
+        }
+      });
+      return () => unsubscribeMessage();
+    } catch (err) {
+      console.warn("Could not set up foreground FCM message listener:", err);
+    }
+  }, [currentUser]);
 
   const triggerPushAlert = (title, message, dataRecipients = [], type = 'info', patientId = null) => {
     const hasTargetedRecipients = Array.isArray(dataRecipients) && dataRecipients.length > 0;
@@ -3922,9 +3945,38 @@ export default function App() {
       )}
 
       {notification && (
-        <div className="fixed top-4 right-4 z-55 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-xl transition-all transform duration-300 translate-y-0 bg-slate-900 text-white">
-          <Check className="w-4 h-4 flex-shrink-0 text-emerald-400" />
-          <span className="font-bold text-xs">{notification.message}</span>
+        <div 
+          onClick={() => {
+            if (notification.patientId) {
+              handleNotificationClick(notification.patientId);
+              setNotification(null);
+            }
+          }}
+          className={`fixed top-4 right-4 z-55 flex flex-col gap-1 px-5 py-3.5 rounded-2xl shadow-2xl border transition-all duration-300 transform translate-y-0 text-white bg-slate-900/95 backdrop-blur-md max-w-sm select-none ${
+            notification.patientId ? 'cursor-pointer hover:bg-slate-800' : 'cursor-default'
+          } ${
+            notification.type === 'error' 
+              ? 'border-rose-500/30 shadow-rose-500/10' 
+              : notification.type === 'info'
+                ? 'border-indigo-500/30 shadow-indigo-500/10'
+                : 'border-emerald-500/30 shadow-emerald-500/10'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            {notification.type === 'error' ? (
+              <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-400 animate-bounce" />
+            ) : notification.type === 'info' ? (
+              <Info className="w-4 h-4 flex-shrink-0 text-indigo-400" />
+            ) : (
+              <Check className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+            )}
+            <span className="font-bold text-xs leading-normal">{notification.message}</span>
+          </div>
+          {notification.patientId && (
+            <span className="text-[9px] text-indigo-300 font-extrabold ml-6.5 uppercase tracking-wider animate-pulse">
+              👉 Nhấp vào đây để xem chi tiết ca bệnh
+            </span>
+          )}
         </div>
       )}
 
@@ -6109,7 +6161,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-404 space-y-1 font-semibold">
-          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.3</p>
+          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.4</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
