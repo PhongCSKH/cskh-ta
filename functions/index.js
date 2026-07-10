@@ -103,8 +103,17 @@ exports.onPatientWrite = functions.firestore
 
     try {
       const response = await admin.messaging().sendEachForMulticast(message);
+      console.log(`FCM Multicast sent. Success count: ${response.successCount}, Failure count: ${response.failureCount}`);
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          console.error(`Token at index ${idx} failed to send. Error:`, resp.error);
+        } else {
+          console.log(`Token at index ${idx} sent successfully.`);
+        }
+      });
       return { success: true, responses: response.responses };
     } catch (error) {
+      console.error("Error sending FCM Multicast:", error);
       return { success: false, error: error.message };
     }
   });
