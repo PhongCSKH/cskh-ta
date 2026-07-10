@@ -618,8 +618,13 @@ export default function App() {
   const saveFcmTokenToDatabase = async (userId) => {
     if (!db || !messaging) return;
     try {
+      let registration = null;
+      if ('serviceWorker' in navigator) {
+        registration = await navigator.serviceWorker.ready;
+      }
       const token = await getToken(messaging, {
-        vapidKey: WEBPUSH_VAPID_KEY
+        vapidKey: WEBPUSH_VAPID_KEY,
+        serviceWorkerRegistration: registration || undefined
       });
       if (token) {
         const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', userId);
@@ -628,7 +633,7 @@ export default function App() {
         });
       }
     } catch (err) {
-      console.warn(err);
+      console.warn("Lỗi khi lưu token FCM:", err);
     }
   };
 
@@ -641,6 +646,7 @@ export default function App() {
     try {
       if ('serviceWorker' in navigator) {
         await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        await navigator.serviceWorker.ready;
       }
       
       const permission = await Notification.requestPermission();
@@ -6178,7 +6184,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-404 space-y-1 font-semibold">
-          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.5</p>
+          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.6</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
