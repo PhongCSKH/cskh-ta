@@ -44,21 +44,34 @@ exports.onPatientWrite = functions.firestore
     const tokens = [];
     const db = admin.firestore();
 
+    // 1. Quét toàn bộ users có quyền quản lý/lãnh đạo/admin trong hệ thống để luôn gửi thông báo cho họ
+    const usersSnapshot = await db.collection("artifacts/cskh-ta/public/data/users").get();
+    usersSnapshot.forEach((doc) => {
+      const userData = doc.data();
+      if (userData) {
+        const isManagerOrAdmin = ["admin", "lanhdao", "quanly"].includes(userData.role);
+        if (isManagerOrAdmin && userData.fcmToken) {
+          tokens.push(userData.fcmToken);
+        }
+      }
+    });
+
+    // 2. Thêm các tokens của người nhận tin chuyên trách (recipients) được chỉ định trong ca bệnh
     if (recipients.length > 0) {
       for (const uid of recipients) {
         const userDoc = await db.collection("artifacts/cskh-ta/public/data/users").doc(uid).get();
         if (userDoc.exists) {
           const userData = userDoc.data();
-          if (userData && userData.fcmToken) {
+          if (userData && userData.fcmToken && !tokens.includes(userData.fcmToken)) {
             tokens.push(userData.fcmToken);
           }
         }
       }
     } else {
-      const usersSnapshot = await db.collection("artifacts/cskh-ta/public/data/users").get();
+      // Nếu không có recipients chỉ định, gửi cho toàn bộ nhân sự có token
       usersSnapshot.forEach((doc) => {
         const userData = doc.data();
-        if (userData && userData.fcmToken) {
+        if (userData && userData.fcmToken && !tokens.includes(userData.fcmToken)) {
           tokens.push(userData.fcmToken);
         }
       });
