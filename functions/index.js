@@ -93,8 +93,8 @@ exports.onPatientWrite = functions.firestore
         notification: {
           title: title,
           body: body,
-          icon: "/favicon.png",
-          badge: "/favicon.png",
+          icon: "https://sv2.anhsieuviet.com/2026/05/29/LOGO-APP-QLKHVIP.png",
+          badge: "https://sv2.anhsieuviet.com/2026/05/29/LOGO-APP-QLKHVIP.png",
           requireInteraction: true
         }
       },
