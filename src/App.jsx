@@ -1137,6 +1137,23 @@ export default function App() {
     }
   }, [currentUser, isFirebaseConnected]);
 
+  // Tự động mở ca bệnh từ tham số URL (dành cho trường hợp nhấp vào thông báo chạy ngầm)
+  useEffect(() => {
+    if (!currentUser || patients.length === 0) return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const urlPatientId = params.get('patientId');
+    if (urlPatientId) {
+      const targetPatient = patients.find(p => p.id === urlPatientId);
+      if (targetPatient) {
+        // Mở chi tiết ca bệnh
+        initiateView(targetPatient);
+        // Xóa tham số URL để tránh mở lại khi load lại trang
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [currentUser, patients]);
+
   const calculatedSums = useMemo(() => {
     if (formData?.tier === 'VIP') {
       return { totalAmount: 0, approvedDiscountAmount: 0 };
@@ -6161,7 +6178,7 @@ export default function App() {
 
       <footer className="hidden md:block mt-12 py-8 bg-slate-100 text-center border-t border-t-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 text-xs text-slate-404 space-y-1 font-semibold">
-          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.4</p>
+          <p className="text-slate-505">CÔNG CỤ NỘI BỘ - PHÒNG CSKH v3.2.5</p>
           <p>Phòng Chăm Sóc Khách Hàng © 2026.</p>
         </div>
       </footer>
