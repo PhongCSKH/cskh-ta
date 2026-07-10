@@ -14,11 +14,12 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const notificationTitle = payload.notification.title;
+  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  const notificationTitle = payload.notification?.title || payload.data?.title || 'Thông báo mới';
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: payload.notification.icon || '/favicon.png',
-    badge: payload.notification.badge || '/favicon.png',
+    body: payload.notification?.body || payload.data?.body || 'Bạn có thông báo mới.',
+    icon: payload.notification?.icon || payload.data?.icon || 'https://sv2.anhsieuviet.com/2026/05/29/LOGO-APP-QLKHVIP.png',
+    badge: payload.notification?.badge || payload.data?.badge || 'https://sv2.anhsieuviet.com/2026/05/29/LOGO-APP-QLKHVIP.png',
     data: payload.data
   };
   self.registration.showNotification(notificationTitle, notificationOptions);
