@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Hàm bổ trợ kiểm tra đăng nhập
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Quy tắc cho bệnh nhân VIP
+    match /artifacts/cskh-ta/public/data/patients/{document} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+      // Cho phép cả Admin và Quản lý hệ thống (quanly) được phép xóa theo phân quyền trong App
+      allow delete: if isSignedIn() && (
+        get(/databases/$(database)/documents/artifacts/cskh-ta/public/data/users/$(request.auth.uid)).data.role == 'admin' ||
+        get(/databases/$(database)/documents/artifacts/cskh-ta/public/data/users/$(request.auth.uid)).data.role == 'quanly'
+      );
+    }
+
+    // Quy tắc cho thông tin cấu hình hệ thống
+    match /artifacts/cskh-ta/public/data/settings/config {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (
+        get(/databases/$(database)/documents/artifacts/cskh-ta/public/data/users/$(request.auth.uid)).data.role == 'admin' ||
+        get(/databases/$(database)/documents/artifacts/cskh-ta/public/data/users/$(request.auth.uid)).data.role == 'lanhdao'
+      );
+    }
+
+    // Quy tắc cho hồ sơ người dùng (Nhân sự)
+    match /artifacts/cskh-ta/public/data/users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (
+        request.auth.uid == userId ||
+        get(/databases/$(database)/documents/artifacts/cskh-ta/public/data/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+  }
+}
